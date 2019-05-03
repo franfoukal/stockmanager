@@ -187,7 +187,7 @@ scratch. This page gets rid of all links and provides the needed markup only.
                     <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
                         <!-- Add icons to the links using the .nav-icon class
                         with font-awesome or any other icon font library -->
-                            
+
                         @each('partials/menu-items', config('adminlte.menu'), 'item')
 
                     </ul>
@@ -204,7 +204,7 @@ scratch. This page gets rid of all links and provides the needed markup only.
                 <div class="container-fluid">
                     <div class="row mb-2">
                         <div class="col-sm-6">
-                            <h1 class="m-0 text-dark">Starter Page</h1>
+                            <h1 class="m-0 text-dark">Dashboard</h1>
                         </div><!-- /.col -->
                         <div class="col-sm-6">
                             <ol class="breadcrumb float-sm-right">
@@ -232,17 +232,16 @@ scratch. This page gets rid of all links and provides the needed markup only.
 
 
             <!-- Main Footer -->
-            <div class="">
+            <div class="fixed-bottom">
                 <footer class="main-footer">
                     <!-- To the right -->
                     <div class="float-right d-none d-sm-inline">
-                        Anything you want
+                        Soft developed for Telecom
                     </div>
                     <!-- Default to the left -->
-                    <strong>Copyright &copy; 2014-2018 <a href="https://adminlte.io">AdminLTE.io</a>.</strong> All rights reserved.
+                    <strong>Copyright &copy; {{date("Y")}} <a href="">Foukal, F.</a></strong>
                 </footer>
             </div>
-
         </div>
         <!-- ./wrapper -->
 

@@ -67,8 +67,8 @@ return [
     'menu' => [
         'MAIN NAVIGATION',
         [
-            'text' => 'Blog',
-            'url'  => 'admin/blog',
+            'text' => 'Materiales',
+            'url'  => '/materiales',
             'can'  => 'manage-blog',
         ],
         [
