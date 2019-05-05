@@ -1,5 +1,6 @@
 <?php
 
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -15,14 +16,18 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/email', function () {
-    return view('auth/passwords/email');
-});
+Route::get('/home', 'HomeController@index');
+ 
+Auth::routes();
+
+//Route::get('/materiales', 'MaterialController@index');
 Route::get('/materiales', function () {
     return view('modules/materiales');
 });
+Route::post('/materiales/agregar', 'MaterialController@store');
+Route::post('/materiales/actualizar', 'MaterialController@update');
 
-Auth::routes();
-
-Route::get('/home', 'HomeController@index')->name('home');
-
+Route::get('/clear-cache', function () {
+    Artisan::call('cache:clear');
+    return "Cache is cleared";
+});

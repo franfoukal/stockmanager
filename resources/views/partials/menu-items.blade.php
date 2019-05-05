@@ -1,5 +1,4 @@
 @if(is_string($item))
-
 @if($item == '-')
 <li class="dropdown-divider"></li>
 @else
@@ -8,7 +7,7 @@
 
 @else
 
-<li class="nav-item {{ isset($item['submenu']) ? 'has-treeview' : '' }}">
+<li class="nav-item {{ isset($item['submenu']) ? 'has-treeview' : ''}}">
     <a href="{{ isset($item['url']) ? $item['url'] : '#' }}" class="nav-link">
         <i class="nav-icon fas fa-{{ isset($item['icon']) ? $item['icon'] : 'circle-notch' }} {{ isset($item['icon_color']) ? 'text-' . $item['icon_color'] : '' }}"></i>
         <p>{{$item['text']}}
