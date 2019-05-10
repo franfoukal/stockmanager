@@ -20,12 +20,13 @@ Route::get('/home', 'HomeController@index');
  
 Auth::routes();
 
-//Route::get('/materiales', 'MaterialController@index');
-Route::get('/materiales', function () {
+Route::get('/materiales', function(){
     return view('modules/materiales');
 });
+Route::get('/materiales/listar', 'MaterialController@index');
 Route::post('/materiales/agregar', 'MaterialController@store');
 Route::post('/materiales/actualizar', 'MaterialController@update');
+Route::delete('/materiales/eliminar/{id}', 'MaterialController@destroy');
 
 Route::get('/clear-cache', function () {
     Artisan::call('cache:clear');

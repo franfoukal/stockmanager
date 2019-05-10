@@ -36,7 +36,7 @@ class MaterialController extends Controller
     public function store(Request $request)
     {
         $material = new Material();
-        $material->codigo = $request->nombre;
+        $material->codigo = $request->codigo;
         $material->descripcion = $request->descripcion;
         $material->save();
     }
@@ -73,7 +73,7 @@ class MaterialController extends Controller
     public function update(Request $request)
     {
         $material = Material::findOrFail($request->id);
-        $material->codigo = $request->nombre;
+        $material->codigo = $request->codigo;
         $material->descripcion = $request->descripcion;
         $material->save();
     }
@@ -86,7 +86,8 @@ class MaterialController extends Controller
      */
     public function destroy($id)
     {
-        //
+        $material = Material::findOrFail($id);
+        $material->delete();
     }
 
     public function deactivate(Request $request)
