@@ -68,8 +68,20 @@ return [
         'MAIN NAVIGATION',
         [
             'text' => 'Materiales',
-            'url'  => '/materiales',
             'can'  => 'manage-blog',
+            'icon' => 'box-open',
+            'submenu' => [
+                [
+                    'text' => 'Agregar Materiales',
+                    'url'  => '/materiales',
+                    'icon' => 'plus',
+                ],
+                [
+                    'text' => 'Agregar Consumo',
+                    'url'  => '/consumo',
+                    'icon' => 'plus',
+                ],
+            ],
         ],
         [
             'text'        => 'Pages',
@@ -78,6 +90,7 @@ return [
             'badge'       => 4,
             'badge_color' => 'success',
         ],
+        
         'ACCOUNT SETTINGS',
         [
             'text' => 'Profile',

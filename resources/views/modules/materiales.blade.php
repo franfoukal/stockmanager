@@ -4,5 +4,6 @@
 
 
 <materiales></materiales>
+<full-Calendar></full-calendar>
 
 @endsection
