@@ -3,6 +3,6 @@
 @section('content')
 
 
-<materiales></materiales>
+<consumos></consumos>
 
 @endsection

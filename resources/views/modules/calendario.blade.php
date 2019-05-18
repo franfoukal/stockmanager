@@ -3,6 +3,6 @@
 @section('content')
 
 
-<materiales></materiales>
+<full-calendar></full-calendar>
 
 @endsection

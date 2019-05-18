@@ -77,6 +77,11 @@ return [
                     'icon' => 'plus',
                 ],
                 [
+                    'text' => 'Calendario',
+                    'url'  => '/calendario',
+                    'icon' => 'calendar',
+                ],
+                [
                     'text' => 'Agregar Consumo',
                     'url'  => '/consumo',
                     'icon' => 'plus',

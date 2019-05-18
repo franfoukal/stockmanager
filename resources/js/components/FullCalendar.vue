@@ -1,4 +1,5 @@
 <template>
+<div>
 <div class="container col-md-7">
   <div class="card">
     <div class="card-header">
@@ -24,10 +25,80 @@
             :weekends="calendarWeekends"
             :events="calendarEvents"
             @dateClick="handleDateClick"
+            @eventClick ="handleEventClick"
             />
         </div>
     </div>
   </div>
+
+  <div class="alert alert-primary" role="alert">
+  A simple primary alert—check it out!
+  </div>
+
+  </div>
+
+  <!-- Modal -->
+        <div class="modal fade" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true" :class="{'mostrar' : modal}">
+          <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title"  v-text="tituloModal"></h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close" @click="cerrarModal()">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+              <div class="modal-body">
+
+                <!--div class="alert alert-warning" v-if="error==1">
+                  <h5><i class="icon fas fa-exclamation-triangle"></i> Alert!</h5>
+                  <p v-for="(errores, index) in msjesError" :key="index">{{errores}}</p>
+                </div-->
+
+                <form action="">
+
+                  <!-- form imput -->
+                  <div class="col-auto">
+                    <label class="sr-only" for="inlineFormInputGroup">Código</label>
+                    <div class="input-group mb-2">
+                      <div class="input-group-prepend">
+                        <div class="input-group-text">
+                          <i class="fas fa-barcode"></i>
+                        </div>
+                      </div>
+                      <input type="text" class="form-control"  placeholder="Código">
+                    </div>
+                  </div>
+                  <!--/form imput -->
+                  <div class="col-auto">
+                    <label class="sr-only" for="inlineFormInputGroup">Descripcion</label>
+                    <div class="input-group mb-2">
+                      <div class="input-group-prepend">
+                        <div class="input-group-text">
+                          <i class="fas fa-align-left"></i>
+                        </div>
+                      </div>
+                      <input type="text" class="form-control"  placeholder="Descripción">
+                    </div>
+                  </div>
+                  <!--/form imput -->
+
+                </form>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" @click="cerrarModal()">Close</button>
+                <button type="button"  class="btn btn-primary">
+                  <i class="fas fa-save"></i> Guardar
+                </button>
+                <button type="button"   class="btn btn-primary">
+                  <i class="fas fa-edit"></i> Editar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!--/modal-->
+
+
 </div>
 </template>
 
@@ -43,6 +114,10 @@ export default {
   },
   data: function() {
     return {
+      modal: 0,
+      tituloModal: 'Ingrese Consumo',
+
+
       calendarPlugins: [ // plugins must be defined in the JS
         dayGridPlugin,
         timeGridPlugin,
@@ -56,7 +131,7 @@ export default {
     }
   },
   methods: {
-    toggleWeekends() {
+    toggleWeekends()   {
       this.calendarWeekends = !this.calendarWeekends // update a property
     },
     gotoPast() {
@@ -71,7 +146,19 @@ export default {
           allDay: arg.allDay
         })
       }
+    },
+
+    handleEventClick(info){
+      this.abrirModal();
+    },
+
+    abrirModal(){
+      this.modal = 1;
+    },
+    cerrarModal(){
+      this.modal = 0;
     }
+
   }
   
 }
@@ -95,4 +182,16 @@ export default {
   margin: 0 auto;
   max-width: 900px;
 }
+.modal-content{
+  width: 100% !important;
+  position: absolute !important;
+}
+  .mostrar{
+    display: list-item !important;
+    opacity: 1 !important;
+    position: absolute !important;
+    background-color: #3c29297A;
+
+  }
+
 </style>
