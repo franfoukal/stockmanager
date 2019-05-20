@@ -1,3 +1,5 @@
+//import * as pt from '../parseTable.js' for use the methods
+
 /**
  * converts array-like object to array
  * @param  collection the object to be converted

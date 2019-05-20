@@ -4,8 +4,8 @@
     <div class="card">
               <div class="card-header">
                 <div class="row">
-                  <h3 class="card-title col">Lista de Materiales</h3>
-                  <button type="button col" @click="abrirModal('materiales', 'nuevo')" class="btn btn-secondary float-right mr-4"> 
+                  <h3 class="card-title col my-auto">Lista de Materiales</h3>
+                  <button type="button col my-auto" @click="abrirModal('materiales', 'nuevo')" class="btn btn-secondary float-right mr-4"> 
                     <i class="fas fa-edit"></i> &nbsp; Nuevo
                   </button>
                 </div>

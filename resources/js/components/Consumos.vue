@@ -1,6 +1,16 @@
 <template>
     <div class="container col-8">
         <div class="card mx-auto ">
+            <div class="card-header">
+                <div class="card-title my-auto">
+                    Agregar Consumo
+                </div>
+
+                <select class="custom-select col-3 ml-auto">
+
+                </select>
+
+            </div>
             <div class="card-body">
                 <table class="table table-bordered" ref="table" id="table">
                     <thead class="thead-dark">
@@ -12,17 +22,17 @@
                         
                     </thead>
                     <tbody>
-                        <tr v-for="material in materiales" :key="material.id" >
-                            <td>{{material.codigo}}</td>
-                            <td>{{material.descripcion}}</td>
-                            <td contenteditable="true"></td>
-
+                        <tr v-for="(material) in materiales" :key="material.id" >
+                            <td name="codigo[]">{{material.codigo}}</td>
+                            <td name="descripcion[]">{{material.descripcion}}</td>
+                            <editable v-model="material.consumo" @input="printMateriales()"></editable>
+                            
                         </tr>
                     </tbody>
                 </table>
             </div>
             <div class="card-footer">
-                <button type="button" @click="tableToJson()" class="btn btn-primary">Primary</button>
+                <button type="button" @click="printMateriales()" class="btn btn-primary">Primary</button>
             </div>
         </div>
 
@@ -30,13 +40,13 @@
 </template>
 
 <script>
-import * as pt from '../parseTable.js'
+
 export default {
 
     data: function(){
         return{
             materiales: [],
-             
+            consumos: []
         } 
     },
 
@@ -58,17 +68,20 @@ export default {
                 });
         },
 
-        tableToJson(){
-            var dat = document.getElementById('table');
-            
-            console.log(pt.parseTable(dat));
-            //console.log(dat.tHead.rows[0].cells);
-        },
+        printMateriales(){
+            console.log(this.materiales);
+            this.consumos = this.materiales.filter(
+                (element) => element.consumo
+            );
 
-        guardarConsumo(){
+            this.consumos.forEach(
+                function(v){ 
+                    delete v.created_at;
+                    delete v.updated_at;
+                });
 
+            console.log(this.consumos);
         }
- 
     },
 
     mounted() {
