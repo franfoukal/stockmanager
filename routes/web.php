@@ -23,7 +23,7 @@ Auth::routes();
 
 //Rutas para materiales
 Route::get('/materiales', function(){
-    return view('modules/materiales');
+    return view('modules/container')->with('component', 'materiales');
 });
 Route::get('/materiales/listar', 'MaterialController@index');
 Route::post('/materiales/agregar', 'MaterialController@store');
@@ -32,13 +32,26 @@ Route::delete('/materiales/eliminar/{id}', 'MaterialController@destroy');
 
 //Rutas para calendario
 Route::get('/calendario', function () {
-    return view('modules/calendario');
+    return view( 'modules/container')->with('component', 'full-calendar');
 });
 
-//Rutas para cconsumo
+//Rutas para consumo
 Route::get('/consumo', function () {
-    return view('modules/consumos');
+    return view('modules/container')->with('component', 'consumos');
 });
+Route::get('/consumo/listar', 'ConsumoController@index');
+Route::post('/consumo/agregar', 'ConsumoController@store');
+Route::post('/consumo/actualizar', 'ConsumoController@update');
+Route::delete('/consumo/eliminar/{id}', 'ConsumoController@destroy');
+
+//Rutas para contratistas
+Route::get('/contratistas', function () {
+    return view( 'modules/container')->with('component', 'contratistas');
+});
+Route::get('/contratistas/listar', 'ContratistaController@index');
+Route::post('/contratistas/agregar', 'ContratistaController@store');
+Route::post('/contratistas/actualizar', 'ContratistaController@update');
+Route::delete('/contratistas/eliminar/{id}', 'ContratistaController@destroy');
 
 
 Route::get('/clear-cache', function () {

@@ -72,11 +72,6 @@ return [
             'icon' => 'box-open',
             'submenu' => [
                 [
-                    'text' => 'Agregar Materiales',
-                    'url'  => '/materiales',
-                    'icon' => 'plus',
-                ],
-                [
                     'text' => 'Calendario',
                     'url'  => '/calendario',
                     'icon' => 'calendar',
@@ -89,11 +84,21 @@ return [
             ],
         ],
         [
-            'text'        => 'Pages',
-            'url'         => 'admin/pages',
+            'text'        => 'Administración',
+            'url'         => '/home',
             'icon'        => 'file',
-            'badge'       => 4,
-            'badge_color' => 'success',
+            'submenu' => [
+                [
+                    'text' => 'Agregar Materiales',
+                    'url'  => '/materiales',
+                    'icon' => 'plus',
+                ],[
+
+                    'text' => 'Agregar Contratistas',
+                    'url'  => '/contratistas',
+                    'icon' => 'industry',
+                ],
+            ],
         ],
         
         'ACCOUNT SETTINGS',

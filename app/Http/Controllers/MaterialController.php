@@ -90,13 +90,5 @@ class MaterialController extends Controller
         $material->delete();
     }
 
-    public function deactivate(Request $request)
-    {
-        //
-    }
-
-    public function activate(Request $request)
-    {
-        //
-    }
+    
 }

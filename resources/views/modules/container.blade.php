@@ -2,7 +2,6 @@
 
 @section('content')
 
-
-<materiales></materiales>
+<{{$component}}></{{$component}}>
 
 @endsection

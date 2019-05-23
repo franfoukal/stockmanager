@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Contratista;
 use Illuminate\Http\Request;
-use App\Consumo;
 
-class ConsumoController extends Controller
+class ContratistaController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -15,7 +15,7 @@ class ConsumoController extends Controller
     public function index()
     {
         //
-        return $consumos = Consumos::all();
+        return $contratistas = Contratista::all();
     }
 
     /**
@@ -25,8 +25,7 @@ class ConsumoController extends Controller
      */
     public function create()
     {
-        
-        
+        //
     }
 
     /**
@@ -38,20 +37,22 @@ class ConsumoController extends Controller
     public function store(Request $request)
     {
         //
-        $consumo = new Consumo();
-        $consumo->fecha = $request->fecha;
-        $consumo->datos_consumo = $request->datos_consumo;
-        $consumo->contratista_id = $request->contratista_id;
-        $consumo->save();
+        $contratista = new Contratista();
+
+        $contratista->nombre = $request->nombre;
+        $contratista->centro_SAP = $request->centro_SAP;
+        $contratista->almacen_SAP = $request->almacen_SAP;
+        $contratista->save();
+
     }
 
     /**
      * Display the specified resource.
      *
-     * @param  int  $id
+     * @param  \App\Contratista  $contratista
      * @return \Illuminate\Http\Response
      */
-    public function show($id)
+    public function show(Contratista $contratista)
     {
         //
     }
@@ -59,10 +60,10 @@ class ConsumoController extends Controller
     /**
      * Show the form for editing the specified resource.
      *
-     * @param  int  $id
+     * @param  \App\Contratista  $contratista
      * @return \Illuminate\Http\Response
      */
-    public function edit($id)
+    public function edit(Contratista $contratista)
     {
         //
     }
@@ -71,31 +72,29 @@ class ConsumoController extends Controller
      * Update the specified resource in storage.
      *
      * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
+     * @param  \App\Contratista  $contratista
      * @return \Illuminate\Http\Response
      */
     public function update(Request $request)
     {
         //
-        $consumo = Consumo::findOrFail($request->id);
-        $consumo->fecha = $request->fecha;
-        $consumo->datos_consumo = $request->datos_consumo;
-        $consumo->contratista_id = $request->contratista_id;
-        $consumo->save();
-
+        $contratista = Contratista::findOrFail($request->id);
+        $contratista->nombre = $request->nombre;
+        $contratista->centro_SAP = $request->centro_SAP;
+        $contratista->almacen_SAP = $request->almacen_SAP;
+        $contratista->save();
     }
 
     /**
      * Remove the specified resource from storage.
      *
-     * @param  int  $id
+     * @param  \App\Contratista  $contratista
      * @return \Illuminate\Http\Response
      */
     public function destroy($id)
     {
         //
-        $consumo = Consumo::findOrFail($id);
-        $consumo->delete();
-
+        $contratista = Contratista::findOrFail($id);
+        $contratista->delete();
     }
 }

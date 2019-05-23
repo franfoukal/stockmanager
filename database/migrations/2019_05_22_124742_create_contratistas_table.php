@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
 
-class CreateConsumosTable extends Migration
+class CreateContratistasTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,9 +13,11 @@ class CreateConsumosTable extends Migration
      */
     public function up()
     {
-        Schema::create('consumos', function (Blueprint $table) {
+        Schema::create('contratistas', function (Blueprint $table) {
             $table->bigIncrements('id');
-            $table->json('datos_consumo');
+            $table->string('nombre', 25);
+            $table->string('centro_SAP', 4);
+            $table->string('almacen_SAP', 4);
             $table->timestamps();
         });
     }
@@ -27,6 +29,6 @@ class CreateConsumosTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('consumos');
+        Schema::dropIfExists('contratistas');
     }
 }
