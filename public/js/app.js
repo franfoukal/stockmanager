@@ -16180,8 +16180,10 @@ __webpack_require__.r(__webpack_exports__);
         contratista_id: me.contr_id
       }).then(function (response) {
         console.log(response);
+        alert(response);
       })["catch"](function (error) {
         console.log(error);
+        alert(error);
       });
     }
   },

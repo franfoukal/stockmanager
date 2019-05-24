@@ -24,7 +24,7 @@ Auth::routes();
 //Rutas para materiales
 Route::get('/materiales', function(){
     return view('modules/container')->with('component', 'materiales');
-});
+})->middleware(['auth', 'auth.admin:admin,user,employee']);
 Route::get('/materiales/listar', 'MaterialController@index');
 Route::post('/materiales/agregar', 'MaterialController@store');
 Route::post('/materiales/actualizar', 'MaterialController@update');

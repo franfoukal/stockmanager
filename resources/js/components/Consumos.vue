@@ -116,9 +116,11 @@ export default {
             })
             .then(function (response) {
                 console.log(response);
+                alert(response);
             })
             .catch(function (error) {
                 console.log(error);
+                alert(error);
             });
         }   
 
