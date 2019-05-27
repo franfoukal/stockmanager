@@ -1,6 +1,6 @@
 <template>
-    <div class="container col-8">
-        <div class="card mx-auto ">
+    <div class="container col-md-7 mb-5">
+        <div class="card mx-auto">
             <div class="card-header">
                 <div class="row">
                     <div class="card-title my-auto col">
@@ -16,24 +16,26 @@
                 </div>
             </div>
             <div class="card-body">
-                <table class="table table-bordered" ref="table" id="table">
-                    <thead class="thead-dark">
-                        <tr>
-                        <th>Código</th>
-                        <th>Descripción</th>
-                        <th>Cantidad</th>
-                        </tr>
-                        
-                    </thead>
-                    <tbody>
-                        <tr v-for="(material) in materiales" :key="material.id" >
-                            <td>{{material.codigo}}</td>
-                            <td>{{material.descripcion}}</td>
-                            <editable v-model="material.consumo"></editable>
+                <div class="table-responsive">
+                    <table class="table table-bordered" ref="table" id="table">
+                        <thead class="thead-dark">
+                            <tr>
+                            <th>Código</th>
+                            <th>Descripción</th>
+                            <th>Cantidad</th>
+                            </tr>
                             
-                        </tr>
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            <tr v-for="(material) in materiales" :key="material.id" >
+                                <td>{{material.codigo}}</td>
+                                <td>{{material.descripcion}}</td>
+                                <editable v-model="material.consumo"></editable>
+                                
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
             <div class="card-footer">
                 <button type="button" @click="guardarConsumo()" class="btn btn-primary">Guardar</button>

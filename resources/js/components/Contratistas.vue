@@ -12,32 +12,35 @@
               </div>
               <!-- /.card-header -->
               <div class="card-body">
-                <table class="table table-bordered">
-                  <tbody><tr>
-                    <th style="width: 10px">#</th>
-                    <th>Nombre</th>
-                    <th>Centro</th>
-                    <th>Almacén</th>
-                    <th>Acciones</th>
-                  </tr>
-                  <tr v-for="contratista in tableData" :key="contratista.id">
-                    <td v-text="contratista.id"></td>
-                    <td v-text="contratista.nombre"></td>
-                    <td v-text="contratista.centro_SAP"></td>
-                    <td v-text="contratista.almacen_SAP"></td>
-                    <td> 
-                      <div class="btn-group" role="group" aria-label="Basic example">
-                        <button type="button" class="btn btn-warning btn-sm" @click="abrirModal('elementos', 'editar', contratista)"> 
-                          <i class="fas fa-edit"></i>
-                        </button>
-                        <button type="button" class="btn btn-danger btn-sm" @click="borrar(contratista)"> 
-                          <i class="fas fa-trash"></i>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                  
-                </tbody></table>
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                      <tbody>
+                        <tr>
+                          <th style="width: 10px">#</th>
+                          <th>Nombre</th>
+                          <th>Centro</th>
+                          <th>Almacén</th>
+                          <th>Acciones</th>
+                        </tr>
+                      <tr v-for="contratista in tableData" :key="contratista.id">
+                        <td v-text="contratista.id"></td>
+                        <td v-text="contratista.nombre"></td>
+                        <td v-text="contratista.centro_SAP"></td>
+                        <td v-text="contratista.almacen_SAP"></td>
+                        <td> 
+                          <div class="btn-group" role="group" aria-label="Basic example">
+                            <button type="button" class="btn btn-warning btn-sm" @click="abrirModal('elementos', 'editar', contratista)"> 
+                              <i class="fas fa-edit"></i>
+                            </button>
+                            <button type="button" class="btn btn-danger btn-sm" @click="borrar(contratista)"> 
+                              <i class="fas fa-trash"></i>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                      </tbody>
+                  </table>
+                </div>
               </div>
               <!-- /.card-body -->
               <div class="card-footer clearfix">

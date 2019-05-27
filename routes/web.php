@@ -24,7 +24,7 @@ Auth::routes();
 //Rutas para materiales
 Route::get('/materiales', function(){
     return view('modules/container')->with('component', 'materiales');
-})->middleware(['auth', 'auth.admin:admin,user,employee']);
+})->middleware(['auth', 'auth.admin:admin, user,employee']);
 Route::get('/materiales/listar', 'MaterialController@index');
 Route::post('/materiales/agregar', 'MaterialController@store');
 Route::post('/materiales/actualizar', 'MaterialController@update');
@@ -53,6 +53,12 @@ Route::post('/contratistas/agregar', 'ContratistaController@store');
 Route::post('/contratistas/actualizar', 'ContratistaController@update');
 Route::delete('/contratistas/eliminar/{id}', 'ContratistaController@destroy');
 
+//Rutas para usuarios
+Route::get('/user', function () {
+    return view('modules/container')->with('component', 'usuarios');
+});
+Route::get('/user/list', 'UserController@index');
+Route::get('/user/roles', 'UserController@getRoles');
 
 Route::get('/clear-cache', function () {
     Artisan::call('cache:clear');

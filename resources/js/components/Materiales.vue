@@ -12,6 +12,7 @@
               </div>
               <!-- /.card-header -->
               <div class="card-body">
+                <div class="table-responsive">
                 <table class="table table-bordered">
                   <tbody><tr>
                     <th style="width: 10px">#</th>
@@ -36,6 +37,7 @@
                   </tr>
                   
                 </tbody></table>
+                </div>
               </div>
               <!-- /.card-body -->
               <div class="card-footer clearfix">

@@ -37,7 +37,8 @@ class RegisterController extends Controller
      */
     public function __construct()
     {
-        $this->middleware('guest');
+        $this->middleware('auth.admin:admin');
+        //$this->middleware('guest'); para entrar desde pagina principal
     }
 
     /**

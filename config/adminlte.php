@@ -103,25 +103,30 @@ return [
         
         'ACCOUNT SETTINGS',
         [
-            'text' => 'Profile',
+            'text' => 'Perfil usuario',
             'url'  => 'admin/settings',
             'icon' => 'user',
         ],
         [
-            'text' => 'Change Password',
+            'text' => 'Cambiar Contraseña',
             'url'  => 'admin/settings',
             'icon' => 'lock',
         ],
         [
-            'text'    => 'Multilevel',
+            'text'    => 'User Lab',
             'icon'    => 'share',
             'submenu' => [
                 [
-                    'text' => 'Level One',
-                    'url'  => '#',
-                    'badge' => '2',
-                    'badge_color' => 'danger',
+                    'text' => 'Crear Usuario',
+                    'url'  => '/register',
+                    'icon' =>'user-plus',
                 ],
+                [
+                    'text' => 'Lista de Usuarios',
+                    'url'  => '/user',
+                    'icon' => 'address-card',
+                ],
+
                 [
                     'text'    => 'Level One',
                     'url'     => '#',

@@ -24,6 +24,7 @@ Vue.component('full-calendar', require('./components/FullCalendar.vue').default)
 Vue.component('consumos', require('./components/Consumos.vue').default);
 Vue.component('editable', require('./components/EditableContent.vue').default);
 Vue.component('contratistas', require('./components/Contratistas.vue').default);
+Vue.component('usuarios', require('./components/Usuarios.vue').default);
 /**
  * Next, we will create a fresh Vue application instance and attach it to
  * the page. Then, you may begin adding components to this application
