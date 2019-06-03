@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Consumo;
+use Illuminate\Support\Facades\Auth;
 
 class ConsumoController extends Controller
 {
@@ -42,6 +43,7 @@ class ConsumoController extends Controller
         $consumo->fecha = $request->fecha;
         $consumo->datos_consumo = $request->datos_consumo;
         $consumo->contratista_id = $request->contratista_id;
+        $consumo->added_by = Auth::user()->name;
         $consumo->save();
     }
 
@@ -81,6 +83,7 @@ class ConsumoController extends Controller
         $consumo->fecha = $request->fecha;
         $consumo->datos_consumo = $request->datos_consumo;
         $consumo->contratista_id = $request->contratista_id;
+        $consumo->added_by = Auth::user()->name;
         $consumo->save();
 
     }

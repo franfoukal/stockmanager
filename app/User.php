@@ -16,7 +16,7 @@ class User extends Authenticatable
      * @var array
      */
     protected $fillable = [
-        'name', 'email', 'password',
+        'name', 'email', 'password', 'added_by'
     ];
 
     /**
@@ -41,13 +41,18 @@ class User extends Authenticatable
         return $this->belongsToMany('App\Role');
     }
 
+    public function contratista()
+    {
+        return $this->belongsToMany('App\Contratista');
+    }
+
     public function hasAnyRoles($roles){
         return null !== $this->roles()->whereIn('name', $roles)->first(); 
     }
 
     public function hasAnyRole($role)
     {
-        return null !== $this->role()->where('name', $role)->first();
+        return null !== $this->roles()->where('name', $role)->first();
         
     }
 
@@ -56,4 +61,6 @@ class User extends Authenticatable
         abort_unless($this->hasAnyRole($roles), 401);
         return true;
     }
+
+    
 }

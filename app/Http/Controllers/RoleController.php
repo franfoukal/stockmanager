@@ -3,10 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Material;
-use Illuminate\Support\Facades\Auth;
 
-class MaterialController extends Controller
+class RoleController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -15,9 +13,7 @@ class MaterialController extends Controller
      */
     public function index()
     {
-        //$this->middleware('auth.admin:admin');
-        return $materiales = Material::all();
-
+        return $roles = Role::all();
     }
 
     /**
@@ -27,7 +23,7 @@ class MaterialController extends Controller
      */
     public function create()
     {
-        
+        //
     }
 
     /**
@@ -38,11 +34,7 @@ class MaterialController extends Controller
      */
     public function store(Request $request)
     {
-        $material = new Material();
-        $material->codigo = $request->codigo;
-        $material->descripcion = $request->descripcion;
-        $material->added_by = Auth::user()->name;
-        $material->save();
+        //
     }
 
     /**
@@ -74,13 +66,9 @@ class MaterialController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request)
+    public function update(Request $request, $id)
     {
-        $material = Material::findOrFail($request->id);
-        $material->codigo = $request->codigo;
-        $material->descripcion = $request->descripcion;
-        $material->added_by = Auth::user()->name;
-        $material->save();
+        //
     }
 
     /**
@@ -91,9 +79,6 @@ class MaterialController extends Controller
      */
     public function destroy($id)
     {
-        $material = Material::findOrFail($id);
-        $material->delete();
+        //
     }
-
-    
 }

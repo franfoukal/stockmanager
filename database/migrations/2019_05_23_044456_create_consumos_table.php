@@ -19,6 +19,7 @@ class CreateConsumosTable extends Migration
             $table->date('fecha');
             $table-> unsignedBigInteger('contratista_id');
             $table->foreign('contratista_id')->references('id')->on('contratistas')->onDelete('cascade');
+            $table->string('added_by')->default('admin');
             $table->timestamps();
         });
     }

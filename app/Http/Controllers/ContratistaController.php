@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Contratista;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class ContratistaController extends Controller
 {
@@ -42,6 +43,7 @@ class ContratistaController extends Controller
         $contratista->nombre = $request->nombre;
         $contratista->centro_SAP = $request->centro_SAP;
         $contratista->almacen_SAP = $request->almacen_SAP;
+        $contratista->added_by = Auth::user()->name;
         $contratista->save();
 
     }
@@ -82,6 +84,7 @@ class ContratistaController extends Controller
         $contratista->nombre = $request->nombre;
         $contratista->centro_SAP = $request->centro_SAP;
         $contratista->almacen_SAP = $request->almacen_SAP;
+        $contratista->added_by = Auth::user()->name;
         $contratista->save();
     }
 

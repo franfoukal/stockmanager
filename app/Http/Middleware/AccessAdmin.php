@@ -17,7 +17,7 @@ class AccessAdmin
     public function handle($request, Closure $next, ...$role)
     {
         
-        if (\Auth::user()->hasAnyroles($role)) {
+        if (\Auth::user()->hasAnyrole($role)) {
             return $next($request);
         }
 

@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\User;
-use App\Role;
+use App\Role;   
 
 class UserController extends Controller
 {
@@ -15,8 +15,9 @@ class UserController extends Controller
      */
     public function index()
     {
-        //
-        return $usuarios = User::all();
+        
+        $users = User::with(['roles', 'contratista'])->get();
+        return $users;
     }
 
     /**
@@ -83,6 +84,21 @@ class UserController extends Controller
     public function destroy($id)
     {
         //
+    }
+
+    public function getRoles(){
+        return $roles = Role::all();
+    }
+
+    public function attachUser(Request $request){
+        $user = User::findOrFail($request->id);
+        $role = $user->roles()->get();
+        $cont = $user->contratista()->get();
+        $user->roles()->detach($role);
+        $user->roles()->attach($request->id_role);
+        $user->contratista()->detach($cont);
+        $user->contratista()->attach($request->id_cont);
+        
     }
 
 }

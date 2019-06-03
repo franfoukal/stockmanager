@@ -11,4 +11,10 @@ class Contratista extends Model
         'nombre', 'centro_SAP', 'almacen_SAP'
     ];
 
+
+    public function contratista()
+    {
+        return $this->belongsToMany('App\User');
+    }
+
 }

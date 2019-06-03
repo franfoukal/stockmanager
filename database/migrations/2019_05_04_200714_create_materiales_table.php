@@ -17,6 +17,7 @@ class CreateMaterialesTable extends Migration
             $table->bigIncrements('id');
             $table->integer('codigo');
             $table->string('descripcion');
+            $table->string('added_by')->default('admin');
             $table->timestamps();
         });
     }

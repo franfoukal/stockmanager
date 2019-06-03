@@ -59,6 +59,7 @@ Route::get('/user', function () {
 });
 Route::get('/user/list', 'UserController@index');
 Route::get('/user/roles', 'UserController@getRoles');
+Route::post('/user/config', 'UserController@attachUser');
 
 Route::get('/clear-cache', function () {
     Artisan::call('cache:clear');
