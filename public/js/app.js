@@ -14436,7 +14436,6 @@ var buildURL = __webpack_require__(/*! ./../helpers/buildURL */ "./node_modules/
 var parseHeaders = __webpack_require__(/*! ./../helpers/parseHeaders */ "./node_modules/axios/lib/helpers/parseHeaders.js");
 var isURLSameOrigin = __webpack_require__(/*! ./../helpers/isURLSameOrigin */ "./node_modules/axios/lib/helpers/isURLSameOrigin.js");
 var createError = __webpack_require__(/*! ../core/createError */ "./node_modules/axios/lib/core/createError.js");
-var btoa = (typeof window !== 'undefined' && window.btoa && window.btoa.bind(window)) || __webpack_require__(/*! ./../helpers/btoa */ "./node_modules/axios/lib/helpers/btoa.js");
 
 module.exports = function xhrAdapter(config) {
   return new Promise(function dispatchXhrRequest(resolve, reject) {
@@ -14448,22 +14447,6 @@ module.exports = function xhrAdapter(config) {
     }
 
     var request = new XMLHttpRequest();
-    var loadEvent = 'onreadystatechange';
-    var xDomain = false;
-
-    // For IE 8/9 CORS support
-    // Only supports POST and GET calls and doesn't returns the response headers.
-    // DON'T do this for testing b/c XMLHttpRequest is mocked, not XDomainRequest.
-    if ( true &&
-        typeof window !== 'undefined' &&
-        window.XDomainRequest && !('withCredentials' in request) &&
-        !isURLSameOrigin(config.url)) {
-      request = new window.XDomainRequest();
-      loadEvent = 'onload';
-      xDomain = true;
-      request.onprogress = function handleProgress() {};
-      request.ontimeout = function handleTimeout() {};
-    }
 
     // HTTP basic authentication
     if (config.auth) {
@@ -14478,8 +14461,8 @@ module.exports = function xhrAdapter(config) {
     request.timeout = config.timeout;
 
     // Listen for ready state
-    request[loadEvent] = function handleLoad() {
-      if (!request || (request.readyState !== 4 && !xDomain)) {
+    request.onreadystatechange = function handleLoad() {
+      if (!request || request.readyState !== 4) {
         return;
       }
 
@@ -14496,9 +14479,8 @@ module.exports = function xhrAdapter(config) {
       var responseData = !config.responseType || config.responseType === 'text' ? request.responseText : request.response;
       var response = {
         data: responseData,
-        // IE sends 1223 instead of 204 (https://github.com/axios/axios/issues/201)
-        status: request.status === 1223 ? 204 : request.status,
-        statusText: request.status === 1223 ? 'No Content' : request.statusText,
+        status: request.status,
+        statusText: request.statusText,
         headers: responseHeaders,
         config: config,
         request: request
@@ -15311,54 +15293,6 @@ module.exports = function bind(fn, thisArg) {
 
 /***/ }),
 
-/***/ "./node_modules/axios/lib/helpers/btoa.js":
-/*!************************************************!*\
-  !*** ./node_modules/axios/lib/helpers/btoa.js ***!
-  \************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-// btoa polyfill for IE<10 courtesy https://github.com/davidchambers/Base64.js
-
-var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
-
-function E() {
-  this.message = 'String contains an invalid character';
-}
-E.prototype = new Error;
-E.prototype.code = 5;
-E.prototype.name = 'InvalidCharacterError';
-
-function btoa(input) {
-  var str = String(input);
-  var output = '';
-  for (
-    // initialize result and counter
-    var block, charCode, idx = 0, map = chars;
-    // if the next str index does not exist:
-    //   change the mapping table to "="
-    //   check if d has no fractional digits
-    str.charAt(idx | 0) || (map = '=', idx % 1);
-    // "8 - idx % 1 * 8" generates the sequence 2, 4, 6, 8
-    output += map.charAt(63 & block >> 8 - idx % 1 * 8)
-  ) {
-    charCode = str.charCodeAt(idx += 3 / 4);
-    if (charCode > 0xFF) {
-      throw new E();
-    }
-    block = block << 8 | charCode;
-  }
-  return output;
-}
-
-module.exports = btoa;
-
-
-/***/ }),
-
 /***/ "./node_modules/axios/lib/helpers/buildURL.js":
 /*!****************************************************!*\
   !*** ./node_modules/axios/lib/helpers/buildURL.js ***!
@@ -15773,7 +15707,7 @@ module.exports = function spread(callback) {
 
 
 var bind = __webpack_require__(/*! ./helpers/bind */ "./node_modules/axios/lib/helpers/bind.js");
-var isBuffer = __webpack_require__(/*! is-buffer */ "./node_modules/is-buffer/index.js");
+var isBuffer = __webpack_require__(/*! is-buffer */ "./node_modules/axios/node_modules/is-buffer/index.js");
 
 /*global toString:true*/
 
@@ -16077,6 +16011,28 @@ module.exports = {
 
 /***/ }),
 
+/***/ "./node_modules/axios/node_modules/is-buffer/index.js":
+/*!************************************************************!*\
+  !*** ./node_modules/axios/node_modules/is-buffer/index.js ***!
+  \************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+/*!
+ * Determine if an object is a Buffer
+ *
+ * @author   Feross Aboukhadijeh <https://feross.org>
+ * @license  MIT
+ */
+
+module.exports = function isBuffer (obj) {
+  return obj != null && obj.constructor != null &&
+    typeof obj.constructor.isBuffer === 'function' && obj.constructor.isBuffer(obj)
+}
+
+
+/***/ }),
+
 /***/ "./node_modules/babel-loader/lib/index.js?!./node_modules/vue-loader/lib/index.js?!./resources/js/components/Consumos.vue?vue&type=script&lang=js&":
 /*!*******************************************************************************************************************************************************************!*\
   !*** ./node_modules/babel-loader/lib??ref--4-0!./node_modules/vue-loader/lib??vue-loader-options!./resources/js/components/Consumos.vue?vue&type=script&lang=js& ***!
@@ -16133,6 +16089,12 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
+//
+//
+//
 /* harmony default export */ __webpack_exports__["default"] = ({
   data: function data() {
     return {
@@ -16140,7 +16102,9 @@ __webpack_require__.r(__webpack_exports__);
       consumos: [],
       contratistas: [],
       contr_id: '',
-      fecha: ''
+      fecha: '',
+      cur_user: '',
+      cur_cont: ''
     };
   },
   methods: {
@@ -16409,13 +16373,16 @@ __webpack_require__.r(__webpack_exports__);
     },
     borrar: function borrar() {
       var data = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : [];
-      var me = this;
-      var uri = '/contratistas/eliminar/' + data.id;
-      axios["delete"](uri).then(function (response) {})["catch"](function (error) {
-        console.log(error);
-      })["finally"](function () {
-        me.listar();
-      });
+
+      if (confirm('¿Borrar Contratista?')) {
+        var me = this;
+        var uri = '/contratistas/eliminar/' + data.id;
+        axios["delete"](uri).then(function (response) {})["catch"](function (error) {
+          console.log(error);
+        })["finally"](function () {
+          me.listar();
+        });
+      }
     },
     abrirModal: function abrirModal(modelo, accion) {
       var data = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : [];
@@ -16647,6 +16614,7 @@ __webpack_require__.r(__webpack_exports__);
     return {
       modal: 0,
       tituloModal: 'Ingrese Consumo',
+      events: [],
       calendarPlugins: [// plugins must be defined in the JS
       _fullcalendar_daygrid__WEBPACK_IMPORTED_MODULE_1___default.a, _fullcalendar_timegrid__WEBPACK_IMPORTED_MODULE_2___default.a, _fullcalendar_interaction__WEBPACK_IMPORTED_MODULE_3___default.a // needed for dateClick
       ],
@@ -16681,13 +16649,28 @@ __webpack_require__.r(__webpack_exports__);
       }
     },
     handleEventClick: function handleEventClick(info) {
-      this.abrirModal();
+      this.getEvents();
     },
     abrirModal: function abrirModal() {
       this.modal = 1;
     },
     cerrarModal: function cerrarModal() {
       this.modal = 0;
+    },
+    getEvents: function getEvents() {
+      var me = this;
+      var date = me.$refs.fullCalendar.getApi().getDate();
+      var month = date.getMonth();
+      var uri = '/consumo/fecha/' + (month + 1);
+      axios.get(uri).then(function (response) {
+        me.events = response.data;
+        console.log(response);
+        console.log(month + 1);
+      })["catch"](function (error) {
+        // handle error
+        console.log(error);
+      })["finally"](function () {// always executed
+      });
     }
   }
 });
@@ -16888,13 +16871,16 @@ __webpack_require__.r(__webpack_exports__);
     },
     borrarMaterial: function borrarMaterial() {
       var data = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : [];
-      var me = this;
-      var uri = '/materiales/eliminar/' + data.id;
-      axios["delete"](uri).then(function (response) {})["catch"](function (error) {
-        console.log(error);
-      })["finally"](function () {
-        me.listarMateriales();
-      });
+
+      if (confirm('¿Borrar Material?')) {
+        var me = this;
+        var uri = '/materiales/eliminar/' + data.id;
+        axios["delete"](uri).then(function (response) {})["catch"](function (error) {
+          console.log(error);
+        })["finally"](function () {
+          me.listarMateriales();
+        });
+      }
     },
     abrirModal: function abrirModal(modelo, accion) {
       var data = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : [];
@@ -17096,6 +17082,8 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
 /* harmony default export */ __webpack_exports__["default"] = ({
   data: function data() {
     return {
@@ -17135,11 +17123,11 @@ __webpack_require__.r(__webpack_exports__);
     },
     getAllResponses: function getAllResponses() {
       var me = this;
-      Promise.all([axios.get('/user/list'), axios.get('/contratistas/listar'), axios.get('/user/roles')]).then(axios.spread(function (userRes, contRes, rolesRes) {
+      Promise.all([axios.get('/user/list'), axios.get('/contratistas/listar'), axios.get('/user/roles'), axios.get('/consumo/fecha/05')]).then(axios.spread(function (userRes, contRes, rolesRes, cRes) {
         me.users = userRes.data;
         me.conts = contRes.data;
         me.roles = rolesRes.data;
-        console.log(userRes, contRes, rolesRes);
+        console.log(cRes.data);
       }));
     },
     validarCampos: function validarCampos() {
@@ -21842,38 +21830,6 @@ function toComment(sourceMap) {
 	var data = 'sourceMappingURL=data:application/json;charset=utf-8;base64,' + base64;
 
 	return '/*# ' + data + ' */';
-}
-
-
-/***/ }),
-
-/***/ "./node_modules/is-buffer/index.js":
-/*!*****************************************!*\
-  !*** ./node_modules/is-buffer/index.js ***!
-  \*****************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-/*!
- * Determine if an object is a Buffer
- *
- * @author   Feross Aboukhadijeh <https://feross.org>
- * @license  MIT
- */
-
-// The _isBuffer check is for Safari 5-7 support, because it's missing
-// Object.prototype.constructor. Remove this eventually
-module.exports = function (obj) {
-  return obj != null && (isBuffer(obj) || isSlowBuffer(obj) || !!obj._isBuffer)
-}
-
-function isBuffer (obj) {
-  return !!obj.constructor && typeof obj.constructor.isBuffer === 'function' && obj.constructor.isBuffer(obj)
-}
-
-// For Node v0.10 support. Remove this eventually.
-function isSlowBuffer (obj) {
-  return typeof obj.readFloatLE === 'function' && typeof obj.slice === 'function' && isBuffer(obj.slice(0, 0))
 }
 
 
@@ -53350,49 +53306,104 @@ var render = function() {
             }
           }),
           _vm._v(" "),
-          _c(
-            "select",
-            {
-              directives: [
+          _vm.$attrs.cur_cont[0] !== undefined
+            ? _c(
+                "select",
                 {
-                  name: "model",
-                  rawName: "v-model",
-                  value: _vm.contr_id,
-                  expression: "contr_id"
-                }
-              ],
-              staticClass: "custom-select col-3 mr-2",
-              on: {
-                change: function($event) {
-                  var $$selectedVal = Array.prototype.filter
-                    .call($event.target.options, function(o) {
-                      return o.selected
-                    })
-                    .map(function(o) {
-                      var val = "_value" in o ? o._value : o.value
-                      return val
-                    })
-                  _vm.contr_id = $event.target.multiple
-                    ? $$selectedVal
-                    : $$selectedVal[0]
-                }
-              }
-            },
-            _vm._l(_vm.contratistas, function(contratista) {
-              return _c(
-                "option",
-                { key: contratista.id, domProps: { value: contratista.id } },
+                  directives: [
+                    {
+                      name: "model",
+                      rawName: "v-model",
+                      value: _vm.contr_id,
+                      expression: "contr_id"
+                    }
+                  ],
+                  staticClass: "custom-select col-3 mr-2",
+                  on: {
+                    change: function($event) {
+                      var $$selectedVal = Array.prototype.filter
+                        .call($event.target.options, function(o) {
+                          return o.selected
+                        })
+                        .map(function(o) {
+                          var val = "_value" in o ? o._value : o.value
+                          return val
+                        })
+                      _vm.contr_id = $event.target.multiple
+                        ? $$selectedVal
+                        : $$selectedVal[0]
+                    }
+                  }
+                },
                 [
-                  _vm._v(
-                    "\n                       " +
-                      _vm._s(contratista.nombre) +
-                      "\n                    "
-                  )
+                  _vm.$attrs.cur_cont[0] !== undefined
+                    ? _c(
+                        "option",
+                        {
+                          attrs: { selected: "" },
+                          domProps: { value: _vm.$attrs.cur_cont[0].id }
+                        },
+                        [_vm._v(" " + _vm._s(_vm.$attrs.cur_cont[0].nombre))]
+                      )
+                    : _vm._e()
                 ]
               )
-            }),
-            0
-          )
+            : _c(
+                "select",
+                {
+                  directives: [
+                    {
+                      name: "model",
+                      rawName: "v-model",
+                      value: _vm.contr_id,
+                      expression: "contr_id"
+                    }
+                  ],
+                  staticClass: "custom-select col-3 mr-2",
+                  on: {
+                    change: function($event) {
+                      var $$selectedVal = Array.prototype.filter
+                        .call($event.target.options, function(o) {
+                          return o.selected
+                        })
+                        .map(function(o) {
+                          var val = "_value" in o ? o._value : o.value
+                          return val
+                        })
+                      _vm.contr_id = $event.target.multiple
+                        ? $$selectedVal
+                        : $$selectedVal[0]
+                    }
+                  }
+                },
+                [
+                  _vm.$attrs.cur_cont[0] !== undefined
+                    ? _c(
+                        "option",
+                        { domProps: { value: _vm.$attrs.cur_cont[0].id } },
+                        [_vm._v(" " + _vm._s(_vm.$attrs.cur_cont[0].nombre))]
+                      )
+                    : _vm._e(),
+                  _vm._v(" "),
+                  _vm._l(_vm.contratistas, function(contratista) {
+                    return _c(
+                      "option",
+                      {
+                        key: contratista.id,
+                        domProps: { value: contratista.id }
+                      },
+                      [
+                        _vm._v(
+                          "\n                       " +
+                            _vm._s(contratista.nombre) +
+                            "\n                    "
+                        )
+                      ]
+                    )
+                  })
+                ],
+                2
+              )
         ])
       ]),
       _vm._v(" "),
@@ -53566,7 +53577,7 @@ var render = function() {
                             _c(
                               "button",
                               {
-                                staticClass: "btn btn-warning btn-sm",
+                                staticClass: "btn btn-outline-info btn-sm",
                                 attrs: { type: "button" },
                                 on: {
                                   click: function($event) {
@@ -53584,7 +53595,7 @@ var render = function() {
                             _c(
                               "button",
                               {
-                                staticClass: "btn btn-danger btn-sm",
+                                staticClass: "btn btn-outline-danger btn-sm",
                                 attrs: { type: "button" },
                                 on: {
                                   click: function($event) {
@@ -54303,7 +54314,7 @@ var render = function() {
                             _c(
                               "button",
                               {
-                                staticClass: "btn btn-warning btn-sm",
+                                staticClass: "btn btn-outline-info btn-sm",
                                 attrs: { type: "button" },
                                 on: {
                                   click: function($event) {
@@ -54321,7 +54332,7 @@ var render = function() {
                             _c(
                               "button",
                               {
-                                staticClass: "btn btn-danger btn-sm",
+                                staticClass: "btn btn-outline-danger btn-sm",
                                 attrs: { type: "button" },
                                 on: {
                                   click: function($event) {
@@ -54699,7 +54710,7 @@ var render = function() {
                         _c(
                           "button",
                           {
-                            staticClass: "btn btn-outline-info",
+                            staticClass: "btn btn-outline-info btn-sm",
                             attrs: { type: "button" },
                             on: {
                               click: function($event) {
@@ -54707,7 +54718,7 @@ var render = function() {
                               }
                             }
                           },
-                          [_vm._v("Editar")]
+                          [_c("i", { staticClass: "fas fa-edit" })]
                         )
                       ])
                     ])

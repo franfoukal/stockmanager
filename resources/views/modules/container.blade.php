@@ -2,6 +2,6 @@
 
 @section('content')
 
-<{{$component}}></{{$component}}>
+<{{$component}} :cur_cont="{{Auth::user()->contratista()->get()}}"></{{$component}}>
 
 @endsection

@@ -29,10 +29,10 @@
                         <td v-text="contratista.almacen_SAP"></td>
                         <td> 
                           <div class="btn-group" role="group" aria-label="Basic example">
-                            <button type="button" class="btn btn-warning btn-sm" @click="abrirModal('elementos', 'editar', contratista)"> 
+                            <button type="button" class="btn btn-outline-info btn-sm" @click="abrirModal('elementos', 'editar', contratista)"> 
                               <i class="fas fa-edit"></i>
                             </button>
-                            <button type="button" class="btn btn-danger btn-sm" @click="borrar(contratista)"> 
+                            <button type="button" class="btn btn-outline-danger btn-sm" @click="borrar(contratista)"> 
                               <i class="fas fa-trash"></i>
                             </button>
                           </div>
@@ -218,7 +218,8 @@ export default {
 
     borrar(data = []){
 
-        let me = this;
+       if(confirm('¿Borrar Contratista?')){
+          let me = this;
         var uri = '/contratistas/eliminar/' + data.id;
         axios.delete(uri)
         .then(function (response) {
@@ -230,6 +231,7 @@ export default {
         .finally(function () {
             me.listar();
         });
+        }
     },
 
     abrirModal(modelo, accion, data = []){

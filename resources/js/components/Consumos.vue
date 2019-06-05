@@ -6,10 +6,16 @@
                     <div class="card-title my-auto col">
                         Agregar Consumo
                     </div>
+                    
                     <input type="date" class="form-control col-3 mr-2" v-model="fecha">
-
-                    <select class="custom-select col-3 mr-2" v-model="contr_id">
-                        <option v-for="contratista in contratistas" :key="contratista.id" v-bind:value="contratista.id">
+                    
+                    <select class="custom-select col-3 mr-2" v-model="contr_id" v-if="$attrs.cur_cont[0] !== undefined">
+                        <option  v-if="$attrs.cur_cont[0] !== undefined" v-bind:value="$attrs.cur_cont[0].id" selected> {{$attrs.cur_cont[0].nombre}}</option>
+                    </select>
+                    
+                    <select class="custom-select col-3 mr-2" v-model="contr_id" v-else>
+                        <option  v-if="$attrs.cur_cont[0] !== undefined" v-bind:value="$attrs.cur_cont[0].id"> {{$attrs.cur_cont[0].nombre}}</option>
+                        <option  v-for="contratista in contratistas" :key="contratista.id" v-bind:value="contratista.id">
                            {{contratista.nombre}}
                         </option>
                     </select>
@@ -55,7 +61,9 @@ export default {
             consumos: [],
             contratistas: [],
             contr_id: '',
-            fecha: ''
+            fecha: '',
+            cur_user: '',
+            cur_cont: ''
         } 
     },
 

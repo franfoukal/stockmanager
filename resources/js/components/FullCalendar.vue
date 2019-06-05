@@ -116,7 +116,7 @@ export default {
     return {
       modal: 0,
       tituloModal: 'Ingrese Consumo',
-
+      events: [],
 
       calendarPlugins: [ // plugins must be defined in the JS
         dayGridPlugin,
@@ -149,7 +149,7 @@ export default {
     },
 
     handleEventClick(info){
-      this.abrirModal();
+      this.getEvents();
     },
 
     abrirModal(){
@@ -157,6 +157,29 @@ export default {
     },
     cerrarModal(){
       this.modal = 0;
+    },
+
+    getEvents(){
+      let me = this;
+      var date = me.$refs.fullCalendar.getApi().getDate();
+      var month = date.getMonth();
+      var uri = '/consumo/fecha/' + (month +1);
+            axios.get(uri)
+                .then(function (response) {
+                    
+                    me.events = response.data;
+
+                    console.log(response);
+                    console.log(month+1);
+                
+                })
+                .catch(function (error) {
+                    // handle error
+                    console.log(error);
+                })
+                .finally(function () {
+                    // always executed
+                });
     }
 
   }

@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Consumo;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\DB;
 
 class ConsumoController extends Controller
 {
@@ -100,5 +102,13 @@ class ConsumoController extends Controller
         $consumo = Consumo::findOrFail($id);
         $consumo->delete();
 
+    }
+
+    public function getTimeRange($month){
+        $consumos = DB::table('consumos')
+            ->whereMonth('fecha', $month)
+            ->get();
+
+        return $consumos;
     }
 }

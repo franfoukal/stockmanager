@@ -38,12 +38,12 @@ class User extends Authenticatable
     ];
 
     public function roles(){
-        return $this->belongsToMany('App\Role');
+        return $this->belongsToMany('App\Role')->withTimestamps();
     }
 
     public function contratista()
     {
-        return $this->belongsToMany('App\Contratista');
+        return $this->belongsToMany('App\Contratista')->withTimestamps();
     }
 
     public function hasAnyRoles($roles){

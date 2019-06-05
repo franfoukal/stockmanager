@@ -26,10 +26,10 @@
                     <td v-text="material.descripcion"></td>
                     <td> 
                       <div class="btn-group" role="group" aria-label="Basic example">
-                        <button type="button" class="btn btn-warning btn-sm" @click="abrirModal('materiales', 'editar', material)"> 
+                        <button type="button" class="btn btn-outline-info btn-sm" @click="abrirModal('materiales', 'editar', material)"> 
                           <i class="fas fa-edit"></i>
                         </button>
-                        <button type="button" class="btn btn-danger btn-sm" @click="borrarMaterial(material)"> 
+                        <button type="button" class="btn btn-outline-danger btn-sm" @click="borrarMaterial(material)"> 
                           <i class="fas fa-trash"></i>
                         </button>
                       </div>
@@ -200,18 +200,23 @@ export default {
 
     borrarMaterial(data = []){
 
-        let me = this;
-        var uri = '/materiales/eliminar/' + data.id;
-        axios.delete(uri)
-        .then(function (response) {
-          
-        })
-        .catch(function (error) {
-          console.log(error);
-        })
-        .finally(function () {
-            me.listarMateriales();
-        });
+        
+
+        if(confirm('¿Borrar Material?')){
+            let me = this;
+            var uri = '/materiales/eliminar/' + data.id;
+            
+              axios.delete(uri)
+            .then(function (response) {
+              
+            })
+            .catch(function (error) {
+              console.log(error);
+            })
+            .finally(function () {
+                me.listarMateriales();
+            });
+        }
     },
 
     abrirModal(modelo, accion, data = []){

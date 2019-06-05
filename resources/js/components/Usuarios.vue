@@ -26,7 +26,9 @@
                                 <td>{{user.roles[0].name}}</td>
                                 <td>{{user.contratista[0] == null ? "" : user.contratista[0].nombre}}</td>
                                 <td>
-                                    <button type="button" class="btn btn-outline-info" @click="openModal(user)">Editar</button>
+                                    <button type="button" class="btn btn-outline-info btn-sm" @click="openModal(user)">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
                                 </td>
                             </tr>
                         </tbody>
@@ -175,13 +177,13 @@ export default {
             Promise.all([
                 axios.get('/user/list'),
                 axios.get('/contratistas/listar'),
-                axios.get('/user/roles')
-                ]).then(axios.spread((userRes, contRes, rolesRes) => {
+                axios.get('/user/roles'),
+                axios.get('/consumo/fecha/05')
+                ]).then(axios.spread((userRes, contRes, rolesRes, cRes) => {
                     me.users = userRes.data;
                     me.conts = contRes.data;
                     me.roles = rolesRes.data;
-
-                    console.log(userRes, contRes, rolesRes);
+                    console.log(cRes.data);
                 }));
         },
 
