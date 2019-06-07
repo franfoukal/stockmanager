@@ -8,18 +8,15 @@
     <div class="card-body">
         <div class='calendar'>
           <div class='calendar-top'>
-            <button @click="toggleWeekends">toggle weekends</button>
-            <button @click="gotoPast">go to a date in the past</button>
-            (also, click a date/time to add an event)
           </div>
           <FullCalendar
             class='calendar-render'
             ref="fullCalendar"
             defaultView="dayGridMonth"
             :header="{
-              left: 'prev,next today',
+              left: 'prev,next',
               center: 'title',
-              right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+              right: 'today'
             }"
             :plugins="calendarPlugins"
             :weekends="calendarWeekends"
@@ -49,46 +46,26 @@
               </div>
               <div class="modal-body">
 
-                <!--div class="alert alert-warning" v-if="error==1">
-                  <h5><i class="icon fas fa-exclamation-triangle"></i> Alert!</h5>
-                  <p v-for="(errores, index) in msjesError" :key="index">{{errores}}</p>
-                </div-->
+                  <table class="table table-bordered">
+                        <thead class="thead-dark">
+                          <tr>
+                            <th scope="col">Código</th>
+                            <th scope="col">Descripción</th>
+                            <th scope="col">Cantidad</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr v-for="consumo in consumos" :key="consumo.id">
+                            <td>{{consumo.codigo}}</td>
+                            <td>{{consumo.descripcion}}</td>
+                            <td>{{consumo.consumo}}</td>
+                          </tr>
+                        </tbody>
+                    </table>
 
-                <form action="">
-
-                  <!-- form imput -->
-                  <div class="col-auto">
-                    <label class="sr-only" for="inlineFormInputGroup">Código</label>
-                    <div class="input-group mb-2">
-                      <div class="input-group-prepend">
-                        <div class="input-group-text">
-                          <i class="fas fa-barcode"></i>
-                        </div>
-                      </div>
-                      <input type="text" class="form-control"  placeholder="Código">
-                    </div>
-                  </div>
-                  <!--/form imput -->
-                  <div class="col-auto">
-                    <label class="sr-only" for="inlineFormInputGroup">Descripcion</label>
-                    <div class="input-group mb-2">
-                      <div class="input-group-prepend">
-                        <div class="input-group-text">
-                          <i class="fas fa-align-left"></i>
-                        </div>
-                      </div>
-                      <input type="text" class="form-control"  placeholder="Descripción">
-                    </div>
-                  </div>
-                  <!--/form imput -->
-
-                </form>
               </div>
               <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal" @click="cerrarModal()">Close</button>
-                <button type="button"  class="btn btn-primary">
-                  <i class="fas fa-save"></i> Guardar
-                </button>
                 <button type="button"   class="btn btn-primary">
                   <i class="fas fa-edit"></i> Editar
                 </button>
@@ -107,6 +84,7 @@ import FullCalendar from '@fullcalendar/vue'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
+//import { parseEvents } from '@fullcalendar/core/structs/event-store';
 
 export default {
   components: {
@@ -115,8 +93,11 @@ export default {
   data: function() {
     return {
       modal: 0,
-      tituloModal: 'Ingrese Consumo',
+      tituloModal: '',
       events: [],
+      contr: this.$attrs.cur_cont,
+      selected: {},
+      consumos: {},
 
       calendarPlugins: [ // plugins must be defined in the JS
         dayGridPlugin,
@@ -124,20 +105,12 @@ export default {
         interactionPlugin // needed for dateClick
       ],
       calendarWeekends: true,
-      calendarEvents: [ // initial event data
-        { title: 'Event Now', start: new Date() },
-        { title: 'event 2', date: '2019-05-02' }
-      ]
+      calendarEvents: []
     }
   },
+
   methods: {
-    toggleWeekends()   {
-      this.calendarWeekends = !this.calendarWeekends // update a property
-    },
-    gotoPast() {
-      let calendarApi = this.$refs.fullCalendar.getApi() // from the ref="..."
-      calendarApi.gotoDate('2000-01-01') // call a method on the Calendar object
-    },
+    
     handleDateClick(arg) {
       if (confirm('Would you like to add an event to ' + arg.dateStr + ' ?')) {
         this.calendarEvents.push({ // add new event data
@@ -149,7 +122,16 @@ export default {
     },
 
     handleEventClick(info){
-      this.getEvents();
+      this.selected = this.events.filter((obj)=>{
+          return obj.id == info.event.id;
+        }).pop();
+      
+        this.consumos = JSON.parse(this.selected.datos_consumo);
+        this.tituloModal = this.selected.contratista[0].nombre + ' ' + new Date(this.selected.fecha + ' ').toLocaleDateString('es-AR');
+        console.log(this.selected);
+        
+        this.abrirModal();
+
     },
 
     abrirModal(){
@@ -159,19 +141,37 @@ export default {
       this.modal = 0;
     },
 
+    parses(events){
+        for (let index = 0; index < events.length; index++) {
+          this.calendarEvents.push({
+            id: this.events[index].id,
+            title: this.events[index].contratista[0].nombre,
+            start: this.events[index].fecha,
+            allDay: 'true',
+            color: 'orange',
+
+          });
+          
+        }
+    },
+
     getEvents(){
       let me = this;
       var date = me.$refs.fullCalendar.getApi().getDate();
       var month = date.getMonth();
-      var uri = '/consumo/fecha/' + (month +1);
+      var uri = '';
+      if(me.contr[0] != null || me.contr[0] != undefined){
+        uri = '/consumo/fecha/' + (month +1) + '/' + me.contr[0].id;
+      } else{
+        uri = '/consumo/fecha/' + (month +1);
+      }
+
             axios.get(uri)
                 .then(function (response) {
                     
                     me.events = response.data;
-
-                    console.log(response);
-                    console.log(month+1);
-                
+                    console.log(response.data, uri);
+                    
                 })
                 .catch(function (error) {
                     // handle error
@@ -179,10 +179,15 @@ export default {
                 })
                 .finally(function () {
                     // always executed
+                    me.parses(me.events);
                 });
-    }
+      },
 
-  }
+  },
+
+  mounted() {
+      this.getEvents();
+    },
   
 }
 </script>

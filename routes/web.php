@@ -40,7 +40,8 @@ Route::get('/consumo', function () {
     return view('modules/container')->with('component', 'consumos');
 });
 Route::get('/consumo/listar', 'ConsumoController@index');
-Route::get('/consumo/fecha/{month}', 'ConsumoController@getTimeRange');
+Route::get('/consumo/fecha/{month}/{contratista}', 'ConsumoController@getSingleContratistaConsumo');
+Route::get('/consumo/fecha/{month}', 'ConsumoController@getContratistasConsumos');
 Route::post('/consumo/agregar', 'ConsumoController@store');
 Route::post('/consumo/actualizar', 'ConsumoController@update');
 Route::delete('/consumo/eliminar/{id}', 'ConsumoController@destroy');

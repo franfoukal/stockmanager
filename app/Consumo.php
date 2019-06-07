@@ -11,4 +11,9 @@ class Consumo extends Model
     protected $casts = [
         'datos_consumos' => 'array',
     ];
+
+    public function contratista()
+    {
+        return $this->belongsToMany('App\Contratista')->withTimestamps();
+    }
 }

@@ -94,7 +94,7 @@
 /***/ (function(module, exports, __webpack_require__) {
 
 /*!
-FullCalendar Core Package v4.1.0
+FullCalendar Core Package v4.2.0
 Docs & License: https://fullcalendar.io/
 (c) 2019 Adam Shaw
 */
@@ -1165,16 +1165,6 @@ Docs & License: https://fullcalendar.io/
         }
         return refined;
     }
-    /*
-    Get a snapshot of an object, so we can compare it to later revisions.
-    Intentionally only works with arrays, jaja
-    */
-    function freezeRaw(raw) {
-        if (Array.isArray(raw)) {
-            return Array.prototype.slice.call(raw);
-        }
-        return raw;
-    }
     /* Date stuff that doesn't belong in datelib core
     ----------------------------------------------------------------------------------------------------------------------*/
     // given a timed range, computes an all-day range that has the same exact duration,
@@ -1297,9 +1287,12 @@ Docs & License: https://fullcalendar.io/
     /*
     Event MUST have a recurringDef
     */
-    function expandRecurringRanges(eventDef, framingRange, dateEnv, recurringTypes) {
+    function expandRecurringRanges(eventDef, duration, framingRange, dateEnv, recurringTypes) {
         var typeDef = recurringTypes[eventDef.recurringDef.typeId];
-        var markers = typeDef.expand(eventDef.recurringDef.typeData, framingRange, dateEnv);
+        var markers = typeDef.expand(eventDef.recurringDef.typeData, {
+            start: dateEnv.subtract(framingRange.start, duration),
+            end: framingRange.end
+        }, dateEnv);
         // the recurrence plugins don't guarantee that all-day events are start-of-day, so we have to
         if (eventDef.allDay) {
             markers = markers.map(startOfDay);
@@ -1307,6 +1300,7 @@ Docs & License: https://fullcalendar.io/
         return markers;
     }
 
+    var hasOwnProperty = Object.prototype.hasOwnProperty;
     // Merges an array of objects into a single object.
     // The second argument allows for an array of property names who's object values will be merged together.
     function mergeProps(propObjs, complexProps) {
@@ -1380,6 +1374,23 @@ Docs & License: https://fullcalendar.io/
         }
         return a;
     }
+    function isPropsEqual(obj0, obj1) {
+        for (var key in obj0) {
+            if (hasOwnProperty.call(obj0, key)) {
+                if (!(key in obj1)) {
+                    return false;
+                }
+            }
+        }
+        for (var key in obj1) {
+            if (hasOwnProperty.call(obj1, key)) {
+                if (obj0[key] !== obj1[key]) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
 
     function parseEvents(rawEvents, sourceId, calendar, allowOpenRange) {
         var eventStore = createEmptyEventStore();
@@ -1410,13 +1421,13 @@ Docs & License: https://fullcalendar.io/
         for (var defId in defs) {
             var def = defs[defId];
             if (def.recurringDef) {
-                var starts = expandRecurringRanges(def, framingRange, calendar.dateEnv, calendar.pluginSystem.hooks.recurringTypes);
                 var duration = def.recurringDef.duration;
                 if (!duration) {
                     duration = def.allDay ?
                         calendar.defaultAllDayEventDuration :
                         calendar.defaultTimedEventDuration;
                 }
+                var starts = expandRecurringRanges(def, duration, framingRange, calendar.dateEnv, calendar.pluginSystem.hooks.recurringTypes);
                 for (var _i = 0, starts_1 = starts; _i < starts_1.length; _i++) {
                     var start = starts_1[_i];
                     var instance = createEventInstance(defId, {
@@ -3281,90 +3292,6 @@ Docs & License: https://fullcalendar.io/
         return res;
     }
 
-    function isValuesSimilar(val0, val1, depth) {
-        if (depth === void 0) { depth = 1; }
-        if (val0 === val1) {
-            return true;
-        }
-        else if (Array.isArray(val0) && Array.isArray(val1)) {
-            return isArraysSimilar(val0, val1, depth);
-        }
-        else if (typeof val0 === 'object' && val0 && typeof val1 === 'object' && val1) { // non-null objects
-            return isObjectsSimilar(val0, val1, depth);
-        }
-        else {
-            return false;
-        }
-    }
-    function isArraysSimilar(a0, a1, depth) {
-        if (depth === void 0) { depth = 1; }
-        if (a0 === a1) {
-            return true;
-        }
-        else if (depth > 0) {
-            if (a0.length !== a1.length) {
-                return false;
-            }
-            else {
-                for (var i = 0; i < a0.length; i++) {
-                    if (!isValuesSimilar(a0[i], a1[i], depth - 1)) {
-                        return false;
-                    }
-                }
-                return true;
-            }
-        }
-        else {
-            return false;
-        }
-    }
-    function isObjectsSimilar(obj0, obj1, depth) {
-        if (depth === void 0) { depth = 1; }
-        if (obj0 === obj1) {
-            return true;
-        }
-        else if (depth > 0) {
-            for (var prop in obj0) {
-                if (!(prop in obj1)) {
-                    return false;
-                }
-            }
-            for (var prop in obj1) {
-                if (!(prop in obj0)) {
-                    return false;
-                }
-                else {
-                    if (!isValuesSimilar(obj0[prop], obj1[prop], depth - 1)) {
-                        return false;
-                    }
-                }
-            }
-            return true;
-        }
-        else {
-            return false;
-        }
-    }
-    function computeChangedProps(obj0, obj1, depth) {
-        if (depth === void 0) { depth = 1; }
-        var res = {};
-        for (var prop in obj1) {
-            if (!(prop in obj0) ||
-                !isValuesSimilar(obj0[prop], obj1[prop], depth - 1)) {
-                res[prop] = obj1[prop];
-            }
-        }
-        return res;
-    }
-    function anyKeysRemoved(obj0, obj1) {
-        for (var prop in obj0) {
-            if (!(prop in obj1)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     var EMPTY_EVENT_STORE = createEmptyEventStore(); // for purecomponents. TODO: keep elsewhere
     var Splitter = /** @class */ (function () {
         function Splitter() {
@@ -4194,7 +4121,7 @@ Docs & License: https://fullcalendar.io/
                             isStart: seg.isStart,
                             isEnd: seg.isEnd,
                             el: seg.el,
-                            view: this // ?
+                            view: this // safe to cast because this method is only called on context.view
                         }
                     ]);
                 }
@@ -4217,7 +4144,7 @@ Docs & License: https://fullcalendar.io/
                             event: new EventApi(calendar, seg.eventRange.def, seg.eventRange.instance),
                             isMirror: isMirrors,
                             el: seg.el,
-                            view: this // ?
+                            view: this // safe to cast because this method is only called on context.view
                         }
                     ]);
                 }
@@ -4535,11 +4462,17 @@ Docs & License: https://fullcalendar.io/
                 }
             }
             if (anyValid) {
+                var duration = null;
+                if ('duration' in leftoverProps) {
+                    duration = createDuration(leftoverProps.duration);
+                    delete leftoverProps.duration;
+                }
+                if (!duration && props.startTime && props.endTime) {
+                    duration = subtractDurations(props.endTime, props.startTime);
+                }
                 return {
                     allDayGuess: Boolean(!props.startTime && !props.endTime),
-                    duration: (props.startTime && props.endTime) ?
-                        subtractDurations(props.endTime, props.startTime) :
-                        null,
+                    duration: duration,
                     typeData: props // doesn't need endTime anymore but oh well
                 };
             }
@@ -4584,21 +4517,21 @@ Docs & License: https://fullcalendar.io/
 
     var DefaultOptionChangeHandlers = createPlugin({
         optionChangeHandlers: {
-            events: function (events, calendar) {
-                handleEventSources([events], calendar);
+            events: function (events, calendar, deepEquals) {
+                handleEventSources([events], calendar, deepEquals);
             },
             eventSources: handleEventSources,
             plugins: handlePlugins
         }
     });
-    function handleEventSources(inputs, calendar) {
+    function handleEventSources(inputs, calendar, deepEquals) {
         var unfoundSources = hashValuesToArray(calendar.state.eventSources);
         var newInputs = [];
         for (var _i = 0, inputs_1 = inputs; _i < inputs_1.length; _i++) {
             var input = inputs_1[_i];
             var inputFound = false;
             for (var i = 0; i < unfoundSources.length; i++) {
-                if (isValuesSimilar(unfoundSources[i]._raw, input, 2)) {
+                if (deepEquals(unfoundSources[i]._raw, input)) {
                     unfoundSources.splice(i, 1); // delete
                     inputFound = true;
                     break;
@@ -4826,16 +4759,13 @@ Docs & License: https://fullcalendar.io/
             this.dynamicOverrides = {};
             this.compute();
         }
-        OptionsManager.prototype.add = function (props) {
-            __assign(this.overrides, props);
-            this.compute();
-        };
-        OptionsManager.prototype.addDynamic = function (props) {
-            __assign(this.dynamicOverrides, props);
-            this.compute();
-        };
-        OptionsManager.prototype.reset = function (props) {
-            this.overrides = props;
+        OptionsManager.prototype.mutate = function (updates, removals, isDynamic) {
+            var overrideHash = isDynamic ? this.dynamicOverrides : this.overrides;
+            __assign(overrideHash, updates);
+            for (var _i = 0, removals_1 = removals; _i < removals_1.length; _i++) {
+                var propName = removals_1[_i];
+                delete overrideHash[propName];
+            }
             this.compute();
         };
         // Computes the flattened options hash for the calendar and assigns to `this.options`.
@@ -5258,7 +5188,7 @@ Docs & License: https://fullcalendar.io/
             var meta = def.parseMeta(raw);
             if (meta) {
                 var res = parseEventSourceProps(typeof raw === 'object' ? raw : {}, meta, i, calendar);
-                res._raw = freezeRaw(raw);
+                res._raw = raw;
                 return res;
             }
         }
@@ -6689,7 +6619,7 @@ Docs & License: https://fullcalendar.io/
             this.buildTheme = memoize(buildTheme);
             this.buildEventUiSingleBase = memoize(this._buildEventUiSingleBase);
             this.buildSelectionConfig = memoize(this._buildSelectionConfig);
-            this.buildEventUiBySource = memoizeOutput(buildEventUiBySource, isObjectsSimilar);
+            this.buildEventUiBySource = memoizeOutput(buildEventUiBySource, isPropsEqual);
             this.buildEventUiBases = memoize(buildEventUiBases);
             this.interactionsStore = {};
             this.actionQueue = [];
@@ -6985,98 +6915,61 @@ Docs & License: https://fullcalendar.io/
         };
         // Options
         // -----------------------------------------------------------------------------------------------------------------
-        /*
-        Not meant for public API
-        */
-        Calendar.prototype.resetOptions = function (options) {
-            var _this = this;
-            var changeHandlers = this.pluginSystem.hooks.optionChangeHandlers;
-            var oldOptions = this.optionsManager.overrides;
-            var oldNormalOptions = {};
-            var normalOptions = {};
-            var specialOptions = {};
-            for (var name_1 in oldOptions) {
-                if (!changeHandlers[name_1]) {
-                    oldNormalOptions[name_1] = oldOptions[name_1];
-                }
-            }
-            for (var name_2 in options) {
-                if (changeHandlers[name_2]) {
-                    specialOptions[name_2] = options[name_2];
-                }
-                else {
-                    normalOptions[name_2] = options[name_2];
-                }
-            }
-            this.batchRendering(function () {
-                if (anyKeysRemoved(oldNormalOptions, normalOptions)) {
-                    _this.processOptions(options, 'reset');
-                }
-                else {
-                    _this.processOptions(computeChangedProps(oldNormalOptions, normalOptions));
-                }
-                // handle special options last
-                for (var name_3 in specialOptions) {
-                    changeHandlers[name_3](specialOptions[name_3], _this);
-                }
-            });
+        Calendar.prototype.setOption = function (name, val) {
+            var _a;
+            this.mutateOptions((_a = {}, _a[name] = val, _a), [], true);
+        };
+        Calendar.prototype.getOption = function (name) {
+            return this.optionsManager.computed[name];
+        };
+        Calendar.prototype.opt = function (name) {
+            return this.optionsManager.computed[name];
+        };
+        Calendar.prototype.viewOpt = function (name) {
+            return this.viewOpts()[name];
+        };
+        Calendar.prototype.viewOpts = function () {
+            return this.viewSpecs[this.state.viewType].options;
         };
         /*
-        Not meant for public API. Won't give the same precedence that setOption does
+        handles option changes (like a diff)
         */
-        Calendar.prototype.setOptions = function (options) {
+        Calendar.prototype.mutateOptions = function (updates, removals, isDynamic, deepEquals) {
             var _this = this;
             var changeHandlers = this.pluginSystem.hooks.optionChangeHandlers;
-            var normalOptions = {};
-            var specialOptions = {};
-            for (var name_4 in options) {
-                if (changeHandlers[name_4]) {
-                    specialOptions[name_4] = options[name_4];
-                }
-                else {
-                    normalOptions[name_4] = options[name_4];
-                }
-            }
-            this.batchRendering(function () {
-                _this.processOptions(normalOptions);
-                // handle special options last
-                for (var name_5 in specialOptions) {
-                    changeHandlers[name_5](specialOptions[name_5], _this);
-                }
-            });
-        };
-        Calendar.prototype.processOptions = function (options, mode) {
-            var _this = this;
+            var normalUpdates = {};
+            var specialUpdates = {};
             var oldDateEnv = this.dateEnv; // do this before handleOptions
             var isTimeZoneDirty = false;
             var isSizeDirty = false;
-            var anyDifficultOptions = false;
-            for (var name_6 in options) {
-                if (/^(height|contentHeight|aspectRatio)$/.test(name_6)) {
+            var anyDifficultOptions = Boolean(removals.length);
+            for (var name_1 in updates) {
+                if (changeHandlers[name_1]) {
+                    specialUpdates[name_1] = updates[name_1];
+                }
+                else {
+                    normalUpdates[name_1] = updates[name_1];
+                }
+            }
+            for (var name_2 in normalUpdates) {
+                if (/^(height|contentHeight|aspectRatio)$/.test(name_2)) {
                     isSizeDirty = true;
                 }
-                else if (/^(defaultDate|defaultView)$/.test(name_6)) ;
+                else if (/^(defaultDate|defaultView)$/.test(name_2)) ;
                 else {
                     anyDifficultOptions = true;
-                    if (name_6 === 'timeZone') {
+                    if (name_2 === 'timeZone') {
                         isTimeZoneDirty = true;
                     }
                 }
             }
-            if (mode === 'reset') {
-                anyDifficultOptions = true;
-                this.optionsManager.reset(options);
-            }
-            else if (mode === 'dynamic') {
-                this.optionsManager.addDynamic(options); // takes higher precedence
-            }
-            else {
-                this.optionsManager.add(options);
-            }
+            this.optionsManager.mutate(normalUpdates, removals, isDynamic);
             if (anyDifficultOptions) {
-                this.handleOptions(this.optionsManager.computed); // only for "difficult" options
+                this.handleOptions(this.optionsManager.computed);
                 this.needsFullRerender = true;
-                this.batchRendering(function () {
+            }
+            this.batchRendering(function () {
+                if (anyDifficultOptions) {
                     if (isTimeZoneDirty) {
                         _this.dispatch({
                             type: 'CHANGE_TIMEZONE',
@@ -7091,27 +6984,17 @@ Docs & License: https://fullcalendar.io/
                         type: 'SET_VIEW_TYPE',
                         viewType: _this.state.viewType
                     });
-                });
-            }
-            if (isSizeDirty) {
-                this.updateSize();
-            }
-        };
-        Calendar.prototype.setOption = function (name, val) {
-            var _a;
-            this.processOptions((_a = {}, _a[name] = val, _a), 'dynamic');
-        };
-        Calendar.prototype.getOption = function (name) {
-            return this.optionsManager.computed[name];
-        };
-        Calendar.prototype.opt = function (name) {
-            return this.optionsManager.computed[name];
-        };
-        Calendar.prototype.viewOpt = function (name) {
-            return this.viewOpts()[name];
-        };
-        Calendar.prototype.viewOpts = function () {
-            return this.viewSpecs[this.state.viewType].options;
+                }
+                else if (isSizeDirty) {
+                    _this.updateSize();
+                }
+                // special updates
+                if (deepEquals) {
+                    for (var name_3 in specialUpdates) {
+                        changeHandlers[name_3](specialUpdates[name_3], _this, deepEquals);
+                    }
+                }
+            });
         };
         /*
         rebuilds things based off of a complete set of refined options
@@ -7166,10 +7049,10 @@ Docs & License: https://fullcalendar.io/
         };
         Calendar.prototype.releaseAfterSizingTriggers = function () {
             var afterSizingTriggers = this.afterSizingTriggers;
-            for (var name_7 in afterSizingTriggers) {
-                for (var _i = 0, _a = afterSizingTriggers[name_7]; _i < _a.length; _i++) {
+            for (var name_4 in afterSizingTriggers) {
+                for (var _i = 0, _a = afterSizingTriggers[name_4]; _i < _a.length; _i++) {
                     var args = _a[_i];
-                    this.publiclyTrigger(name_7, args);
+                    this.publiclyTrigger(name_4, args);
                 }
             }
             this.afterSizingTriggers = {};
@@ -7184,7 +7067,7 @@ Docs & License: https://fullcalendar.io/
             var dateMarker = null;
             if (dateOrRange) {
                 if (dateOrRange.start && dateOrRange.end) { // a range
-                    this.optionsManager.addDynamic({ visibleRange: dateOrRange }); // will not rerender
+                    this.optionsManager.mutate({ visibleRange: dateOrRange }, []); // will not rerender
                     this.handleOptions(this.optionsManager.computed); // ...but yuck
                 }
                 else { // a date
@@ -7403,9 +7286,7 @@ Docs & License: https://fullcalendar.io/
             }
         };
         Calendar.prototype.triggerDateSelect = function (selection, pev) {
-            var arg = this.buildDateSpanApi(selection);
-            arg.jsEvent = pev ? pev.origEvent : null;
-            arg.view = this.view;
+            var arg = __assign({}, this.buildDateSpanApi(selection), { jsEvent: pev ? pev.origEvent : null, view: this.view });
             this.publiclyTrigger('select', [arg]);
         };
         Calendar.prototype.triggerDateUnselect = function (pev) {
@@ -7418,10 +7299,8 @@ Docs & License: https://fullcalendar.io/
         };
         // TODO: receive pev?
         Calendar.prototype.triggerDateClick = function (dateSpan, dayEl, view, ev) {
-            var arg = this.buildDatePointApi(dateSpan);
-            arg.dayEl = dayEl;
-            arg.jsEvent = ev;
-            arg.view = view;
+            var arg = __assign({}, this.buildDatePointApi(dateSpan), { dayEl: dayEl, jsEvent: ev, // Is this always a mouse event? See #4655
+                view: view });
             this.publiclyTrigger('dateClick', [arg]);
         };
         Calendar.prototype.buildDatePointApi = function (dateSpan) {
@@ -8736,7 +8615,7 @@ Docs & License: https://fullcalendar.io/
 
     // exports
     // --------------------------------------------------------------------------------------------------
-    var version = '4.1.0';
+    var version = '4.2.0';
 
     exports.Calendar = Calendar;
     exports.Component = Component;
@@ -8824,7 +8703,6 @@ Docs & License: https://fullcalendar.io/
     exports.formatDate = formatDate;
     exports.formatIsoTimeString = formatIsoTimeString;
     exports.formatRange = formatRange;
-    exports.freezeRaw = freezeRaw;
     exports.getAllDayHtml = getAllDayHtml;
     exports.getClippingParents = getClippingParents;
     exports.getDayClasses = getDayClasses;
@@ -8846,11 +8724,10 @@ Docs & License: https://fullcalendar.io/
     exports.isInt = isInt;
     exports.isInteractionValid = isInteractionValid;
     exports.isMultiDayRange = isMultiDayRange;
-    exports.isObjectsSimilar = isObjectsSimilar;
+    exports.isPropsEqual = isPropsEqual;
     exports.isPropsValid = isPropsValid;
     exports.isSingleDay = isSingleDay;
     exports.isValidDate = isValidDate;
-    exports.isValuesSimilar = isValuesSimilar;
     exports.listenBySelector = listenBySelector;
     exports.mapHash = mapHash;
     exports.matchCellWidths = matchCellWidths;
@@ -8906,7 +8783,7 @@ Docs & License: https://fullcalendar.io/
 /***/ (function(module, exports, __webpack_require__) {
 
 /*!
-FullCalendar Day Grid Plugin v4.1.0
+FullCalendar Day Grid Plugin v4.2.0
 Docs & License: https://fullcalendar.io/
 (c) 2019 Adam Shaw
 */
@@ -10555,7 +10432,7 @@ Docs & License: https://fullcalendar.io/
 /***/ (function(module, exports, __webpack_require__) {
 
 /*!
-FullCalendar Interaction Plugin v4.1.0
+FullCalendar Interaction Plugin v4.2.0
 Docs & License: https://fullcalendar.io/
 (c) 2019 Adam Shaw
 */
@@ -11968,26 +11845,18 @@ Docs & License: https://fullcalendar.io/
                                 type: 'MERGE_EVENTS',
                                 eventStore: mutatedRelevantEvents
                             });
-                            var eventDropArg = {};
+                            var transformed = {};
                             for (var _i = 0, _a = initialCalendar_1.pluginSystem.hooks.eventDropTransformers; _i < _a.length; _i++) {
                                 var transformer = _a[_i];
-                                __assign(eventDropArg, transformer(_this.validMutation, initialCalendar_1));
+                                __assign(transformed, transformer(_this.validMutation, initialCalendar_1));
                             }
-                            __assign(eventDropArg, {
-                                el: ev.subjectEl,
-                                delta: _this.validMutation.startDelta,
-                                oldEvent: eventApi,
-                                event: new core.EventApi(// the data AFTER the mutation
-                                initialCalendar_1, mutatedRelevantEvents.defs[eventDef.defId], eventInstance ? mutatedRelevantEvents.instances[eventInstance.instanceId] : null),
-                                revert: function () {
+                            var eventDropArg = __assign({}, transformed, { el: ev.subjectEl, delta: _this.validMutation.startDelta, oldEvent: eventApi, event: new core.EventApi(// the data AFTER the mutation
+                                initialCalendar_1, mutatedRelevantEvents.defs[eventDef.defId], eventInstance ? mutatedRelevantEvents.instances[eventInstance.instanceId] : null), revert: function () {
                                     initialCalendar_1.dispatch({
                                         type: 'MERGE_EVENTS',
                                         eventStore: relevantEvents_1
                                     });
-                                },
-                                jsEvent: ev.origEvent,
-                                view: initialView
-                            });
+                                }, jsEvent: ev.origEvent, view: initialView });
                             initialCalendar_1.publiclyTrigger('eventDrop', [eventDropArg]);
                             // dropped in different calendar
                         }
@@ -12013,17 +11882,15 @@ Docs & License: https://fullcalendar.io/
                                     eventInstanceId: eventInstance.instanceId
                                 });
                             }
-                            var dropArg = receivingCalendar.buildDatePointApi(finalHit.dateSpan);
-                            dropArg.draggedEl = ev.subjectEl;
-                            dropArg.jsEvent = ev.origEvent;
-                            dropArg.view = finalHit.component; // ?
+                            var dropArg = __assign({}, receivingCalendar.buildDatePointApi(finalHit.dateSpan), { draggedEl: ev.subjectEl, jsEvent: ev.origEvent, view: finalHit.component // should this be finalHit.component.view? See #4644
+                             });
                             receivingCalendar.publiclyTrigger('drop', [dropArg]);
                             receivingCalendar.publiclyTrigger('eventReceive', [
                                 {
                                     draggedEl: ev.subjectEl,
                                     event: new core.EventApi(// the data AFTER the mutation
                                     receivingCalendar, mutatedRelevantEvents.defs[eventDef.defId], mutatedRelevantEvents.instances[eventInstance.instanceId]),
-                                    view: finalHit.component
+                                    view: finalHit.component // should this be finalHit.component.view? See #4644
                                 }
                             ]);
                         }
@@ -12435,10 +12302,7 @@ Docs & License: https://fullcalendar.io/
                     var finalHit = _this.hitDragging.finalHit;
                     var finalView = finalHit.component.view;
                     var dragMeta = _this.dragMeta;
-                    var arg = receivingCalendar.buildDatePointApi(finalHit.dateSpan);
-                    arg.draggedEl = pev.subjectEl;
-                    arg.jsEvent = pev.origEvent;
-                    arg.view = finalView;
+                    var arg = __assign({}, receivingCalendar.buildDatePointApi(finalHit.dateSpan), { draggedEl: pev.subjectEl, jsEvent: pev.origEvent, view: finalView });
                     receivingCalendar.publiclyTrigger('drop', [arg]);
                     if (dragMeta.create) {
                         receivingCalendar.dispatch({
@@ -12721,7 +12585,7 @@ Docs & License: https://fullcalendar.io/
 /***/ (function(module, exports, __webpack_require__) {
 
 /*!
-FullCalendar Time Grid Plugin v4.1.0
+FullCalendar Time Grid Plugin v4.2.0
 Docs & License: https://fullcalendar.io/
 (c) 2019 Adam Shaw
 */
@@ -14087,47 +13951,61 @@ Docs & License: https://fullcalendar.io/
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* WEBPACK VAR INJECTION */(function(global) {/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "install", function() { return install; });
-/* harmony import */ var _fullcalendar_core__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @fullcalendar/core */ "./node_modules/@fullcalendar/core/main.js");
-/* harmony import */ var _fullcalendar_core__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_fullcalendar_core__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var fast_deep_equal__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! fast-deep-equal */ "./node_modules/fast-deep-equal/index.js");
+/* harmony import */ var fast_deep_equal__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(fast_deep_equal__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _fullcalendar_core__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @fullcalendar/core */ "./node_modules/@fullcalendar/core/main.js");
+/* harmony import */ var _fullcalendar_core__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_fullcalendar_core__WEBPACK_IMPORTED_MODULE_1__);
 /*
-FullCalendar Vue Component v4.1.0
+FullCalendar Vue Component v4.2.2
 Docs: https://fullcalendar.io/docs/vue
 License: MIT
 */
 
 
-function _defineProperty(obj, key, value) {
-  if (key in obj) {
-    Object.defineProperty(obj, key, {
-      value: value,
-      enumerable: true,
-      configurable: true,
-      writable: true
-    });
+
+function _typeof(obj) {
+  if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") {
+    _typeof = function (obj) {
+      return typeof obj;
+    };
   } else {
-    obj[key] = value;
+    _typeof = function (obj) {
+      return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
+    };
   }
 
-  return obj;
+  return _typeof(obj);
 }
 
-function _objectSpread(target) {
-  for (var i = 1; i < arguments.length; i++) {
-    var source = arguments[i] != null ? arguments[i] : {};
-    var ownKeys = Object.keys(source);
+var hasOwnProperty = Object.prototype.hasOwnProperty;
+/*
+Really simple clone utility. Only copies plain arrays and objects. Transfers everything else as-is.
+Wanted to use a third-party lib, but none did exactly this.
+*/
 
-    if (typeof Object.getOwnPropertySymbols === 'function') {
-      ownKeys = ownKeys.concat(Object.getOwnPropertySymbols(source).filter(function (sym) {
-        return Object.getOwnPropertyDescriptor(source, sym).enumerable;
-      }));
+function deepCopy(input) {
+  if (Array.isArray(input)) {
+    return input.map(deepCopy);
+  } else if (input instanceof Date) {
+    return new Date(input.valueOf());
+  } else if (_typeof(input) === 'object' && input) {
+    // non-null object
+    return mapHash(input, deepCopy);
+  } else {
+    // everything else (null, function, etc)
+    return input;
+  }
+}
+function mapHash(input, func) {
+  var output = {};
+
+  for (var key in input) {
+    if (hasOwnProperty.call(input, key)) {
+      output[key] = func(input[key], key);
     }
-
-    ownKeys.forEach(function (key) {
-      _defineProperty(target, key, source[key]);
-    });
   }
 
-  return target;
+  return output;
 }
 
 /*
@@ -14139,7 +14017,7 @@ when this files is moved, update the docs.
 TODO: figure out booleans so attributes can be defined like:
 <FullCalendar editable />
 */
-var INPUT_DEFS = {
+var PROP_DEFS = {
   header: {},
   footer: {},
   customButtons: {},
@@ -14245,6 +14123,17 @@ var INPUT_DEFS = {
   allDayMaintainDuration: {},
   eventResizableFromStart: {},
   timeGridEventMinHeight: {},
+  allDayHtml: {},
+  eventDragMinDistance: {},
+  eventResourceEditable: {},
+  eventSourceFailure: {},
+  eventSourceSuccess: {},
+  forceEventDuration: {},
+  progressiveEventRendering: {},
+  selectLongPressDelay: {},
+  selectMinDistance: {},
+  timeZoneParam: {},
+  titleRangeSeparator: {},
   // compound OptionsInput...
   buttonText: {},
   views: {},
@@ -14262,72 +14151,108 @@ var INPUT_DEFS = {
   resourceColumns: {},
   resourcesInitiallyExpanded: {},
   slotWidth: {},
-  datesAboveResources: {}
+  datesAboveResources: {},
+  googleCalendarApiKey: {},
+  refetchResourcesOnNavigate: {},
+  // used to be emissions but are now props...
+  datesRender: {},
+  datesDestroy: {},
+  dayRender: {},
+  eventRender: {},
+  eventDestroy: {},
+  viewSkeletonRender: {},
+  viewSkeletonDestroy: {},
+  resourceRender: {}
 };
-var EVENT_NAMES = ['datesRender', 'datesDestroy', 'dayRender', 'windowResize', 'dateClick', 'eventClick', 'eventMouseEnter', 'eventMouseLeave', 'select', 'unselect', 'loading', 'eventRender', 'eventPositioned', '_eventsPositioned', 'eventDestroy', 'eventDragStart', 'eventDragStop', 'eventDrop', 'eventResizeStart', 'eventResizeStop', 'eventResize', 'drop', 'eventReceive', 'eventLeave', 'viewSkeletonRender', 'viewSkeletonDestroy', '_destroyed', // scheduler...
-'resourceRender'];
+var PROP_IS_DEEP = {
+  header: true,
+  footer: true,
+  events: true,
+  eventSources: true,
+  resources: true
+};
+var EMISSION_NAMES = ['windowResize', 'dateClick', 'eventClick', 'eventMouseEnter', 'eventMouseLeave', 'select', 'unselect', 'loading', 'eventPositioned', '_eventsPositioned', 'eventDragStart', 'eventDragStop', 'eventDrop', 'eventResizeStart', 'eventResizeStop', 'eventResize', 'drop', 'eventReceive', 'eventLeave', '_destroyed', // should now be props... (TODO: eventually remove)
+'datesRender', 'datesDestroy', 'dayRender', 'eventRender', 'eventDestroy', 'viewSkeletonRender', 'viewSkeletonDestroy', 'resourceRender']; // identify deprecated emissions (TODO: eventually remove)
+
+var EMISSION_USE_PROP = {
+  datesRender: true,
+  datesDestroy: true,
+  dayRender: true,
+  eventRender: true,
+  eventDestroy: true,
+  viewSkeletonRender: true,
+  viewSkeletonDestroy: true,
+  resourceRender: true
+};
+
+/*
+VOCAB:
+"props" are the values passed in from the parent (they are NOT listeners/emissions)
+"emissions" are another way to say "events that will fire"
+"options" are the options that the FullCalendar API accepts
+
+NOTE: "deep" props are complex objects that we want to watch for internal changes.
+Vue allows a reference to be internally mutated. Each time we detect a mutation,
+we use deepCopy to freeze the state. This has the added benefit of stripping the
+getter/setter methods that Vue embeds.
+*/
 
 var FullCalendarComponent = {
-  props: INPUT_DEFS,
-  calendar: null,
-  // accessed via this.$options.calendar
+  props: PROP_DEFS,
+  // INTERNALS
+  // this.$options.calendar
+  // this.$options.dirtyOptions - null/undefined means nothing dirty
+  data: function data() {
+    return {
+      renderId: 0
+    };
+  },
   render: function render(createElement) {
-    return createElement('div');
+    return createElement('div', {
+      // when renderId is changed, Vue will trigger a real-DOM async rerender, calling beforeUpdate/updated
+      attrs: {
+        'data-fc-render-id': this.renderId
+      }
+    });
   },
   mounted: function mounted() {
-    this.$options.calendar = new _fullcalendar_core__WEBPACK_IMPORTED_MODULE_0__["Calendar"](this.$el, this.fullCalendarOptions);
+    warnDeprecatedListeners(this.$listeners);
+    this.$options.calendar = new _fullcalendar_core__WEBPACK_IMPORTED_MODULE_1__["Calendar"](this.$el, this.buildOptions());
     this.$options.calendar.render();
+  },
+  beforeUpdate: function beforeUpdate() {
+    this.renderDirty();
   },
   beforeDestroy: function beforeDestroy() {
     this.$options.calendar.destroy();
   },
-  watch: {
-    fullCalendarOptions: function fullCalendarOptions(options) {
-      this.$options.calendar.resetOptions(options);
-    }
-  },
-  computed: {
-    fullCalendarOptions: function fullCalendarOptions() {
-      return _objectSpread({}, this.fullCalendarInputs, this.fullCalendarEvents);
-    },
-    fullCalendarInputs: function fullCalendarInputs() {
-      var inputHash = {};
-
-      for (var inputName in INPUT_DEFS) {
-        var val = this[inputName];
-
-        if (val !== undefined) {
-          // unfortunately FC chokes when some props are set to undefined
-          inputHash[inputName] = val;
-        }
-      }
-
-      return inputHash;
-    },
-    fullCalendarEvents: function fullCalendarEvents() {
+  watch: mapHash(PROP_DEFS, buildPropWatcher),
+  methods: {
+    buildOptions: function buildOptions() {
       var _this = this;
 
-      var handlerHash = {};
+      var options = {};
       var _iteratorNormalCompletion = true;
       var _didIteratorError = false;
       var _iteratorError = undefined;
 
       try {
         var _loop = function _loop() {
-          var eventName = _step.value;
+          var emissionName = _step.value;
 
-          handlerHash[eventName] = function () {
+          options[emissionName] = function () {
             for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
               args[_key] = arguments[_key];
             }
 
-            _this.$emit.apply(_this, [eventName].concat(args));
+            _this.$emit.apply(_this, [emissionName].concat(args));
           };
         };
 
-        for (var _iterator = EVENT_NAMES[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+        for (var _iterator = EMISSION_NAMES[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
           _loop();
-        }
+        } // do after emissions. these props will override emissions with same name
+
       } catch (err) {
         _didIteratorError = true;
         _iteratorError = err;
@@ -14343,15 +14268,58 @@ var FullCalendarComponent = {
         }
       }
 
-      return handlerHash;
-    }
-  },
-  methods: {
+      for (var propName in PROP_DEFS) {
+        var propVal = this[propName]; // protect against FullCalendar choking on undefined options
+
+        if (propVal !== undefined) {
+          options[propName] = PROP_IS_DEEP[propName] ? deepCopy(propVal) : propVal;
+        }
+      }
+
+      return options;
+    },
+    recordDirtyOption: function recordDirtyOption(optionName, newVal) {
+      (this.$options.dirtyOptions || (this.$options.dirtyOptions = {}))[optionName] = newVal;
+      this.renderId++; // triggers a render eventually
+    },
+    renderDirty: function renderDirty() {
+      var dirtyOptions = this.$options.dirtyOptions;
+
+      if (dirtyOptions) {
+        this.$options.dirtyOptions = null; // clear before rendering. might trigger new dirtiness
+
+        this.$options.calendar.mutateOptions(dirtyOptions, [], false, fast_deep_equal__WEBPACK_IMPORTED_MODULE_0___default.a);
+      }
+    },
     getApi: function getApi() {
       return this.$options.calendar;
     }
   }
 };
+
+function buildPropWatcher(propDef, propName) {
+  if (PROP_IS_DEEP[propName]) {
+    return {
+      deep: true,
+      // listen to children as well
+      handler: function handler(newVal) {
+        this.recordDirtyOption(propName, deepCopy(newVal));
+      }
+    };
+  } else {
+    return function (newVal) {
+      this.recordDirtyOption(propName, newVal);
+    };
+  }
+}
+
+function warnDeprecatedListeners(listenerHash) {
+  for (var emissionName in listenerHash) {
+    if (EMISSION_USE_PROP[emissionName]) {
+      console.warn('Use of ' + emissionName + ' as an event is deprecated. Please convert to a prop.');
+    }
+  }
+}
 
 /*
 Registers the component globally if appropriate.
@@ -16578,32 +16546,10 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
 
 
 
+ //import { parseEvents } from '@fullcalendar/core/structs/event-store';
 
 /* harmony default export */ __webpack_exports__["default"] = ({
   components: {
@@ -16613,31 +16559,19 @@ __webpack_require__.r(__webpack_exports__);
   data: function data() {
     return {
       modal: 0,
-      tituloModal: 'Ingrese Consumo',
+      tituloModal: '',
       events: [],
+      contr: this.$attrs.cur_cont,
+      selected: {},
+      consumos: {},
       calendarPlugins: [// plugins must be defined in the JS
       _fullcalendar_daygrid__WEBPACK_IMPORTED_MODULE_1___default.a, _fullcalendar_timegrid__WEBPACK_IMPORTED_MODULE_2___default.a, _fullcalendar_interaction__WEBPACK_IMPORTED_MODULE_3___default.a // needed for dateClick
       ],
       calendarWeekends: true,
-      calendarEvents: [// initial event data
-      {
-        title: 'Event Now',
-        start: new Date()
-      }, {
-        title: 'event 2',
-        date: '2019-05-02'
-      }]
+      calendarEvents: []
     };
   },
   methods: {
-    toggleWeekends: function toggleWeekends() {
-      this.calendarWeekends = !this.calendarWeekends; // update a property
-    },
-    gotoPast: function gotoPast() {
-      var calendarApi = this.$refs.fullCalendar.getApi(); // from the ref="..."
-
-      calendarApi.gotoDate('2000-01-01'); // call a method on the Calendar object
-    },
     handleDateClick: function handleDateClick(arg) {
       if (confirm('Would you like to add an event to ' + arg.dateStr + ' ?')) {
         this.calendarEvents.push({
@@ -16649,7 +16583,13 @@ __webpack_require__.r(__webpack_exports__);
       }
     },
     handleEventClick: function handleEventClick(info) {
-      this.getEvents();
+      this.selected = this.events.filter(function (obj) {
+        return obj.id == info.event.id;
+      }).pop();
+      this.consumos = JSON.parse(this.selected.datos_consumo);
+      this.tituloModal = this.selected.contratista[0].nombre + ' ' + new Date(this.selected.fecha + ' ').toLocaleDateString('es-AR');
+      console.log(this.selected);
+      this.abrirModal();
     },
     abrirModal: function abrirModal() {
       this.modal = 1;
@@ -16657,21 +16597,43 @@ __webpack_require__.r(__webpack_exports__);
     cerrarModal: function cerrarModal() {
       this.modal = 0;
     },
+    parses: function parses(events) {
+      for (var index = 0; index < events.length; index++) {
+        this.calendarEvents.push({
+          id: this.events[index].id,
+          title: this.events[index].contratista[0].nombre,
+          start: this.events[index].fecha,
+          allDay: 'true',
+          color: 'orange'
+        });
+      }
+    },
     getEvents: function getEvents() {
       var me = this;
       var date = me.$refs.fullCalendar.getApi().getDate();
       var month = date.getMonth();
-      var uri = '/consumo/fecha/' + (month + 1);
+      var uri = '';
+
+      if (me.contr[0] != null || me.contr[0] != undefined) {
+        uri = '/consumo/fecha/' + (month + 1) + '/' + me.contr[0].id;
+      } else {
+        uri = '/consumo/fecha/' + (month + 1);
+      }
+
       axios.get(uri).then(function (response) {
         me.events = response.data;
-        console.log(response);
-        console.log(month + 1);
+        console.log(response.data, uri);
       })["catch"](function (error) {
         // handle error
         console.log(error);
-      })["finally"](function () {// always executed
+      })["finally"](function () {
+        // always executed
+        me.parses(me.events);
       });
     }
+  },
+  mounted: function mounted() {
+    this.getEvents();
   }
 });
 
@@ -17123,11 +17085,10 @@ __webpack_require__.r(__webpack_exports__);
     },
     getAllResponses: function getAllResponses() {
       var me = this;
-      Promise.all([axios.get('/user/list'), axios.get('/contratistas/listar'), axios.get('/user/roles'), axios.get('/consumo/fecha/05')]).then(axios.spread(function (userRes, contRes, rolesRes, cRes) {
+      Promise.all([axios.get('/user/list'), axios.get('/contratistas/listar'), axios.get('/user/roles')]).then(axios.spread(function (userRes, contRes, rolesRes) {
         me.users = userRes.data;
         me.conts = contRes.data;
         me.roles = rolesRes.data;
-        console.log(cRes.data);
       }));
     },
     validarCampos: function validarCampos() {
@@ -21625,7 +21586,7 @@ exports = module.exports = __webpack_require__(/*! ../../css-loader/lib/css-base
 
 
 // module
-exports.push([module.i, "/*!\nFullCalendar Core Package v4.1.0\nDocs & License: https://fullcalendar.io/\n(c) 2019 Adam Shaw\n*/\n.fc {\n  direction: ltr;\n  text-align: left; }\n\n.fc-rtl {\n  text-align: right; }\n\nbody .fc {\n  /* extra precedence to overcome jqui */\n  font-size: 1em; }\n\n/* Colors\n--------------------------------------------------------------------------------------------------*/\n.fc-highlight {\n  /* when user is selecting cells */\n  background: #bce8f1;\n  opacity: .3; }\n\n.fc-bgevent {\n  /* default look for background events */\n  background: #8fdf82;\n  opacity: .3; }\n\n.fc-nonbusiness {\n  /* default look for non-business-hours areas */\n  /* will inherit .fc-bgevent's styles */\n  background: #d7d7d7; }\n\n/* Popover\n--------------------------------------------------------------------------------------------------*/\n.fc-popover {\n  position: absolute;\n  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15); }\n\n.fc-popover .fc-header {\n  /* TODO: be more consistent with fc-head/fc-body */\n  display: flex;\n  flex-direction: row;\n  justify-content: space-between;\n  align-items: center;\n  padding: 2px 4px; }\n\n.fc-rtl .fc-popover .fc-header {\n  flex-direction: row-reverse; }\n\n.fc-popover .fc-header .fc-title {\n  margin: 0 2px; }\n\n.fc-popover .fc-header .fc-close {\n  cursor: pointer;\n  opacity: 0.65;\n  font-size: 1.1em; }\n\n/* Misc Reusable Components\n--------------------------------------------------------------------------------------------------*/\n.fc-divider {\n  border-style: solid;\n  border-width: 1px; }\n\nhr.fc-divider {\n  height: 0;\n  margin: 0;\n  padding: 0 0 2px;\n  /* height is unreliable across browsers, so use padding */\n  border-width: 1px 0; }\n\n.fc-bg,\n.fc-bgevent-skeleton,\n.fc-highlight-skeleton,\n.fc-mirror-skeleton {\n  /* these element should always cling to top-left/right corners */\n  position: absolute;\n  top: 0;\n  left: 0;\n  right: 0; }\n\n.fc-bg {\n  bottom: 0;\n  /* strech bg to bottom edge */ }\n\n.fc-bg table {\n  height: 100%;\n  /* strech bg to bottom edge */ }\n\n/* Tables\n--------------------------------------------------------------------------------------------------*/\n.fc table {\n  width: 100%;\n  box-sizing: border-box;\n  /* fix scrollbar issue in firefox */\n  table-layout: fixed;\n  border-collapse: collapse;\n  border-spacing: 0;\n  font-size: 1em;\n  /* normalize cross-browser */ }\n\n.fc th {\n  text-align: center; }\n\n.fc th,\n.fc td {\n  border-style: solid;\n  border-width: 1px;\n  padding: 0;\n  vertical-align: top; }\n\n.fc td.fc-today {\n  border-style: double;\n  /* overcome neighboring borders */ }\n\n/* Internal Nav Links\n--------------------------------------------------------------------------------------------------*/\na[data-goto] {\n  cursor: pointer; }\n\na[data-goto]:hover {\n  text-decoration: underline; }\n\n/* Fake Table Rows\n--------------------------------------------------------------------------------------------------*/\n.fc .fc-row {\n  /* extra precedence to overcome themes forcing a 1px border */\n  /* no visible border by default. but make available if need be (scrollbar width compensation) */\n  border-style: solid;\n  border-width: 0; }\n\n.fc-row table {\n  /* don't put left/right border on anything within a fake row.\n     the outer tbody will worry about this */\n  border-left: 0 hidden transparent;\n  border-right: 0 hidden transparent;\n  /* no bottom borders on rows */\n  border-bottom: 0 hidden transparent; }\n\n.fc-row:first-child table {\n  border-top: 0 hidden transparent;\n  /* no top border on first row */ }\n\n/* Day Row (used within the header and the DayGrid)\n--------------------------------------------------------------------------------------------------*/\n.fc-row {\n  position: relative; }\n\n.fc-row .fc-bg {\n  z-index: 1; }\n\n/* highlighting cells & background event skeleton */\n.fc-row .fc-bgevent-skeleton,\n.fc-row .fc-highlight-skeleton {\n  bottom: 0;\n  /* stretch skeleton to bottom of row */ }\n\n.fc-row .fc-bgevent-skeleton table,\n.fc-row .fc-highlight-skeleton table {\n  height: 100%;\n  /* stretch skeleton to bottom of row */ }\n\n.fc-row .fc-highlight-skeleton td,\n.fc-row .fc-bgevent-skeleton td {\n  border-color: transparent; }\n\n.fc-row .fc-bgevent-skeleton {\n  z-index: 2; }\n\n.fc-row .fc-highlight-skeleton {\n  z-index: 3; }\n\n/*\nrow content (which contains day/week numbers and events) as well as \"mirror\" (which contains\ntemporary rendered events).\n*/\n.fc-row .fc-content-skeleton {\n  position: relative;\n  z-index: 4;\n  padding-bottom: 2px;\n  /* matches the space above the events */ }\n\n.fc-row .fc-mirror-skeleton {\n  z-index: 5; }\n\n.fc .fc-row .fc-content-skeleton table,\n.fc .fc-row .fc-content-skeleton td,\n.fc .fc-row .fc-mirror-skeleton td {\n  /* see-through to the background below */\n  /* extra precedence to prevent theme-provided backgrounds */\n  background: none;\n  /* in case <td>s are globally styled */\n  border-color: transparent; }\n\n.fc-row .fc-content-skeleton td,\n.fc-row .fc-mirror-skeleton td {\n  /* don't put a border between events and/or the day number */\n  border-bottom: 0; }\n\n.fc-row .fc-content-skeleton tbody td,\n.fc-row .fc-mirror-skeleton tbody td {\n  /* don't put a border between event cells */\n  border-top: 0; }\n\n/* Scrolling Container\n--------------------------------------------------------------------------------------------------*/\n.fc-scroller {\n  -webkit-overflow-scrolling: touch; }\n\n/* TODO: move to timegrid/daygrid */\n.fc-scroller > .fc-day-grid,\n.fc-scroller > .fc-time-grid {\n  position: relative;\n  /* re-scope all positions */\n  width: 100%;\n  /* hack to force re-sizing this inner element when scrollbars appear/disappear */ }\n\n/* Global Event Styles\n--------------------------------------------------------------------------------------------------*/\n.fc-event {\n  position: relative;\n  /* for resize handle and other inner positioning */\n  display: block;\n  /* make the <a> tag block */\n  font-size: .85em;\n  line-height: 1.4;\n  border-radius: 3px;\n  border: 1px solid #3788d8; }\n\n.fc-event,\n.fc-event-dot {\n  background-color: #3788d8;\n  /* default BACKGROUND color */ }\n\n.fc-event,\n.fc-event:hover {\n  color: #fff;\n  /* default TEXT color */\n  text-decoration: none;\n  /* if <a> has an href */ }\n\n.fc-event[href],\n.fc-event.fc-draggable {\n  cursor: pointer;\n  /* give events with links and draggable events a hand mouse pointer */ }\n\n.fc-not-allowed,\n.fc-not-allowed .fc-event {\n  /* to override an event's custom cursor */\n  cursor: not-allowed; }\n\n.fc-event .fc-content {\n  position: relative;\n  z-index: 2; }\n\n/* resizer (cursor AND touch devices) */\n.fc-event .fc-resizer {\n  position: absolute;\n  z-index: 4; }\n\n/* resizer (touch devices) */\n.fc-event .fc-resizer {\n  display: none; }\n\n.fc-event.fc-allow-mouse-resize .fc-resizer,\n.fc-event.fc-selected .fc-resizer {\n  /* only show when hovering or selected (with touch) */\n  display: block; }\n\n/* hit area */\n.fc-event.fc-selected .fc-resizer:before {\n  /* 40x40 touch area */\n  content: \"\";\n  position: absolute;\n  z-index: 9999;\n  /* user of this util can scope within a lower z-index */\n  top: 50%;\n  left: 50%;\n  width: 40px;\n  height: 40px;\n  margin-left: -20px;\n  margin-top: -20px; }\n\n/* Event Selection (only for touch devices)\n--------------------------------------------------------------------------------------------------*/\n.fc-event.fc-selected {\n  z-index: 9999 !important;\n  /* overcomes inline z-index */\n  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); }\n\n.fc-event.fc-selected:after {\n  content: \"\";\n  position: absolute;\n  z-index: 1;\n  /* same z-index as fc-bg, behind text */\n  /* overcome the borders */\n  top: -1px;\n  right: -1px;\n  bottom: -1px;\n  left: -1px;\n  /* darkening effect */\n  background: #000;\n  opacity: .25; }\n\n/* Event Dragging\n--------------------------------------------------------------------------------------------------*/\n.fc-event.fc-dragging.fc-selected {\n  box-shadow: 0 2px 7px rgba(0, 0, 0, 0.3); }\n\n.fc-event.fc-dragging:not(.fc-selected) {\n  opacity: .75; }\n\n/* Horizontal Events\n--------------------------------------------------------------------------------------------------*/\n/* bigger touch area when selected */\n.fc-h-event.fc-selected:before {\n  content: \"\";\n  position: absolute;\n  z-index: 3;\n  /* below resizers */\n  top: -10px;\n  bottom: -10px;\n  left: 0;\n  right: 0; }\n\n/* events that are continuing to/from another week. kill rounded corners and butt up against edge */\n.fc-ltr .fc-h-event.fc-not-start,\n.fc-rtl .fc-h-event.fc-not-end {\n  margin-left: 0;\n  border-left-width: 0;\n  padding-left: 1px;\n  /* replace the border with padding */\n  border-top-left-radius: 0;\n  border-bottom-left-radius: 0; }\n\n.fc-ltr .fc-h-event.fc-not-end,\n.fc-rtl .fc-h-event.fc-not-start {\n  margin-right: 0;\n  border-right-width: 0;\n  padding-right: 1px;\n  /* replace the border with padding */\n  border-top-right-radius: 0;\n  border-bottom-right-radius: 0; }\n\n/* resizer (cursor AND touch devices) */\n/* left resizer  */\n.fc-ltr .fc-h-event .fc-start-resizer,\n.fc-rtl .fc-h-event .fc-end-resizer {\n  cursor: w-resize;\n  left: -1px;\n  /* overcome border */ }\n\n/* right resizer */\n.fc-ltr .fc-h-event .fc-end-resizer,\n.fc-rtl .fc-h-event .fc-start-resizer {\n  cursor: e-resize;\n  right: -1px;\n  /* overcome border */ }\n\n/* resizer (mouse devices) */\n.fc-h-event.fc-allow-mouse-resize .fc-resizer {\n  width: 7px;\n  top: -1px;\n  /* overcome top border */\n  bottom: -1px;\n  /* overcome bottom border */ }\n\n/* resizer (touch devices) */\n.fc-h-event.fc-selected .fc-resizer {\n  /* 8x8 little dot */\n  border-radius: 4px;\n  border-width: 1px;\n  width: 6px;\n  height: 6px;\n  border-style: solid;\n  border-color: inherit;\n  background: #fff;\n  /* vertically center */\n  top: 50%;\n  margin-top: -4px; }\n\n/* left resizer  */\n.fc-ltr .fc-h-event.fc-selected .fc-start-resizer,\n.fc-rtl .fc-h-event.fc-selected .fc-end-resizer {\n  margin-left: -4px;\n  /* centers the 8x8 dot on the left edge */ }\n\n/* right resizer */\n.fc-ltr .fc-h-event.fc-selected .fc-end-resizer,\n.fc-rtl .fc-h-event.fc-selected .fc-start-resizer {\n  margin-right: -4px;\n  /* centers the 8x8 dot on the right edge */ }\n\n/* DayGrid events\n----------------------------------------------------------------------------------------------------\nWe use the full \"fc-day-grid-event\" class instead of using descendants because the event won't\nbe a descendant of the grid when it is being dragged.\n*/\n.fc-day-grid-event {\n  margin: 1px 2px 0;\n  /* spacing between events and edges */\n  padding: 0 1px; }\n\ntr:first-child > td > .fc-day-grid-event {\n  margin-top: 2px;\n  /* a little bit more space before the first event */ }\n\n.fc-mirror-skeleton tr:first-child > td > .fc-day-grid-event {\n  margin-top: 0;\n  /* except for mirror skeleton */ }\n\n.fc-day-grid-event .fc-content {\n  /* force events to be one-line tall */\n  white-space: nowrap;\n  overflow: hidden; }\n\n.fc-day-grid-event .fc-time {\n  font-weight: bold; }\n\n/* resizer (cursor devices) */\n/* left resizer  */\n.fc-ltr .fc-day-grid-event.fc-allow-mouse-resize .fc-start-resizer,\n.fc-rtl .fc-day-grid-event.fc-allow-mouse-resize .fc-end-resizer {\n  margin-left: -2px;\n  /* to the day cell's edge */ }\n\n/* right resizer */\n.fc-ltr .fc-day-grid-event.fc-allow-mouse-resize .fc-end-resizer,\n.fc-rtl .fc-day-grid-event.fc-allow-mouse-resize .fc-start-resizer {\n  margin-right: -2px;\n  /* to the day cell's edge */ }\n\n/* Event Limiting\n--------------------------------------------------------------------------------------------------*/\n/* \"more\" link that represents hidden events */\na.fc-more {\n  margin: 1px 3px;\n  font-size: .85em;\n  cursor: pointer;\n  text-decoration: none; }\n\na.fc-more:hover {\n  text-decoration: underline; }\n\n.fc-limited {\n  /* rows and cells that are hidden because of a \"more\" link */\n  display: none; }\n\n/* popover that appears when \"more\" link is clicked */\n.fc-day-grid .fc-row {\n  z-index: 1;\n  /* make the \"more\" popover one higher than this */ }\n\n.fc-more-popover {\n  z-index: 2;\n  width: 220px; }\n\n.fc-more-popover .fc-event-container {\n  padding: 10px; }\n\n/* Now Indicator\n--------------------------------------------------------------------------------------------------*/\n.fc-now-indicator {\n  position: absolute;\n  border: 0 solid red; }\n\n/* Utilities\n--------------------------------------------------------------------------------------------------*/\n.fc-unselectable {\n  -webkit-user-select: none;\n  -khtml-user-select: none;\n  -moz-user-select: none;\n  -ms-user-select: none;\n  user-select: none;\n  -webkit-touch-callout: none;\n  -webkit-tap-highlight-color: rgba(0, 0, 0, 0); }\n\n/*\nTODO: more distinction between this file and common.css\n*/\n/* Colors\n--------------------------------------------------------------------------------------------------*/\n.fc-unthemed th,\n.fc-unthemed td,\n.fc-unthemed thead,\n.fc-unthemed tbody,\n.fc-unthemed .fc-divider,\n.fc-unthemed .fc-row,\n.fc-unthemed .fc-content,\n.fc-unthemed .fc-popover,\n.fc-unthemed .fc-list-view,\n.fc-unthemed .fc-list-heading td {\n  border-color: #ddd; }\n\n.fc-unthemed .fc-popover {\n  background-color: #fff; }\n\n.fc-unthemed .fc-divider,\n.fc-unthemed .fc-popover .fc-header,\n.fc-unthemed .fc-list-heading td {\n  background: #eee; }\n\n.fc-unthemed td.fc-today {\n  background: #fcf8e3; }\n\n.fc-unthemed .fc-disabled-day {\n  background: #d7d7d7;\n  opacity: .3; }\n\n/* Icons\n--------------------------------------------------------------------------------------------------\nfrom https://feathericons.com/ and built with IcoMoon\n*/\n@font-face {\n  font-family: 'fcicons';\n  src: url(\"data:application/x-font-ttf;charset=utf-8;base64,AAEAAAALAIAAAwAwT1MvMg8SBfAAAAC8AAAAYGNtYXAXVtKNAAABHAAAAFRnYXNwAAAAEAAAAXAAAAAIZ2x5ZgYydxIAAAF4AAAFNGhlYWQUJ7cIAAAGrAAAADZoaGVhB20DzAAABuQAAAAkaG10eCIABhQAAAcIAAAALGxvY2ED4AU6AAAHNAAAABhtYXhwAA8AjAAAB0wAAAAgbmFtZXsr690AAAdsAAABhnBvc3QAAwAAAAAI9AAAACAAAwPAAZAABQAAApkCzAAAAI8CmQLMAAAB6wAzAQkAAAAAAAAAAAAAAAAAAAABEAAAAAAAAAAAAAAAAAAAAABAAADpBgPA/8AAQAPAAEAAAAABAAAAAAAAAAAAAAAgAAAAAAADAAAAAwAAABwAAQADAAAAHAADAAEAAAAcAAQAOAAAAAoACAACAAIAAQAg6Qb//f//AAAAAAAg6QD//f//AAH/4xcEAAMAAQAAAAAAAAAAAAAAAQAB//8ADwABAAAAAAAAAAAAAgAANzkBAAAAAAEAAAAAAAAAAAACAAA3OQEAAAAAAQAAAAAAAAAAAAIAADc5AQAAAAABAWIAjQKeAskAEwAAJSc3NjQnJiIHAQYUFwEWMjc2NCcCnuLiDQ0MJAz/AA0NAQAMJAwNDcni4gwjDQwM/wANIwz/AA0NDCMNAAAAAQFiAI0CngLJABMAACUBNjQnASYiBwYUHwEHBhQXFjI3AZ4BAA0N/wAMJAwNDeLiDQ0MJAyNAQAMIw0BAAwMDSMM4uINIwwNDQAAAAIA4gC3Ax4CngATACcAACUnNzY0JyYiDwEGFB8BFjI3NjQnISc3NjQnJiIPAQYUHwEWMjc2NCcB87e3DQ0MIw3VDQ3VDSMMDQ0BK7e3DQ0MJAzVDQ3VDCQMDQ3zuLcMJAwNDdUNIwzWDAwNIwy4twwkDA0N1Q0jDNYMDA0jDAAAAgDiALcDHgKeABMAJwAAJTc2NC8BJiIHBhQfAQcGFBcWMjchNzY0LwEmIgcGFB8BBwYUFxYyNwJJ1Q0N1Q0jDA0Nt7cNDQwjDf7V1Q0N1QwkDA0Nt7cNDQwkDLfWDCMN1Q0NDCQMt7gMIw0MDNYMIw3VDQ0MJAy3uAwjDQwMAAADAFUAAAOrA1UAMwBoAHcAABMiBgcOAQcOAQcOARURFBYXHgEXHgEXHgEzITI2Nz4BNz4BNz4BNRE0JicuAScuAScuASMFITIWFx4BFx4BFx4BFREUBgcOAQcOAQcOASMhIiYnLgEnLgEnLgE1ETQ2Nz4BNz4BNz4BMxMhMjY1NCYjISIGFRQWM9UNGAwLFQkJDgUFBQUFBQ4JCRULDBgNAlYNGAwLFQkJDgUFBQUFBQ4JCRULDBgN/aoCVgQIBAQHAwMFAQIBAQIBBQMDBwQECAT9qgQIBAQHAwMFAQIBAQIBBQMDBwQECASAAVYRGRkR/qoRGRkRA1UFBAUOCQkVDAsZDf2rDRkLDBUJCA4FBQUFBQUOCQgVDAsZDQJVDRkLDBUJCQ4FBAVVAgECBQMCBwQECAX9qwQJAwQHAwMFAQICAgIBBQMDBwQDCQQCVQUIBAQHAgMFAgEC/oAZEhEZGRESGQAAAAADAFUAAAOrA1UAMwBoAIkAABMiBgcOAQcOAQcOARURFBYXHgEXHgEXHgEzITI2Nz4BNz4BNz4BNRE0JicuAScuAScuASMFITIWFx4BFx4BFx4BFREUBgcOAQcOAQcOASMhIiYnLgEnLgEnLgE1ETQ2Nz4BNz4BNz4BMxMzFRQWMzI2PQEzMjY1NCYrATU0JiMiBh0BIyIGFRQWM9UNGAwLFQkJDgUFBQUFBQ4JCRULDBgNAlYNGAwLFQkJDgUFBQUFBQ4JCRULDBgN/aoCVgQIBAQHAwMFAQIBAQIBBQMDBwQECAT9qgQIBAQHAwMFAQIBAQIBBQMDBwQECASAgBkSEhmAERkZEYAZEhIZgBEZGREDVQUEBQ4JCRUMCxkN/asNGQsMFQkIDgUFBQUFBQ4JCBUMCxkNAlUNGQsMFQkJDgUEBVUCAQIFAwIHBAQIBf2rBAkDBAcDAwUBAgICAgEFAwMHBAMJBAJVBQgEBAcCAwUCAQL+gIASGRkSgBkSERmAEhkZEoAZERIZAAABAOIAjQMeAskAIAAAExcHBhQXFjI/ARcWMjc2NC8BNzY0JyYiDwEnJiIHBhQX4uLiDQ0MJAzi4gwkDA0N4uINDQwkDOLiDCQMDQ0CjeLiDSMMDQ3h4Q0NDCMN4uIMIw0MDOLiDAwNIwwAAAABAAAAAQAAa5n0y18PPPUACwQAAAAAANivOVsAAAAA2K85WwAAAAADqwNVAAAACAACAAAAAAAAAAEAAAPA/8AAAAQAAAAAAAOrAAEAAAAAAAAAAAAAAAAAAAALBAAAAAAAAAAAAAAAAgAAAAQAAWIEAAFiBAAA4gQAAOIEAABVBAAAVQQAAOIAAAAAAAoAFAAeAEQAagCqAOoBngJkApoAAQAAAAsAigADAAAAAAACAAAAAAAAAAAAAAAAAAAAAAAAAA4ArgABAAAAAAABAAcAAAABAAAAAAACAAcAYAABAAAAAAADAAcANgABAAAAAAAEAAcAdQABAAAAAAAFAAsAFQABAAAAAAAGAAcASwABAAAAAAAKABoAigADAAEECQABAA4ABwADAAEECQACAA4AZwADAAEECQADAA4APQADAAEECQAEAA4AfAADAAEECQAFABYAIAADAAEECQAGAA4AUgADAAEECQAKADQApGZjaWNvbnMAZgBjAGkAYwBvAG4Ac1ZlcnNpb24gMS4wAFYAZQByAHMAaQBvAG4AIAAxAC4AMGZjaWNvbnMAZgBjAGkAYwBvAG4Ac2ZjaWNvbnMAZgBjAGkAYwBvAG4Ac1JlZ3VsYXIAUgBlAGcAdQBsAGEAcmZjaWNvbnMAZgBjAGkAYwBvAG4Ac0ZvbnQgZ2VuZXJhdGVkIGJ5IEljb01vb24uAEYAbwBuAHQAIABnAGUAbgBlAHIAYQB0AGUAZAAgAGIAeQAgAEkAYwBvAE0AbwBvAG4ALgAAAAMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\") format(\"truetype\");\n  font-weight: normal;\n  font-style: normal; }\n.fc-icon {\n  /* use !important to prevent issues with browser extensions that change fonts */\n  font-family: 'fcicons' !important;\n  speak: none;\n  font-style: normal;\n  font-weight: normal;\n  font-variant: normal;\n  text-transform: none;\n  line-height: 1;\n  /* Better Font Rendering =========== */\n  -webkit-font-smoothing: antialiased;\n  -moz-osx-font-smoothing: grayscale; }\n\n.fc-icon-chevron-left:before {\n  content: \"\\E900\"; }\n\n.fc-icon-chevron-right:before {\n  content: \"\\E901\"; }\n\n.fc-icon-chevrons-left:before {\n  content: \"\\E902\"; }\n\n.fc-icon-chevrons-right:before {\n  content: \"\\E903\"; }\n\n.fc-icon-minus-square:before {\n  content: \"\\E904\"; }\n\n.fc-icon-plus-square:before {\n  content: \"\\E905\"; }\n\n.fc-icon-x:before {\n  content: \"\\E906\"; }\n\n.fc-icon {\n  display: inline-block;\n  width: 1em;\n  height: 1em;\n  text-align: center; }\n\n/* Buttons\n--------------------------------------------------------------------------------------------------\nLots taken from Flatly (MIT): https://bootswatch.com/4/flatly/bootstrap.css\n*/\n/* reset */\n.fc-button {\n  border-radius: 0;\n  overflow: visible;\n  text-transform: none;\n  margin: 0;\n  font-family: inherit;\n  font-size: inherit;\n  line-height: inherit; }\n\n.fc-button:focus {\n  outline: 1px dotted;\n  outline: 5px auto -webkit-focus-ring-color; }\n\n.fc-button {\n  -webkit-appearance: button; }\n\n.fc-button:not(:disabled) {\n  cursor: pointer; }\n\n.fc-button::-moz-focus-inner {\n  padding: 0;\n  border-style: none; }\n\n/* theme */\n.fc-button {\n  display: inline-block;\n  font-weight: 400;\n  color: #212529;\n  text-align: center;\n  vertical-align: middle;\n  -webkit-user-select: none;\n  -moz-user-select: none;\n  -ms-user-select: none;\n  user-select: none;\n  background-color: transparent;\n  border: 1px solid transparent;\n  padding: 0.4em 0.65em;\n  font-size: 1em;\n  line-height: 1.5;\n  border-radius: 0.25em; }\n\n.fc-button:hover {\n  color: #212529;\n  text-decoration: none; }\n\n.fc-button:focus {\n  outline: 0;\n  -webkit-box-shadow: 0 0 0 0.2rem rgba(44, 62, 80, 0.25);\n  box-shadow: 0 0 0 0.2rem rgba(44, 62, 80, 0.25); }\n\n.fc-button:disabled {\n  opacity: 0.65; }\n\n/* \"primary\" coloring */\n.fc-button-primary {\n  color: #fff;\n  background-color: #2C3E50;\n  border-color: #2C3E50; }\n\n.fc-button-primary:hover {\n  color: #fff;\n  background-color: #1e2b37;\n  border-color: #1a252f; }\n\n.fc-button-primary:focus {\n  -webkit-box-shadow: 0 0 0 0.2rem rgba(76, 91, 106, 0.5);\n  box-shadow: 0 0 0 0.2rem rgba(76, 91, 106, 0.5); }\n\n.fc-button-primary:disabled {\n  color: #fff;\n  background-color: #2C3E50;\n  border-color: #2C3E50; }\n\n.fc-button-primary:not(:disabled):active,\n.fc-button-primary:not(:disabled).fc-button-active {\n  color: #fff;\n  background-color: #1a252f;\n  border-color: #151e27; }\n\n.fc-button-primary:not(:disabled):active:focus,\n.fc-button-primary:not(:disabled).fc-button-active:focus {\n  -webkit-box-shadow: 0 0 0 0.2rem rgba(76, 91, 106, 0.5);\n  box-shadow: 0 0 0 0.2rem rgba(76, 91, 106, 0.5); }\n\n/* icons within buttons */\n.fc-button .fc-icon {\n  vertical-align: middle;\n  font-size: 1.5em; }\n\n/* Buttons Groups\n--------------------------------------------------------------------------------------------------*/\n.fc-button-group {\n  position: relative;\n  display: -webkit-inline-box;\n  display: -ms-inline-flexbox;\n  display: inline-flex;\n  vertical-align: middle; }\n\n.fc-button-group > .fc-button {\n  position: relative;\n  -webkit-box-flex: 1;\n  -ms-flex: 1 1 auto;\n  flex: 1 1 auto; }\n\n.fc-button-group > .fc-button:hover {\n  z-index: 1; }\n\n.fc-button-group > .fc-button:focus,\n.fc-button-group > .fc-button:active,\n.fc-button-group > .fc-button.fc-button-active {\n  z-index: 1; }\n\n.fc-button-group > .fc-button:not(:first-child) {\n  margin-left: -1px; }\n\n.fc-button-group > .fc-button:not(:last-child) {\n  border-top-right-radius: 0;\n  border-bottom-right-radius: 0; }\n\n.fc-button-group > .fc-button:not(:first-child) {\n  border-top-left-radius: 0;\n  border-bottom-left-radius: 0; }\n\n/* Popover\n--------------------------------------------------------------------------------------------------*/\n.fc-unthemed .fc-popover {\n  border-width: 1px;\n  border-style: solid; }\n\n/* List View\n--------------------------------------------------------------------------------------------------*/\n.fc-unthemed .fc-list-item:hover td {\n  background-color: #f5f5f5; }\n\n/* Toolbar\n--------------------------------------------------------------------------------------------------*/\n.fc-toolbar {\n  display: flex;\n  justify-content: space-between;\n  align-items: center; }\n\n.fc-toolbar.fc-header-toolbar {\n  margin-bottom: 1.5em; }\n\n.fc-toolbar.fc-footer-toolbar {\n  margin-top: 1.5em; }\n\n/* inner content */\n.fc-toolbar > * > :not(:first-child) {\n  margin-left: .75em; }\n\n.fc-toolbar h2 {\n  font-size: 1.75em;\n  margin: 0; }\n\n/* View Structure\n--------------------------------------------------------------------------------------------------*/\n.fc-view-container {\n  position: relative; }\n\n/* undo twitter bootstrap's box-sizing rules. normalizes positioning techniques */\n/* don't do this for the toolbar because we'll want bootstrap to style those buttons as some pt */\n.fc-view-container *,\n.fc-view-container *:before,\n.fc-view-container *:after {\n  -webkit-box-sizing: content-box;\n  -moz-box-sizing: content-box;\n  box-sizing: content-box; }\n\n.fc-view,\n.fc-view > table {\n  /* so dragged elements can be above the view's main element */\n  position: relative;\n  z-index: 1; }\n\n@media print {\n  .fc {\n    max-width: 100% !important; }\n\n  /* Global Event Restyling\n  --------------------------------------------------------------------------------------------------*/\n  .fc-event {\n    background: #fff !important;\n    color: #000 !important;\n    page-break-inside: avoid; }\n\n  .fc-event .fc-resizer {\n    display: none; }\n\n  /* Table & Day-Row Restyling\n  --------------------------------------------------------------------------------------------------*/\n  .fc th,\n  .fc td,\n  .fc hr,\n  .fc thead,\n  .fc tbody,\n  .fc-row {\n    border-color: #ccc !important;\n    background: #fff !important; }\n\n  /* kill the overlaid, absolutely-positioned components */\n  /* common... */\n  .fc-bg,\n  .fc-bgevent-skeleton,\n  .fc-highlight-skeleton,\n  .fc-mirror-skeleton,\n  .fc-bgevent-container,\n  .fc-business-container,\n  .fc-highlight-container,\n  .fc-mirror-container {\n    display: none; }\n\n  /* don't force a min-height on rows (for DayGrid) */\n  .fc tbody .fc-row {\n    height: auto !important;\n    /* undo height that JS set in distributeHeight */\n    min-height: 0 !important;\n    /* undo the min-height from each view's specific stylesheet */ }\n\n  .fc tbody .fc-row .fc-content-skeleton {\n    position: static;\n    /* undo .fc-rigid */\n    padding-bottom: 0 !important;\n    /* use a more border-friendly method for this... */ }\n\n  .fc tbody .fc-row .fc-content-skeleton tbody tr:last-child td {\n    /* only works in newer browsers */\n    padding-bottom: 1em;\n    /* ...gives space within the skeleton. also ensures min height in a way */ }\n\n  .fc tbody .fc-row .fc-content-skeleton table {\n    /* provides a min-height for the row, but only effective for IE, which exaggerates this value,\n       making it look more like 3em. for other browers, it will already be this tall */\n    height: 1em; }\n\n  /* Undo month-view event limiting. Display all events and hide the \"more\" links\n  --------------------------------------------------------------------------------------------------*/\n  .fc-more-cell,\n  .fc-more {\n    display: none !important; }\n\n  .fc tr.fc-limited {\n    display: table-row !important; }\n\n  .fc td.fc-limited {\n    display: table-cell !important; }\n\n  .fc-popover {\n    display: none;\n    /* never display the \"more..\" popover in print mode */ }\n\n  /* TimeGrid Restyling\n  --------------------------------------------------------------------------------------------------*/\n  /* undo the min-height 100% trick used to fill the container's height */\n  .fc-time-grid {\n    min-height: 0 !important; }\n\n  /* don't display the side axis at all (\"all-day\" and time cells) */\n  .fc-timeGrid-view .fc-axis {\n    display: none; }\n\n  /* don't display the horizontal lines */\n  .fc-slats,\n  .fc-time-grid hr {\n    /* this hr is used when height is underused and needs to be filled */\n    display: none !important;\n    /* important overrides inline declaration */ }\n\n  /* let the container that holds the events be naturally positioned and create real height */\n  .fc-time-grid .fc-content-skeleton {\n    position: static; }\n\n  /* in case there are no events, we still want some height */\n  .fc-time-grid .fc-content-skeleton table {\n    height: 4em; }\n\n  /* kill the horizontal spacing made by the event container. event margins will be done below */\n  .fc-time-grid .fc-event-container {\n    margin: 0 !important; }\n\n  /* TimeGrid *Event* Restyling\n  --------------------------------------------------------------------------------------------------*/\n  /* naturally position events, vertically stacking them */\n  .fc-time-grid .fc-event {\n    position: static !important;\n    margin: 3px 2px !important; }\n\n  /* for events that continue to a future day, give the bottom border back */\n  .fc-time-grid .fc-event.fc-not-end {\n    border-bottom-width: 1px !important; }\n\n  /* indicate the event continues via \"...\" text */\n  .fc-time-grid .fc-event.fc-not-end:after {\n    content: \"...\"; }\n\n  /* for events that are continuations from previous days, give the top border back */\n  .fc-time-grid .fc-event.fc-not-start {\n    border-top-width: 1px !important; }\n\n  /* indicate the event is a continuation via \"...\" text */\n  .fc-time-grid .fc-event.fc-not-start:before {\n    content: \"...\"; }\n\n  /* time */\n  /* undo a previous declaration and let the time text span to a second line */\n  .fc-time-grid .fc-event .fc-time {\n    white-space: normal !important; }\n\n  /* hide the the time that is normally displayed... */\n  .fc-time-grid .fc-event .fc-time span {\n    display: none; }\n\n  /* ...replace it with a more verbose version (includes AM/PM) stored in an html attribute */\n  .fc-time-grid .fc-event .fc-time:after {\n    content: attr(data-full); }\n\n  /* Vertical Scroller & Containers\n  --------------------------------------------------------------------------------------------------*/\n  /* kill the scrollbars and allow natural height */\n  .fc-scroller,\n  .fc-day-grid-container,\n  .fc-time-grid-container {\n    /* */\n    overflow: visible !important;\n    height: auto !important; }\n\n  /* kill the horizontal border/padding used to compensate for scrollbars */\n  .fc-row {\n    border: 0 !important;\n    margin: 0 !important; }\n\n  /* Button Controls\n  --------------------------------------------------------------------------------------------------*/\n  .fc-button-group,\n  .fc button {\n    display: none;\n    /* don't display any button-related controls */ } }\n", ""]);
+exports.push([module.i, "/*!\nFullCalendar Core Package v4.2.0\nDocs & License: https://fullcalendar.io/\n(c) 2019 Adam Shaw\n*/\n.fc {\n  direction: ltr;\n  text-align: left; }\n\n.fc-rtl {\n  text-align: right; }\n\nbody .fc {\n  /* extra precedence to overcome jqui */\n  font-size: 1em; }\n\n/* Colors\n--------------------------------------------------------------------------------------------------*/\n.fc-highlight {\n  /* when user is selecting cells */\n  background: #bce8f1;\n  opacity: .3; }\n\n.fc-bgevent {\n  /* default look for background events */\n  background: #8fdf82;\n  opacity: .3; }\n\n.fc-nonbusiness {\n  /* default look for non-business-hours areas */\n  /* will inherit .fc-bgevent's styles */\n  background: #d7d7d7; }\n\n/* Popover\n--------------------------------------------------------------------------------------------------*/\n.fc-popover {\n  position: absolute;\n  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15); }\n\n.fc-popover .fc-header {\n  /* TODO: be more consistent with fc-head/fc-body */\n  display: flex;\n  flex-direction: row;\n  justify-content: space-between;\n  align-items: center;\n  padding: 2px 4px; }\n\n.fc-rtl .fc-popover .fc-header {\n  flex-direction: row-reverse; }\n\n.fc-popover .fc-header .fc-title {\n  margin: 0 2px; }\n\n.fc-popover .fc-header .fc-close {\n  cursor: pointer;\n  opacity: 0.65;\n  font-size: 1.1em; }\n\n/* Misc Reusable Components\n--------------------------------------------------------------------------------------------------*/\n.fc-divider {\n  border-style: solid;\n  border-width: 1px; }\n\nhr.fc-divider {\n  height: 0;\n  margin: 0;\n  padding: 0 0 2px;\n  /* height is unreliable across browsers, so use padding */\n  border-width: 1px 0; }\n\n.fc-bg,\n.fc-bgevent-skeleton,\n.fc-highlight-skeleton,\n.fc-mirror-skeleton {\n  /* these element should always cling to top-left/right corners */\n  position: absolute;\n  top: 0;\n  left: 0;\n  right: 0; }\n\n.fc-bg {\n  bottom: 0;\n  /* strech bg to bottom edge */ }\n\n.fc-bg table {\n  height: 100%;\n  /* strech bg to bottom edge */ }\n\n/* Tables\n--------------------------------------------------------------------------------------------------*/\n.fc table {\n  width: 100%;\n  box-sizing: border-box;\n  /* fix scrollbar issue in firefox */\n  table-layout: fixed;\n  border-collapse: collapse;\n  border-spacing: 0;\n  font-size: 1em;\n  /* normalize cross-browser */ }\n\n.fc th {\n  text-align: center; }\n\n.fc th,\n.fc td {\n  border-style: solid;\n  border-width: 1px;\n  padding: 0;\n  vertical-align: top; }\n\n.fc td.fc-today {\n  border-style: double;\n  /* overcome neighboring borders */ }\n\n/* Internal Nav Links\n--------------------------------------------------------------------------------------------------*/\na[data-goto] {\n  cursor: pointer; }\n\na[data-goto]:hover {\n  text-decoration: underline; }\n\n/* Fake Table Rows\n--------------------------------------------------------------------------------------------------*/\n.fc .fc-row {\n  /* extra precedence to overcome themes forcing a 1px border */\n  /* no visible border by default. but make available if need be (scrollbar width compensation) */\n  border-style: solid;\n  border-width: 0; }\n\n.fc-row table {\n  /* don't put left/right border on anything within a fake row.\n     the outer tbody will worry about this */\n  border-left: 0 hidden transparent;\n  border-right: 0 hidden transparent;\n  /* no bottom borders on rows */\n  border-bottom: 0 hidden transparent; }\n\n.fc-row:first-child table {\n  border-top: 0 hidden transparent;\n  /* no top border on first row */ }\n\n/* Day Row (used within the header and the DayGrid)\n--------------------------------------------------------------------------------------------------*/\n.fc-row {\n  position: relative; }\n\n.fc-row .fc-bg {\n  z-index: 1; }\n\n/* highlighting cells & background event skeleton */\n.fc-row .fc-bgevent-skeleton,\n.fc-row .fc-highlight-skeleton {\n  bottom: 0;\n  /* stretch skeleton to bottom of row */ }\n\n.fc-row .fc-bgevent-skeleton table,\n.fc-row .fc-highlight-skeleton table {\n  height: 100%;\n  /* stretch skeleton to bottom of row */ }\n\n.fc-row .fc-highlight-skeleton td,\n.fc-row .fc-bgevent-skeleton td {\n  border-color: transparent; }\n\n.fc-row .fc-bgevent-skeleton {\n  z-index: 2; }\n\n.fc-row .fc-highlight-skeleton {\n  z-index: 3; }\n\n/*\nrow content (which contains day/week numbers and events) as well as \"mirror\" (which contains\ntemporary rendered events).\n*/\n.fc-row .fc-content-skeleton {\n  position: relative;\n  z-index: 4;\n  padding-bottom: 2px;\n  /* matches the space above the events */ }\n\n.fc-row .fc-mirror-skeleton {\n  z-index: 5; }\n\n.fc .fc-row .fc-content-skeleton table,\n.fc .fc-row .fc-content-skeleton td,\n.fc .fc-row .fc-mirror-skeleton td {\n  /* see-through to the background below */\n  /* extra precedence to prevent theme-provided backgrounds */\n  background: none;\n  /* in case <td>s are globally styled */\n  border-color: transparent; }\n\n.fc-row .fc-content-skeleton td,\n.fc-row .fc-mirror-skeleton td {\n  /* don't put a border between events and/or the day number */\n  border-bottom: 0; }\n\n.fc-row .fc-content-skeleton tbody td,\n.fc-row .fc-mirror-skeleton tbody td {\n  /* don't put a border between event cells */\n  border-top: 0; }\n\n/* Scrolling Container\n--------------------------------------------------------------------------------------------------*/\n.fc-scroller {\n  -webkit-overflow-scrolling: touch; }\n\n/* TODO: move to timegrid/daygrid */\n.fc-scroller > .fc-day-grid,\n.fc-scroller > .fc-time-grid {\n  position: relative;\n  /* re-scope all positions */\n  width: 100%;\n  /* hack to force re-sizing this inner element when scrollbars appear/disappear */ }\n\n/* Global Event Styles\n--------------------------------------------------------------------------------------------------*/\n.fc-event {\n  position: relative;\n  /* for resize handle and other inner positioning */\n  display: block;\n  /* make the <a> tag block */\n  font-size: .85em;\n  line-height: 1.4;\n  border-radius: 3px;\n  border: 1px solid #3788d8; }\n\n.fc-event,\n.fc-event-dot {\n  background-color: #3788d8;\n  /* default BACKGROUND color */ }\n\n.fc-event,\n.fc-event:hover {\n  color: #fff;\n  /* default TEXT color */\n  text-decoration: none;\n  /* if <a> has an href */ }\n\n.fc-event[href],\n.fc-event.fc-draggable {\n  cursor: pointer;\n  /* give events with links and draggable events a hand mouse pointer */ }\n\n.fc-not-allowed,\n.fc-not-allowed .fc-event {\n  /* to override an event's custom cursor */\n  cursor: not-allowed; }\n\n.fc-event .fc-content {\n  position: relative;\n  z-index: 2; }\n\n/* resizer (cursor AND touch devices) */\n.fc-event .fc-resizer {\n  position: absolute;\n  z-index: 4; }\n\n/* resizer (touch devices) */\n.fc-event .fc-resizer {\n  display: none; }\n\n.fc-event.fc-allow-mouse-resize .fc-resizer,\n.fc-event.fc-selected .fc-resizer {\n  /* only show when hovering or selected (with touch) */\n  display: block; }\n\n/* hit area */\n.fc-event.fc-selected .fc-resizer:before {\n  /* 40x40 touch area */\n  content: \"\";\n  position: absolute;\n  z-index: 9999;\n  /* user of this util can scope within a lower z-index */\n  top: 50%;\n  left: 50%;\n  width: 40px;\n  height: 40px;\n  margin-left: -20px;\n  margin-top: -20px; }\n\n/* Event Selection (only for touch devices)\n--------------------------------------------------------------------------------------------------*/\n.fc-event.fc-selected {\n  z-index: 9999 !important;\n  /* overcomes inline z-index */\n  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); }\n\n.fc-event.fc-selected:after {\n  content: \"\";\n  position: absolute;\n  z-index: 1;\n  /* same z-index as fc-bg, behind text */\n  /* overcome the borders */\n  top: -1px;\n  right: -1px;\n  bottom: -1px;\n  left: -1px;\n  /* darkening effect */\n  background: #000;\n  opacity: .25; }\n\n/* Event Dragging\n--------------------------------------------------------------------------------------------------*/\n.fc-event.fc-dragging.fc-selected {\n  box-shadow: 0 2px 7px rgba(0, 0, 0, 0.3); }\n\n.fc-event.fc-dragging:not(.fc-selected) {\n  opacity: .75; }\n\n/* Horizontal Events\n--------------------------------------------------------------------------------------------------*/\n/* bigger touch area when selected */\n.fc-h-event.fc-selected:before {\n  content: \"\";\n  position: absolute;\n  z-index: 3;\n  /* below resizers */\n  top: -10px;\n  bottom: -10px;\n  left: 0;\n  right: 0; }\n\n/* events that are continuing to/from another week. kill rounded corners and butt up against edge */\n.fc-ltr .fc-h-event.fc-not-start,\n.fc-rtl .fc-h-event.fc-not-end {\n  margin-left: 0;\n  border-left-width: 0;\n  padding-left: 1px;\n  /* replace the border with padding */\n  border-top-left-radius: 0;\n  border-bottom-left-radius: 0; }\n\n.fc-ltr .fc-h-event.fc-not-end,\n.fc-rtl .fc-h-event.fc-not-start {\n  margin-right: 0;\n  border-right-width: 0;\n  padding-right: 1px;\n  /* replace the border with padding */\n  border-top-right-radius: 0;\n  border-bottom-right-radius: 0; }\n\n/* resizer (cursor AND touch devices) */\n/* left resizer  */\n.fc-ltr .fc-h-event .fc-start-resizer,\n.fc-rtl .fc-h-event .fc-end-resizer {\n  cursor: w-resize;\n  left: -1px;\n  /* overcome border */ }\n\n/* right resizer */\n.fc-ltr .fc-h-event .fc-end-resizer,\n.fc-rtl .fc-h-event .fc-start-resizer {\n  cursor: e-resize;\n  right: -1px;\n  /* overcome border */ }\n\n/* resizer (mouse devices) */\n.fc-h-event.fc-allow-mouse-resize .fc-resizer {\n  width: 7px;\n  top: -1px;\n  /* overcome top border */\n  bottom: -1px;\n  /* overcome bottom border */ }\n\n/* resizer (touch devices) */\n.fc-h-event.fc-selected .fc-resizer {\n  /* 8x8 little dot */\n  border-radius: 4px;\n  border-width: 1px;\n  width: 6px;\n  height: 6px;\n  border-style: solid;\n  border-color: inherit;\n  background: #fff;\n  /* vertically center */\n  top: 50%;\n  margin-top: -4px; }\n\n/* left resizer  */\n.fc-ltr .fc-h-event.fc-selected .fc-start-resizer,\n.fc-rtl .fc-h-event.fc-selected .fc-end-resizer {\n  margin-left: -4px;\n  /* centers the 8x8 dot on the left edge */ }\n\n/* right resizer */\n.fc-ltr .fc-h-event.fc-selected .fc-end-resizer,\n.fc-rtl .fc-h-event.fc-selected .fc-start-resizer {\n  margin-right: -4px;\n  /* centers the 8x8 dot on the right edge */ }\n\n/* DayGrid events\n----------------------------------------------------------------------------------------------------\nWe use the full \"fc-day-grid-event\" class instead of using descendants because the event won't\nbe a descendant of the grid when it is being dragged.\n*/\n.fc-day-grid-event {\n  margin: 1px 2px 0;\n  /* spacing between events and edges */\n  padding: 0 1px; }\n\ntr:first-child > td > .fc-day-grid-event {\n  margin-top: 2px;\n  /* a little bit more space before the first event */ }\n\n.fc-mirror-skeleton tr:first-child > td > .fc-day-grid-event {\n  margin-top: 0;\n  /* except for mirror skeleton */ }\n\n.fc-day-grid-event .fc-content {\n  /* force events to be one-line tall */\n  white-space: nowrap;\n  overflow: hidden; }\n\n.fc-day-grid-event .fc-time {\n  font-weight: bold; }\n\n/* resizer (cursor devices) */\n/* left resizer  */\n.fc-ltr .fc-day-grid-event.fc-allow-mouse-resize .fc-start-resizer,\n.fc-rtl .fc-day-grid-event.fc-allow-mouse-resize .fc-end-resizer {\n  margin-left: -2px;\n  /* to the day cell's edge */ }\n\n/* right resizer */\n.fc-ltr .fc-day-grid-event.fc-allow-mouse-resize .fc-end-resizer,\n.fc-rtl .fc-day-grid-event.fc-allow-mouse-resize .fc-start-resizer {\n  margin-right: -2px;\n  /* to the day cell's edge */ }\n\n/* Event Limiting\n--------------------------------------------------------------------------------------------------*/\n/* \"more\" link that represents hidden events */\na.fc-more {\n  margin: 1px 3px;\n  font-size: .85em;\n  cursor: pointer;\n  text-decoration: none; }\n\na.fc-more:hover {\n  text-decoration: underline; }\n\n.fc-limited {\n  /* rows and cells that are hidden because of a \"more\" link */\n  display: none; }\n\n/* popover that appears when \"more\" link is clicked */\n.fc-day-grid .fc-row {\n  z-index: 1;\n  /* make the \"more\" popover one higher than this */ }\n\n.fc-more-popover {\n  z-index: 2;\n  width: 220px; }\n\n.fc-more-popover .fc-event-container {\n  padding: 10px; }\n\n/* Now Indicator\n--------------------------------------------------------------------------------------------------*/\n.fc-now-indicator {\n  position: absolute;\n  border: 0 solid red; }\n\n/* Utilities\n--------------------------------------------------------------------------------------------------*/\n.fc-unselectable {\n  -webkit-user-select: none;\n  -khtml-user-select: none;\n  -moz-user-select: none;\n  -ms-user-select: none;\n  user-select: none;\n  -webkit-touch-callout: none;\n  -webkit-tap-highlight-color: rgba(0, 0, 0, 0); }\n\n/*\nTODO: more distinction between this file and common.css\n*/\n/* Colors\n--------------------------------------------------------------------------------------------------*/\n.fc-unthemed th,\n.fc-unthemed td,\n.fc-unthemed thead,\n.fc-unthemed tbody,\n.fc-unthemed .fc-divider,\n.fc-unthemed .fc-row,\n.fc-unthemed .fc-content,\n.fc-unthemed .fc-popover,\n.fc-unthemed .fc-list-view,\n.fc-unthemed .fc-list-heading td {\n  border-color: #ddd; }\n\n.fc-unthemed .fc-popover {\n  background-color: #fff; }\n\n.fc-unthemed .fc-divider,\n.fc-unthemed .fc-popover .fc-header,\n.fc-unthemed .fc-list-heading td {\n  background: #eee; }\n\n.fc-unthemed td.fc-today {\n  background: #fcf8e3; }\n\n.fc-unthemed .fc-disabled-day {\n  background: #d7d7d7;\n  opacity: .3; }\n\n/* Icons\n--------------------------------------------------------------------------------------------------\nfrom https://feathericons.com/ and built with IcoMoon\n*/\n@font-face {\n  font-family: 'fcicons';\n  src: url(\"data:application/x-font-ttf;charset=utf-8;base64,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\") format(\"truetype\");\n  font-weight: normal;\n  font-style: normal; }\n.fc-icon {\n  /* use !important to prevent issues with browser extensions that change fonts */\n  font-family: 'fcicons' !important;\n  speak: none;\n  font-style: normal;\n  font-weight: normal;\n  font-variant: normal;\n  text-transform: none;\n  line-height: 1;\n  /* Better Font Rendering =========== */\n  -webkit-font-smoothing: antialiased;\n  -moz-osx-font-smoothing: grayscale; }\n\n.fc-icon-chevron-left:before {\n  content: \"\\E900\"; }\n\n.fc-icon-chevron-right:before {\n  content: \"\\E901\"; }\n\n.fc-icon-chevrons-left:before {\n  content: \"\\E902\"; }\n\n.fc-icon-chevrons-right:before {\n  content: \"\\E903\"; }\n\n.fc-icon-minus-square:before {\n  content: \"\\E904\"; }\n\n.fc-icon-plus-square:before {\n  content: \"\\E905\"; }\n\n.fc-icon-x:before {\n  content: \"\\E906\"; }\n\n.fc-icon {\n  display: inline-block;\n  width: 1em;\n  height: 1em;\n  text-align: center; }\n\n/* Buttons\n--------------------------------------------------------------------------------------------------\nLots taken from Flatly (MIT): https://bootswatch.com/4/flatly/bootstrap.css\n*/\n/* reset */\n.fc-button {\n  border-radius: 0;\n  overflow: visible;\n  text-transform: none;\n  margin: 0;\n  font-family: inherit;\n  font-size: inherit;\n  line-height: inherit; }\n\n.fc-button:focus {\n  outline: 1px dotted;\n  outline: 5px auto -webkit-focus-ring-color; }\n\n.fc-button {\n  -webkit-appearance: button; }\n\n.fc-button:not(:disabled) {\n  cursor: pointer; }\n\n.fc-button::-moz-focus-inner {\n  padding: 0;\n  border-style: none; }\n\n/* theme */\n.fc-button {\n  display: inline-block;\n  font-weight: 400;\n  color: #212529;\n  text-align: center;\n  vertical-align: middle;\n  -webkit-user-select: none;\n  -moz-user-select: none;\n  -ms-user-select: none;\n  user-select: none;\n  background-color: transparent;\n  border: 1px solid transparent;\n  padding: 0.4em 0.65em;\n  font-size: 1em;\n  line-height: 1.5;\n  border-radius: 0.25em; }\n\n.fc-button:hover {\n  color: #212529;\n  text-decoration: none; }\n\n.fc-button:focus {\n  outline: 0;\n  -webkit-box-shadow: 0 0 0 0.2rem rgba(44, 62, 80, 0.25);\n  box-shadow: 0 0 0 0.2rem rgba(44, 62, 80, 0.25); }\n\n.fc-button:disabled {\n  opacity: 0.65; }\n\n/* \"primary\" coloring */\n.fc-button-primary {\n  color: #fff;\n  background-color: #2C3E50;\n  border-color: #2C3E50; }\n\n.fc-button-primary:hover {\n  color: #fff;\n  background-color: #1e2b37;\n  border-color: #1a252f; }\n\n.fc-button-primary:focus {\n  -webkit-box-shadow: 0 0 0 0.2rem rgba(76, 91, 106, 0.5);\n  box-shadow: 0 0 0 0.2rem rgba(76, 91, 106, 0.5); }\n\n.fc-button-primary:disabled {\n  color: #fff;\n  background-color: #2C3E50;\n  border-color: #2C3E50; }\n\n.fc-button-primary:not(:disabled):active,\n.fc-button-primary:not(:disabled).fc-button-active {\n  color: #fff;\n  background-color: #1a252f;\n  border-color: #151e27; }\n\n.fc-button-primary:not(:disabled):active:focus,\n.fc-button-primary:not(:disabled).fc-button-active:focus {\n  -webkit-box-shadow: 0 0 0 0.2rem rgba(76, 91, 106, 0.5);\n  box-shadow: 0 0 0 0.2rem rgba(76, 91, 106, 0.5); }\n\n/* icons within buttons */\n.fc-button .fc-icon {\n  vertical-align: middle;\n  font-size: 1.5em; }\n\n/* Buttons Groups\n--------------------------------------------------------------------------------------------------*/\n.fc-button-group {\n  position: relative;\n  display: -webkit-inline-box;\n  display: -ms-inline-flexbox;\n  display: inline-flex;\n  vertical-align: middle; }\n\n.fc-button-group > .fc-button {\n  position: relative;\n  -webkit-box-flex: 1;\n  -ms-flex: 1 1 auto;\n  flex: 1 1 auto; }\n\n.fc-button-group > .fc-button:hover {\n  z-index: 1; }\n\n.fc-button-group > .fc-button:focus,\n.fc-button-group > .fc-button:active,\n.fc-button-group > .fc-button.fc-button-active {\n  z-index: 1; }\n\n.fc-button-group > .fc-button:not(:first-child) {\n  margin-left: -1px; }\n\n.fc-button-group > .fc-button:not(:last-child) {\n  border-top-right-radius: 0;\n  border-bottom-right-radius: 0; }\n\n.fc-button-group > .fc-button:not(:first-child) {\n  border-top-left-radius: 0;\n  border-bottom-left-radius: 0; }\n\n/* Popover\n--------------------------------------------------------------------------------------------------*/\n.fc-unthemed .fc-popover {\n  border-width: 1px;\n  border-style: solid; }\n\n/* List View\n--------------------------------------------------------------------------------------------------*/\n.fc-unthemed .fc-list-item:hover td {\n  background-color: #f5f5f5; }\n\n/* Toolbar\n--------------------------------------------------------------------------------------------------*/\n.fc-toolbar {\n  display: flex;\n  justify-content: space-between;\n  align-items: center; }\n\n.fc-toolbar.fc-header-toolbar {\n  margin-bottom: 1.5em; }\n\n.fc-toolbar.fc-footer-toolbar {\n  margin-top: 1.5em; }\n\n/* inner content */\n.fc-toolbar > * > :not(:first-child) {\n  margin-left: .75em; }\n\n.fc-toolbar h2 {\n  font-size: 1.75em;\n  margin: 0; }\n\n/* View Structure\n--------------------------------------------------------------------------------------------------*/\n.fc-view-container {\n  position: relative; }\n\n/* undo twitter bootstrap's box-sizing rules. normalizes positioning techniques */\n/* don't do this for the toolbar because we'll want bootstrap to style those buttons as some pt */\n.fc-view-container *,\n.fc-view-container *:before,\n.fc-view-container *:after {\n  -webkit-box-sizing: content-box;\n  -moz-box-sizing: content-box;\n  box-sizing: content-box; }\n\n.fc-view,\n.fc-view > table {\n  /* so dragged elements can be above the view's main element */\n  position: relative;\n  z-index: 1; }\n\n@media print {\n  .fc {\n    max-width: 100% !important; }\n\n  /* Global Event Restyling\n  --------------------------------------------------------------------------------------------------*/\n  .fc-event {\n    background: #fff !important;\n    color: #000 !important;\n    page-break-inside: avoid; }\n\n  .fc-event .fc-resizer {\n    display: none; }\n\n  /* Table & Day-Row Restyling\n  --------------------------------------------------------------------------------------------------*/\n  .fc th,\n  .fc td,\n  .fc hr,\n  .fc thead,\n  .fc tbody,\n  .fc-row {\n    border-color: #ccc !important;\n    background: #fff !important; }\n\n  /* kill the overlaid, absolutely-positioned components */\n  /* common... */\n  .fc-bg,\n  .fc-bgevent-skeleton,\n  .fc-highlight-skeleton,\n  .fc-mirror-skeleton,\n  .fc-bgevent-container,\n  .fc-business-container,\n  .fc-highlight-container,\n  .fc-mirror-container {\n    display: none; }\n\n  /* don't force a min-height on rows (for DayGrid) */\n  .fc tbody .fc-row {\n    height: auto !important;\n    /* undo height that JS set in distributeHeight */\n    min-height: 0 !important;\n    /* undo the min-height from each view's specific stylesheet */ }\n\n  .fc tbody .fc-row .fc-content-skeleton {\n    position: static;\n    /* undo .fc-rigid */\n    padding-bottom: 0 !important;\n    /* use a more border-friendly method for this... */ }\n\n  .fc tbody .fc-row .fc-content-skeleton tbody tr:last-child td {\n    /* only works in newer browsers */\n    padding-bottom: 1em;\n    /* ...gives space within the skeleton. also ensures min height in a way */ }\n\n  .fc tbody .fc-row .fc-content-skeleton table {\n    /* provides a min-height for the row, but only effective for IE, which exaggerates this value,\n       making it look more like 3em. for other browers, it will already be this tall */\n    height: 1em; }\n\n  /* Undo month-view event limiting. Display all events and hide the \"more\" links\n  --------------------------------------------------------------------------------------------------*/\n  .fc-more-cell,\n  .fc-more {\n    display: none !important; }\n\n  .fc tr.fc-limited {\n    display: table-row !important; }\n\n  .fc td.fc-limited {\n    display: table-cell !important; }\n\n  .fc-popover {\n    display: none;\n    /* never display the \"more..\" popover in print mode */ }\n\n  /* TimeGrid Restyling\n  --------------------------------------------------------------------------------------------------*/\n  /* undo the min-height 100% trick used to fill the container's height */\n  .fc-time-grid {\n    min-height: 0 !important; }\n\n  /* don't display the side axis at all (\"all-day\" and time cells) */\n  .fc-timeGrid-view .fc-axis {\n    display: none; }\n\n  /* don't display the horizontal lines */\n  .fc-slats,\n  .fc-time-grid hr {\n    /* this hr is used when height is underused and needs to be filled */\n    display: none !important;\n    /* important overrides inline declaration */ }\n\n  /* let the container that holds the events be naturally positioned and create real height */\n  .fc-time-grid .fc-content-skeleton {\n    position: static; }\n\n  /* in case there are no events, we still want some height */\n  .fc-time-grid .fc-content-skeleton table {\n    height: 4em; }\n\n  /* kill the horizontal spacing made by the event container. event margins will be done below */\n  .fc-time-grid .fc-event-container {\n    margin: 0 !important; }\n\n  /* TimeGrid *Event* Restyling\n  --------------------------------------------------------------------------------------------------*/\n  /* naturally position events, vertically stacking them */\n  .fc-time-grid .fc-event {\n    position: static !important;\n    margin: 3px 2px !important; }\n\n  /* for events that continue to a future day, give the bottom border back */\n  .fc-time-grid .fc-event.fc-not-end {\n    border-bottom-width: 1px !important; }\n\n  /* indicate the event continues via \"...\" text */\n  .fc-time-grid .fc-event.fc-not-end:after {\n    content: \"...\"; }\n\n  /* for events that are continuations from previous days, give the top border back */\n  .fc-time-grid .fc-event.fc-not-start {\n    border-top-width: 1px !important; }\n\n  /* indicate the event is a continuation via \"...\" text */\n  .fc-time-grid .fc-event.fc-not-start:before {\n    content: \"...\"; }\n\n  /* time */\n  /* undo a previous declaration and let the time text span to a second line */\n  .fc-time-grid .fc-event .fc-time {\n    white-space: normal !important; }\n\n  /* hide the the time that is normally displayed... */\n  .fc-time-grid .fc-event .fc-time span {\n    display: none; }\n\n  /* ...replace it with a more verbose version (includes AM/PM) stored in an html attribute */\n  .fc-time-grid .fc-event .fc-time:after {\n    content: attr(data-full); }\n\n  /* Vertical Scroller & Containers\n  --------------------------------------------------------------------------------------------------*/\n  /* kill the scrollbars and allow natural height */\n  .fc-scroller,\n  .fc-day-grid-container,\n  .fc-time-grid-container {\n    /* */\n    overflow: visible !important;\n    height: auto !important; }\n\n  /* kill the horizontal border/padding used to compensate for scrollbars */\n  .fc-row {\n    border: 0 !important;\n    margin: 0 !important; }\n\n  /* Button Controls\n  --------------------------------------------------------------------------------------------------*/\n  .fc-button-group,\n  .fc button {\n    display: none;\n    /* don't display any button-related controls */ } }\n", ""]);
 
 // exports
 
@@ -21644,7 +21605,7 @@ exports = module.exports = __webpack_require__(/*! ../../css-loader/lib/css-base
 
 
 // module
-exports.push([module.i, "/*!\nFullCalendar Day Grid Plugin v4.1.0\nDocs & License: https://fullcalendar.io/\n(c) 2019 Adam Shaw\n*/\n/* DayGridView\n--------------------------------------------------------------------------------------------------*/\n/* day row structure */\n.fc-dayGridWeek-view .fc-content-skeleton,\n.fc-dayGridDay-view .fc-content-skeleton {\n  /* there may be week numbers in these views, so no padding-top */\n  padding-bottom: 1em;\n  /* ensure a space at bottom of cell for user selecting/clicking */ }\n\n.fc-dayGrid-view .fc-body .fc-row {\n  min-height: 4em;\n  /* ensure that all rows are at least this tall */ }\n\n/* a \"rigid\" row will take up a constant amount of height because content-skeleton is absolute */\n.fc-row.fc-rigid {\n  overflow: hidden; }\n\n.fc-row.fc-rigid .fc-content-skeleton {\n  position: absolute;\n  top: 0;\n  left: 0;\n  right: 0; }\n\n/* week and day number styling */\n.fc-day-top.fc-other-month {\n  opacity: 0.3; }\n\n.fc-dayGrid-view .fc-week-number,\n.fc-dayGrid-view .fc-day-number {\n  padding: 2px; }\n\n.fc-dayGrid-view th.fc-week-number,\n.fc-dayGrid-view th.fc-day-number {\n  padding: 0 2px;\n  /* column headers can't have as much v space */ }\n\n.fc-ltr .fc-dayGrid-view .fc-day-top .fc-day-number {\n  float: right; }\n\n.fc-rtl .fc-dayGrid-view .fc-day-top .fc-day-number {\n  float: left; }\n\n.fc-ltr .fc-dayGrid-view .fc-day-top .fc-week-number {\n  float: left;\n  border-radius: 0 0 3px 0; }\n\n.fc-rtl .fc-dayGrid-view .fc-day-top .fc-week-number {\n  float: right;\n  border-radius: 0 0 0 3px; }\n\n.fc-dayGrid-view .fc-day-top .fc-week-number {\n  min-width: 1.5em;\n  text-align: center;\n  background-color: #f2f2f2;\n  color: #808080; }\n\n/* when week/day number have own column */\n.fc-dayGrid-view td.fc-week-number {\n  text-align: center; }\n\n.fc-dayGrid-view td.fc-week-number > * {\n  /* work around the way we do column resizing and ensure a minimum width */\n  display: inline-block;\n  min-width: 1.25em; }\n", ""]);
+exports.push([module.i, "/*!\nFullCalendar Day Grid Plugin v4.2.0\nDocs & License: https://fullcalendar.io/\n(c) 2019 Adam Shaw\n*/\n/* DayGridView\n--------------------------------------------------------------------------------------------------*/\n/* day row structure */\n.fc-dayGridWeek-view .fc-content-skeleton,\n.fc-dayGridDay-view .fc-content-skeleton {\n  /* there may be week numbers in these views, so no padding-top */\n  padding-bottom: 1em;\n  /* ensure a space at bottom of cell for user selecting/clicking */ }\n\n.fc-dayGrid-view .fc-body .fc-row {\n  min-height: 4em;\n  /* ensure that all rows are at least this tall */ }\n\n/* a \"rigid\" row will take up a constant amount of height because content-skeleton is absolute */\n.fc-row.fc-rigid {\n  overflow: hidden; }\n\n.fc-row.fc-rigid .fc-content-skeleton {\n  position: absolute;\n  top: 0;\n  left: 0;\n  right: 0; }\n\n/* week and day number styling */\n.fc-day-top.fc-other-month {\n  opacity: 0.3; }\n\n.fc-dayGrid-view .fc-week-number,\n.fc-dayGrid-view .fc-day-number {\n  padding: 2px; }\n\n.fc-dayGrid-view th.fc-week-number,\n.fc-dayGrid-view th.fc-day-number {\n  padding: 0 2px;\n  /* column headers can't have as much v space */ }\n\n.fc-ltr .fc-dayGrid-view .fc-day-top .fc-day-number {\n  float: right; }\n\n.fc-rtl .fc-dayGrid-view .fc-day-top .fc-day-number {\n  float: left; }\n\n.fc-ltr .fc-dayGrid-view .fc-day-top .fc-week-number {\n  float: left;\n  border-radius: 0 0 3px 0; }\n\n.fc-rtl .fc-dayGrid-view .fc-day-top .fc-week-number {\n  float: right;\n  border-radius: 0 0 0 3px; }\n\n.fc-dayGrid-view .fc-day-top .fc-week-number {\n  min-width: 1.5em;\n  text-align: center;\n  background-color: #f2f2f2;\n  color: #808080; }\n\n/* when week/day number have own column */\n.fc-dayGrid-view td.fc-week-number {\n  text-align: center; }\n\n.fc-dayGrid-view td.fc-week-number > * {\n  /* work around the way we do column resizing and ensure a minimum width */\n  display: inline-block;\n  min-width: 1.25em; }\n", ""]);
 
 // exports
 
@@ -21663,7 +21624,7 @@ exports = module.exports = __webpack_require__(/*! ../../css-loader/lib/css-base
 
 
 // module
-exports.push([module.i, "/*!\nFullCalendar Time Grid Plugin v4.1.0\nDocs & License: https://fullcalendar.io/\n(c) 2019 Adam Shaw\n*/\n/* TimeGridView all-day area\n--------------------------------------------------------------------------------------------------*/\n.fc-timeGrid-view .fc-day-grid {\n  position: relative;\n  z-index: 2;\n  /* so the \"more..\" popover will be over the time grid */ }\n\n.fc-timeGrid-view .fc-day-grid .fc-row {\n  min-height: 3em;\n  /* all-day section will never get shorter than this */ }\n\n.fc-timeGrid-view .fc-day-grid .fc-row .fc-content-skeleton {\n  padding-bottom: 1em;\n  /* give space underneath events for clicking/selecting days */ }\n\n/* TimeGrid axis running down the side (for both the all-day area and the slot area)\n--------------------------------------------------------------------------------------------------*/\n.fc .fc-axis {\n  /* .fc to overcome default cell styles */\n  vertical-align: middle;\n  padding: 0 4px;\n  white-space: nowrap; }\n\n.fc-ltr .fc-axis {\n  text-align: right; }\n\n.fc-rtl .fc-axis {\n  text-align: left; }\n\n/* TimeGrid Structure\n--------------------------------------------------------------------------------------------------*/\n.fc-time-grid-container,\n.fc-time-grid {\n  /* so slats/bg/content/etc positions get scoped within here */\n  position: relative;\n  z-index: 1; }\n\n.fc-time-grid {\n  min-height: 100%;\n  /* so if height setting is 'auto', .fc-bg stretches to fill height */ }\n\n.fc-time-grid table {\n  /* don't put outer borders on slats/bg/content/etc */\n  border: 0 hidden transparent; }\n\n.fc-time-grid > .fc-bg {\n  z-index: 1; }\n\n.fc-time-grid .fc-slats,\n.fc-time-grid > hr {\n  /* the <hr> TimeGridView injects when grid is shorter than scroller */\n  position: relative;\n  z-index: 2; }\n\n.fc-time-grid .fc-content-col {\n  position: relative;\n  /* because now-indicator lives directly inside */ }\n\n.fc-time-grid .fc-content-skeleton {\n  position: absolute;\n  z-index: 3;\n  top: 0;\n  left: 0;\n  right: 0; }\n\n/* divs within a cell within the fc-content-skeleton */\n.fc-time-grid .fc-business-container {\n  position: relative;\n  z-index: 1; }\n\n.fc-time-grid .fc-bgevent-container {\n  position: relative;\n  z-index: 2; }\n\n.fc-time-grid .fc-highlight-container {\n  position: relative;\n  z-index: 3; }\n\n.fc-time-grid .fc-event-container {\n  position: relative;\n  z-index: 4; }\n\n.fc-time-grid .fc-now-indicator-line {\n  z-index: 5; }\n\n.fc-time-grid .fc-mirror-container {\n  /* also is fc-event-container */\n  position: relative;\n  z-index: 6; }\n\n/* TimeGrid Slats (lines that run horizontally)\n--------------------------------------------------------------------------------------------------*/\n.fc-time-grid .fc-slats td {\n  height: 1.5em;\n  border-bottom: 0;\n  /* each cell is responsible for its top border */ }\n\n.fc-time-grid .fc-slats .fc-minor td {\n  border-top-style: dotted; }\n\n/* TimeGrid Highlighting Slots\n--------------------------------------------------------------------------------------------------*/\n.fc-time-grid .fc-highlight-container {\n  /* a div within a cell within the fc-highlight-skeleton */\n  position: relative;\n  /* scopes the left/right of the fc-highlight to be in the column */ }\n\n.fc-time-grid .fc-highlight {\n  position: absolute;\n  left: 0;\n  right: 0;\n  /* top and bottom will be in by JS */ }\n\n/* TimeGrid Event Containment\n--------------------------------------------------------------------------------------------------*/\n.fc-ltr .fc-time-grid .fc-event-container {\n  /* space on the sides of events for LTR (default) */\n  margin: 0 2.5% 0 2px; }\n\n.fc-rtl .fc-time-grid .fc-event-container {\n  /* space on the sides of events for RTL */\n  margin: 0 2px 0 2.5%; }\n\n.fc-time-grid .fc-event,\n.fc-time-grid .fc-bgevent {\n  position: absolute;\n  z-index: 1;\n  /* scope inner z-index's */ }\n\n.fc-time-grid .fc-bgevent {\n  /* background events always span full width */\n  left: 0;\n  right: 0; }\n\n/* TimeGrid Event Styling\n----------------------------------------------------------------------------------------------------\nWe use the full \"fc-time-grid-event\" class instead of using descendants because the event won't\nbe a descendant of the grid when it is being dragged.\n*/\n.fc-time-grid-event {\n  margin-bottom: 1px; }\n\n.fc-time-grid-event-inset {\n  -webkit-box-shadow: 0px 0px 0px 1px #fff;\n  box-shadow: 0px 0px 0px 1px #fff; }\n\n.fc-time-grid-event.fc-not-start {\n  /* events that are continuing from another day */\n  /* replace space made by the top border with padding */\n  border-top-width: 0;\n  padding-top: 1px;\n  /* remove top rounded corners */\n  border-top-left-radius: 0;\n  border-top-right-radius: 0; }\n\n.fc-time-grid-event.fc-not-end {\n  /* replace space made by the top border with padding */\n  border-bottom-width: 0;\n  padding-bottom: 1px;\n  /* remove bottom rounded corners */\n  border-bottom-left-radius: 0;\n  border-bottom-right-radius: 0; }\n\n.fc-time-grid-event .fc-content {\n  overflow: hidden;\n  max-height: 100%; }\n\n.fc-time-grid-event .fc-time,\n.fc-time-grid-event .fc-title {\n  padding: 0 1px; }\n\n.fc-time-grid-event .fc-time {\n  font-size: .85em;\n  white-space: nowrap; }\n\n/* short mode, where time and title are on the same line */\n.fc-time-grid-event.fc-short .fc-content {\n  /* don't wrap to second line (now that contents will be inline) */\n  white-space: nowrap; }\n\n.fc-time-grid-event.fc-short .fc-time,\n.fc-time-grid-event.fc-short .fc-title {\n  /* put the time and title on the same line */\n  display: inline-block;\n  vertical-align: top; }\n\n.fc-time-grid-event.fc-short .fc-time span {\n  display: none;\n  /* don't display the full time text... */ }\n\n.fc-time-grid-event.fc-short .fc-time:before {\n  content: attr(data-start);\n  /* ...instead, display only the start time */ }\n\n.fc-time-grid-event.fc-short .fc-time:after {\n  content: \"\\A0-\\A0\";\n  /* seperate with a dash, wrapped in nbsp's */ }\n\n.fc-time-grid-event.fc-short .fc-title {\n  font-size: .85em;\n  /* make the title text the same size as the time */\n  padding: 0;\n  /* undo padding from above */ }\n\n/* resizer (cursor device) */\n.fc-time-grid-event.fc-allow-mouse-resize .fc-resizer {\n  left: 0;\n  right: 0;\n  bottom: 0;\n  height: 8px;\n  overflow: hidden;\n  line-height: 8px;\n  font-size: 11px;\n  font-family: monospace;\n  text-align: center;\n  cursor: s-resize; }\n\n.fc-time-grid-event.fc-allow-mouse-resize .fc-resizer:after {\n  content: \"=\"; }\n\n/* resizer (touch device) */\n.fc-time-grid-event.fc-selected .fc-resizer {\n  /* 10x10 dot */\n  border-radius: 5px;\n  border-width: 1px;\n  width: 8px;\n  height: 8px;\n  border-style: solid;\n  border-color: inherit;\n  background: #fff;\n  /* horizontally center */\n  left: 50%;\n  margin-left: -5px;\n  /* center on the bottom edge */\n  bottom: -5px; }\n\n/* Now Indicator\n--------------------------------------------------------------------------------------------------*/\n.fc-time-grid .fc-now-indicator-line {\n  border-top-width: 1px;\n  left: 0;\n  right: 0; }\n\n/* arrow on axis */\n.fc-time-grid .fc-now-indicator-arrow {\n  margin-top: -5px;\n  /* vertically center on top coordinate */ }\n\n.fc-ltr .fc-time-grid .fc-now-indicator-arrow {\n  left: 0;\n  /* triangle pointing right... */\n  border-width: 5px 0 5px 6px;\n  border-top-color: transparent;\n  border-bottom-color: transparent; }\n\n.fc-rtl .fc-time-grid .fc-now-indicator-arrow {\n  right: 0;\n  /* triangle pointing left... */\n  border-width: 5px 6px 5px 0;\n  border-top-color: transparent;\n  border-bottom-color: transparent; }\n", ""]);
+exports.push([module.i, "/*!\nFullCalendar Time Grid Plugin v4.2.0\nDocs & License: https://fullcalendar.io/\n(c) 2019 Adam Shaw\n*/\n/* TimeGridView all-day area\n--------------------------------------------------------------------------------------------------*/\n.fc-timeGrid-view .fc-day-grid {\n  position: relative;\n  z-index: 2;\n  /* so the \"more..\" popover will be over the time grid */ }\n\n.fc-timeGrid-view .fc-day-grid .fc-row {\n  min-height: 3em;\n  /* all-day section will never get shorter than this */ }\n\n.fc-timeGrid-view .fc-day-grid .fc-row .fc-content-skeleton {\n  padding-bottom: 1em;\n  /* give space underneath events for clicking/selecting days */ }\n\n/* TimeGrid axis running down the side (for both the all-day area and the slot area)\n--------------------------------------------------------------------------------------------------*/\n.fc .fc-axis {\n  /* .fc to overcome default cell styles */\n  vertical-align: middle;\n  padding: 0 4px;\n  white-space: nowrap; }\n\n.fc-ltr .fc-axis {\n  text-align: right; }\n\n.fc-rtl .fc-axis {\n  text-align: left; }\n\n/* TimeGrid Structure\n--------------------------------------------------------------------------------------------------*/\n.fc-time-grid-container,\n.fc-time-grid {\n  /* so slats/bg/content/etc positions get scoped within here */\n  position: relative;\n  z-index: 1; }\n\n.fc-time-grid {\n  min-height: 100%;\n  /* so if height setting is 'auto', .fc-bg stretches to fill height */ }\n\n.fc-time-grid table {\n  /* don't put outer borders on slats/bg/content/etc */\n  border: 0 hidden transparent; }\n\n.fc-time-grid > .fc-bg {\n  z-index: 1; }\n\n.fc-time-grid .fc-slats,\n.fc-time-grid > hr {\n  /* the <hr> TimeGridView injects when grid is shorter than scroller */\n  position: relative;\n  z-index: 2; }\n\n.fc-time-grid .fc-content-col {\n  position: relative;\n  /* because now-indicator lives directly inside */ }\n\n.fc-time-grid .fc-content-skeleton {\n  position: absolute;\n  z-index: 3;\n  top: 0;\n  left: 0;\n  right: 0; }\n\n/* divs within a cell within the fc-content-skeleton */\n.fc-time-grid .fc-business-container {\n  position: relative;\n  z-index: 1; }\n\n.fc-time-grid .fc-bgevent-container {\n  position: relative;\n  z-index: 2; }\n\n.fc-time-grid .fc-highlight-container {\n  position: relative;\n  z-index: 3; }\n\n.fc-time-grid .fc-event-container {\n  position: relative;\n  z-index: 4; }\n\n.fc-time-grid .fc-now-indicator-line {\n  z-index: 5; }\n\n.fc-time-grid .fc-mirror-container {\n  /* also is fc-event-container */\n  position: relative;\n  z-index: 6; }\n\n/* TimeGrid Slats (lines that run horizontally)\n--------------------------------------------------------------------------------------------------*/\n.fc-time-grid .fc-slats td {\n  height: 1.5em;\n  border-bottom: 0;\n  /* each cell is responsible for its top border */ }\n\n.fc-time-grid .fc-slats .fc-minor td {\n  border-top-style: dotted; }\n\n/* TimeGrid Highlighting Slots\n--------------------------------------------------------------------------------------------------*/\n.fc-time-grid .fc-highlight-container {\n  /* a div within a cell within the fc-highlight-skeleton */\n  position: relative;\n  /* scopes the left/right of the fc-highlight to be in the column */ }\n\n.fc-time-grid .fc-highlight {\n  position: absolute;\n  left: 0;\n  right: 0;\n  /* top and bottom will be in by JS */ }\n\n/* TimeGrid Event Containment\n--------------------------------------------------------------------------------------------------*/\n.fc-ltr .fc-time-grid .fc-event-container {\n  /* space on the sides of events for LTR (default) */\n  margin: 0 2.5% 0 2px; }\n\n.fc-rtl .fc-time-grid .fc-event-container {\n  /* space on the sides of events for RTL */\n  margin: 0 2px 0 2.5%; }\n\n.fc-time-grid .fc-event,\n.fc-time-grid .fc-bgevent {\n  position: absolute;\n  z-index: 1;\n  /* scope inner z-index's */ }\n\n.fc-time-grid .fc-bgevent {\n  /* background events always span full width */\n  left: 0;\n  right: 0; }\n\n/* TimeGrid Event Styling\n----------------------------------------------------------------------------------------------------\nWe use the full \"fc-time-grid-event\" class instead of using descendants because the event won't\nbe a descendant of the grid when it is being dragged.\n*/\n.fc-time-grid-event {\n  margin-bottom: 1px; }\n\n.fc-time-grid-event-inset {\n  -webkit-box-shadow: 0px 0px 0px 1px #fff;\n  box-shadow: 0px 0px 0px 1px #fff; }\n\n.fc-time-grid-event.fc-not-start {\n  /* events that are continuing from another day */\n  /* replace space made by the top border with padding */\n  border-top-width: 0;\n  padding-top: 1px;\n  /* remove top rounded corners */\n  border-top-left-radius: 0;\n  border-top-right-radius: 0; }\n\n.fc-time-grid-event.fc-not-end {\n  /* replace space made by the top border with padding */\n  border-bottom-width: 0;\n  padding-bottom: 1px;\n  /* remove bottom rounded corners */\n  border-bottom-left-radius: 0;\n  border-bottom-right-radius: 0; }\n\n.fc-time-grid-event .fc-content {\n  overflow: hidden;\n  max-height: 100%; }\n\n.fc-time-grid-event .fc-time,\n.fc-time-grid-event .fc-title {\n  padding: 0 1px; }\n\n.fc-time-grid-event .fc-time {\n  font-size: .85em;\n  white-space: nowrap; }\n\n/* short mode, where time and title are on the same line */\n.fc-time-grid-event.fc-short .fc-content {\n  /* don't wrap to second line (now that contents will be inline) */\n  white-space: nowrap; }\n\n.fc-time-grid-event.fc-short .fc-time,\n.fc-time-grid-event.fc-short .fc-title {\n  /* put the time and title on the same line */\n  display: inline-block;\n  vertical-align: top; }\n\n.fc-time-grid-event.fc-short .fc-time span {\n  display: none;\n  /* don't display the full time text... */ }\n\n.fc-time-grid-event.fc-short .fc-time:before {\n  content: attr(data-start);\n  /* ...instead, display only the start time */ }\n\n.fc-time-grid-event.fc-short .fc-time:after {\n  content: \"\\A0-\\A0\";\n  /* seperate with a dash, wrapped in nbsp's */ }\n\n.fc-time-grid-event.fc-short .fc-title {\n  font-size: .85em;\n  /* make the title text the same size as the time */\n  padding: 0;\n  /* undo padding from above */ }\n\n/* resizer (cursor device) */\n.fc-time-grid-event.fc-allow-mouse-resize .fc-resizer {\n  left: 0;\n  right: 0;\n  bottom: 0;\n  height: 8px;\n  overflow: hidden;\n  line-height: 8px;\n  font-size: 11px;\n  font-family: monospace;\n  text-align: center;\n  cursor: s-resize; }\n\n.fc-time-grid-event.fc-allow-mouse-resize .fc-resizer:after {\n  content: \"=\"; }\n\n/* resizer (touch device) */\n.fc-time-grid-event.fc-selected .fc-resizer {\n  /* 10x10 dot */\n  border-radius: 5px;\n  border-width: 1px;\n  width: 8px;\n  height: 8px;\n  border-style: solid;\n  border-color: inherit;\n  background: #fff;\n  /* horizontally center */\n  left: 50%;\n  margin-left: -5px;\n  /* center on the bottom edge */\n  bottom: -5px; }\n\n/* Now Indicator\n--------------------------------------------------------------------------------------------------*/\n.fc-time-grid .fc-now-indicator-line {\n  border-top-width: 1px;\n  left: 0;\n  right: 0; }\n\n/* arrow on axis */\n.fc-time-grid .fc-now-indicator-arrow {\n  margin-top: -5px;\n  /* vertically center on top coordinate */ }\n\n.fc-ltr .fc-time-grid .fc-now-indicator-arrow {\n  left: 0;\n  /* triangle pointing right... */\n  border-width: 5px 0 5px 6px;\n  border-top-color: transparent;\n  border-bottom-color: transparent; }\n\n.fc-rtl .fc-time-grid .fc-now-indicator-arrow {\n  right: 0;\n  /* triangle pointing left... */\n  border-width: 5px 6px 5px 0;\n  border-top-color: transparent;\n  border-bottom-color: transparent; }\n", ""]);
 
 // exports
 
@@ -21831,6 +21792,73 @@ function toComment(sourceMap) {
 
 	return '/*# ' + data + ' */';
 }
+
+
+/***/ }),
+
+/***/ "./node_modules/fast-deep-equal/index.js":
+/*!***********************************************!*\
+  !*** ./node_modules/fast-deep-equal/index.js ***!
+  \***********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var isArray = Array.isArray;
+var keyList = Object.keys;
+var hasProp = Object.prototype.hasOwnProperty;
+
+module.exports = function equal(a, b) {
+  if (a === b) return true;
+
+  if (a && b && typeof a == 'object' && typeof b == 'object') {
+    var arrA = isArray(a)
+      , arrB = isArray(b)
+      , i
+      , length
+      , key;
+
+    if (arrA && arrB) {
+      length = a.length;
+      if (length != b.length) return false;
+      for (i = length; i-- !== 0;)
+        if (!equal(a[i], b[i])) return false;
+      return true;
+    }
+
+    if (arrA != arrB) return false;
+
+    var dateA = a instanceof Date
+      , dateB = b instanceof Date;
+    if (dateA != dateB) return false;
+    if (dateA && dateB) return a.getTime() == b.getTime();
+
+    var regexpA = a instanceof RegExp
+      , regexpB = b instanceof RegExp;
+    if (regexpA != regexpB) return false;
+    if (regexpA && regexpB) return a.toString() == b.toString();
+
+    var keys = keyList(a);
+    length = keys.length;
+
+    if (length !== keyList(b).length)
+      return false;
+
+    for (i = length; i-- !== 0;)
+      if (!hasProp.call(b, keys[i])) return false;
+
+    for (i = length; i-- !== 0;) {
+      key = keys[i];
+      if (!equal(a[key], b[key])) return false;
+    }
+
+    return true;
+  }
+
+  return a!==a && b!==b;
+};
 
 
 /***/ }),
@@ -54020,18 +54048,7 @@ var render = function() {
             "div",
             { staticClass: "calendar" },
             [
-              _c("div", { staticClass: "calendar-top" }, [
-                _c("button", { on: { click: _vm.toggleWeekends } }, [
-                  _vm._v("toggle weekends")
-                ]),
-                _vm._v(" "),
-                _c("button", { on: { click: _vm.gotoPast } }, [
-                  _vm._v("go to a date in the past")
-                ]),
-                _vm._v(
-                  "\n            (also, click a date/time to add an event)\n          "
-                )
-              ]),
+              _c("div", { staticClass: "calendar-top" }),
               _vm._v(" "),
               _c("FullCalendar", {
                 ref: "fullCalendar",
@@ -54039,9 +54056,9 @@ var render = function() {
                 attrs: {
                   defaultView: "dayGridMonth",
                   header: {
-                    left: "prev,next today",
+                    left: "prev,next",
                     center: "title",
-                    right: "dayGridMonth,timeGridWeek,timeGridDay,listWeek"
+                    right: "today"
                   },
                   plugins: _vm.calendarPlugins,
                   weekends: _vm.calendarWeekends,
@@ -54115,7 +54132,25 @@ var render = function() {
                 )
               ]),
               _vm._v(" "),
-              _vm._m(1),
+              _c("div", { staticClass: "modal-body" }, [
+                _c("table", { staticClass: "table table-bordered" }, [
+                  _vm._m(1),
+                  _vm._v(" "),
+                  _c(
+                    "tbody",
+                    _vm._l(_vm.consumos, function(consumo) {
+                      return _c("tr", { key: consumo.id }, [
+                        _c("td", [_vm._v(_vm._s(consumo.codigo))]),
+                        _vm._v(" "),
+                        _c("td", [_vm._v(_vm._s(consumo.descripcion))]),
+                        _vm._v(" "),
+                        _c("td", [_vm._v(_vm._s(consumo.consumo))])
+                      ])
+                    }),
+                    0
+                  )
+                ])
+              ]),
               _vm._v(" "),
               _c("div", { staticClass: "modal-footer" }, [
                 _c(
@@ -54132,9 +54167,7 @@ var render = function() {
                   [_vm._v("Close")]
                 ),
                 _vm._v(" "),
-                _vm._m(2),
-                _vm._v(" "),
-                _vm._m(3)
+                _vm._m(2)
               ])
             ])
           ]
@@ -54156,64 +54189,15 @@ var staticRenderFns = [
     var _vm = this
     var _h = _vm.$createElement
     var _c = _vm._self._c || _h
-    return _c("div", { staticClass: "modal-body" }, [
-      _c("form", { attrs: { action: "" } }, [
-        _c("div", { staticClass: "col-auto" }, [
-          _c(
-            "label",
-            { staticClass: "sr-only", attrs: { for: "inlineFormInputGroup" } },
-            [_vm._v("Código")]
-          ),
-          _vm._v(" "),
-          _c("div", { staticClass: "input-group mb-2" }, [
-            _c("div", { staticClass: "input-group-prepend" }, [
-              _c("div", { staticClass: "input-group-text" }, [
-                _c("i", { staticClass: "fas fa-barcode" })
-              ])
-            ]),
-            _vm._v(" "),
-            _c("input", {
-              staticClass: "form-control",
-              attrs: { type: "text", placeholder: "Código" }
-            })
-          ])
-        ]),
+    return _c("thead", { staticClass: "thead-dark" }, [
+      _c("tr", [
+        _c("th", { attrs: { scope: "col" } }, [_vm._v("Código")]),
         _vm._v(" "),
-        _c("div", { staticClass: "col-auto" }, [
-          _c(
-            "label",
-            { staticClass: "sr-only", attrs: { for: "inlineFormInputGroup" } },
-            [_vm._v("Descripcion")]
-          ),
-          _vm._v(" "),
-          _c("div", { staticClass: "input-group mb-2" }, [
-            _c("div", { staticClass: "input-group-prepend" }, [
-              _c("div", { staticClass: "input-group-text" }, [
-                _c("i", { staticClass: "fas fa-align-left" })
-              ])
-            ]),
-            _vm._v(" "),
-            _c("input", {
-              staticClass: "form-control",
-              attrs: { type: "text", placeholder: "Descripción" }
-            })
-          ])
-        ])
+        _c("th", { attrs: { scope: "col" } }, [_vm._v("Descripción")]),
+        _vm._v(" "),
+        _c("th", { attrs: { scope: "col" } }, [_vm._v("Cantidad")])
       ])
     ])
-  },
-  function() {
-    var _vm = this
-    var _h = _vm.$createElement
-    var _c = _vm._self._c || _h
-    return _c(
-      "button",
-      { staticClass: "btn btn-primary", attrs: { type: "button" } },
-      [
-        _c("i", { staticClass: "fas fa-save" }),
-        _vm._v(" Guardar\n                ")
-      ]
-    )
   },
   function() {
     var _vm = this

@@ -178,12 +178,10 @@ export default {
                 axios.get('/user/list'),
                 axios.get('/contratistas/listar'),
                 axios.get('/user/roles'),
-                axios.get('/consumo/fecha/05')
-                ]).then(axios.spread((userRes, contRes, rolesRes, cRes) => {
+                ]).then(axios.spread((userRes, contRes, rolesRes) => {
                     me.users = userRes.data;
                     me.conts = contRes.data;
                     me.roles = rolesRes.data;
-                    console.log(cRes.data);
                 }));
         },
 

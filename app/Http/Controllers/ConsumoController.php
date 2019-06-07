@@ -47,6 +47,7 @@ class ConsumoController extends Controller
         $consumo->contratista_id = $request->contratista_id;
         $consumo->added_by = Auth::user()->name;
         $consumo->save();
+        $consumo->contratista()->attach($request->contratista_id);
     }
 
     /**
@@ -104,8 +105,18 @@ class ConsumoController extends Controller
 
     }
 
-    public function getTimeRange($month){
-        $consumos = DB::table('consumos')
+    public function getSingleContratistaConsumo($month, $contratista){
+        $consumos = Consumo::with('contratista')
+            ->where('contratista_id', $contratista)
+            ->whereMonth('fecha', $month)
+            ->get();
+
+        return $consumos;
+    }
+
+    public function getContratistasConsumos($month)
+    {
+        $consumos = Consumo::with('contratista')
             ->whereMonth('fecha', $month)
             ->get();
 
