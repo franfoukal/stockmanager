@@ -19,7 +19,9 @@ class CreateContratistasTable extends Migration
             $table->string('centro_SAP', 4);
             $table->string('almacen_SAP', 4);
             $table->string('added_by')->default('admin');
+            $table->string('color', 7)->unique();
             $table->timestamps();
+            $table->unique(['centro_SAP', 'almacen_SAP']);
         });
     }
 

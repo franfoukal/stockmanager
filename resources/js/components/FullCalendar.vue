@@ -38,7 +38,7 @@
         <div class="modal fade" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true" :class="{'mostrar' : modal}">
           <div class="modal-dialog modal-dialog-centered" role="document">
             <div class="modal-content">
-              <div class="modal-header">
+              <div class="modal-header" >
                 <h5 class="modal-title"  v-text="tituloModal"></h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close" @click="cerrarModal()">
                   <span aria-hidden="true">&times;</span>
@@ -148,7 +148,7 @@ export default {
             title: this.events[index].contratista[0].nombre,
             start: this.events[index].fecha,
             allDay: 'true',
-            color: 'orange',
+            color: this.events[index].contratista[0].color,
 
           });
           

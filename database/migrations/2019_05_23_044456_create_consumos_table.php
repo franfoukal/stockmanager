@@ -21,6 +21,8 @@ class CreateConsumosTable extends Migration
             $table->foreign('contratista_id')->references('id')->on('contratistas')->onDelete('cascade');
             $table->string('added_by')->default('admin');
             $table->timestamps();
+
+            $table->unique(['fecha', 'contratista_id']);
         });
     }
 

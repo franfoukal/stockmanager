@@ -83,7 +83,7 @@
                         <div class="input-group mb-2">
                           <div class="input-group-prepend">
                             <div class="input-group-text">
-                              <i class="fas fa-barcode"></i>
+                              <i class="fas fa-align-left"></i>
                             </div>
                           </div>
                           <input type="text" class="form-control" v-model="nombre" placeholder="Nombre">
@@ -95,7 +95,7 @@
                         <div class="input-group mb-2">
                           <div class="input-group-prepend">
                             <div class="input-group-text">
-                              <i class="fas fa-align-left"></i>
+                              <i class="fas fa-truck-loading"></i>
                             </div>
                           </div>
                           <input type="text" class="form-control" v-model="centro_SAP" placeholder="Centro SAP">
@@ -107,10 +107,22 @@
                         <div class="input-group mb-2">
                           <div class="input-group-prepend">
                             <div class="input-group-text">
-                              <i class="fas fa-align-left"></i>
+                              <i class="fas fa-truck-pickup"></i>
                             </div>
                           </div>
                           <input type="text" class="form-control" v-model="almacen_SAP" placeholder="Almacén SAP">
+                        </div>
+                      </div>
+                      <!--/form imput -->
+                      <div class="col-auto">
+                        <label class="sr-only" for="inlineFormInputGroup">Color</label>
+                        <div class="input-group mb-2">
+                          <div class="input-group-prepend">
+                            <div class="input-group-text">
+                              <i class="fas fa-palette"></i>
+                            </div>
+                          </div>
+                          <input type="color" class="form-control" v-model="color" placeholder="Color">
                         </div>
                       </div>
                       <!--/form imput -->
@@ -145,6 +157,7 @@ export default {
       nombre: '',
       centro_SAP: '',
       almacen_SAP: '',
+      color:'',
       modal: 0,
       tituloModal: '',
       tipoAccion: 0,
@@ -178,7 +191,8 @@ export default {
         axios.post('/contratistas/agregar', {
           nombre: this.nombre,
           centro_SAP: this.centro_SAP,
-          almacen_SAP: this.almacen_SAP
+          almacen_SAP: this.almacen_SAP,
+          color: this.color
         })
         .then(function (response) {
           me.cerrarModal();
@@ -202,7 +216,8 @@ export default {
           id: this.contr_id,
           nombre: this.nombre,
           centro_SAP: this.centro_SAP,
-          almacen_SAP: this.almacen_SAP
+          almacen_SAP: this.almacen_SAP,
+          color: this.color
         })
         .then(function (response) {
           me.cerrarModal();
@@ -244,6 +259,7 @@ export default {
                 this.nombre = '';
                 this.almacen_SAP = '';
                 this.centro_SAP = '';
+                this.color = '';
                 this.tipoAccion = 1;
                 break;
               }
@@ -254,6 +270,7 @@ export default {
                 this.nombre = data.nombre;
                 this.centro_SAP = data.centro_SAP;
                 this.almacen_SAP = data.almacen_SAP;
+                this.color = data.color;
                 this.tipoAccion = 2;
                 break;
               }
@@ -273,6 +290,7 @@ export default {
       this.centro_SAP = '';
       this.almacen_SAP = '';
       this.tipoAccion = '';
+      this.color = '';
       this.error = 0;
       this.msjesError = '';
     },

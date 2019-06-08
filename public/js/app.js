@@ -16275,6 +16275,18 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 /* harmony default export */ __webpack_exports__["default"] = ({
   data: function data() {
     return {
@@ -16283,6 +16295,7 @@ __webpack_require__.r(__webpack_exports__);
       nombre: '',
       centro_SAP: '',
       almacen_SAP: '',
+      color: '',
       modal: 0,
       tituloModal: '',
       tipoAccion: 0,
@@ -16311,7 +16324,8 @@ __webpack_require__.r(__webpack_exports__);
       axios.post('/contratistas/agregar', {
         nombre: this.nombre,
         centro_SAP: this.centro_SAP,
-        almacen_SAP: this.almacen_SAP
+        almacen_SAP: this.almacen_SAP,
+        color: this.color
       }).then(function (response) {
         me.cerrarModal();
       })["catch"](function (error) {
@@ -16330,7 +16344,8 @@ __webpack_require__.r(__webpack_exports__);
         id: this.contr_id,
         nombre: this.nombre,
         centro_SAP: this.centro_SAP,
-        almacen_SAP: this.almacen_SAP
+        almacen_SAP: this.almacen_SAP,
+        color: this.color
       }).then(function (response) {
         me.cerrarModal();
       })["catch"](function (error) {
@@ -16366,6 +16381,7 @@ __webpack_require__.r(__webpack_exports__);
                   this.nombre = '';
                   this.almacen_SAP = '';
                   this.centro_SAP = '';
+                  this.color = '';
                   this.tipoAccion = 1;
                   break;
                 }
@@ -16378,6 +16394,7 @@ __webpack_require__.r(__webpack_exports__);
                   this.nombre = data.nombre;
                   this.centro_SAP = data.centro_SAP;
                   this.almacen_SAP = data.almacen_SAP;
+                  this.color = data.color;
                   this.tipoAccion = 2;
                   break;
                 }
@@ -16398,6 +16415,7 @@ __webpack_require__.r(__webpack_exports__);
       this.centro_SAP = '';
       this.almacen_SAP = '';
       this.tipoAccion = '';
+      this.color = '';
       this.error = 0;
       this.msjesError = '';
     },
@@ -16604,7 +16622,7 @@ __webpack_require__.r(__webpack_exports__);
           title: this.events[index].contratista[0].nombre,
           start: this.events[index].fecha,
           allDay: 'true',
-          color: 'orange'
+          color: this.events[index].contratista[0].color
         });
       }
     },
@@ -53827,6 +53845,43 @@ var render = function() {
                         }
                       })
                     ])
+                  ]),
+                  _vm._v(" "),
+                  _c("div", { staticClass: "col-auto" }, [
+                    _c(
+                      "label",
+                      {
+                        staticClass: "sr-only",
+                        attrs: { for: "inlineFormInputGroup" }
+                      },
+                      [_vm._v("Color")]
+                    ),
+                    _vm._v(" "),
+                    _c("div", { staticClass: "input-group mb-2" }, [
+                      _vm._m(6),
+                      _vm._v(" "),
+                      _c("input", {
+                        directives: [
+                          {
+                            name: "model",
+                            rawName: "v-model",
+                            value: _vm.color,
+                            expression: "color"
+                          }
+                        ],
+                        staticClass: "form-control",
+                        attrs: { type: "color", placeholder: "Color" },
+                        domProps: { value: _vm.color },
+                        on: {
+                          input: function($event) {
+                            if ($event.target.composing) {
+                              return
+                            }
+                            _vm.color = $event.target.value
+                          }
+                        }
+                      })
+                    ])
                   ])
                 ])
               ]),
@@ -53961,16 +54016,6 @@ var staticRenderFns = [
     var _c = _vm._self._c || _h
     return _c("div", { staticClass: "input-group-prepend" }, [
       _c("div", { staticClass: "input-group-text" }, [
-        _c("i", { staticClass: "fas fa-barcode" })
-      ])
-    ])
-  },
-  function() {
-    var _vm = this
-    var _h = _vm.$createElement
-    var _c = _vm._self._c || _h
-    return _c("div", { staticClass: "input-group-prepend" }, [
-      _c("div", { staticClass: "input-group-text" }, [
         _c("i", { staticClass: "fas fa-align-left" })
       ])
     ])
@@ -53981,7 +54026,27 @@ var staticRenderFns = [
     var _c = _vm._self._c || _h
     return _c("div", { staticClass: "input-group-prepend" }, [
       _c("div", { staticClass: "input-group-text" }, [
-        _c("i", { staticClass: "fas fa-align-left" })
+        _c("i", { staticClass: "fas fa-truck-loading" })
+      ])
+    ])
+  },
+  function() {
+    var _vm = this
+    var _h = _vm.$createElement
+    var _c = _vm._self._c || _h
+    return _c("div", { staticClass: "input-group-prepend" }, [
+      _c("div", { staticClass: "input-group-text" }, [
+        _c("i", { staticClass: "fas fa-truck-pickup" })
+      ])
+    ])
+  },
+  function() {
+    var _vm = this
+    var _h = _vm.$createElement
+    var _c = _vm._self._c || _h
+    return _c("div", { staticClass: "input-group-prepend" }, [
+      _c("div", { staticClass: "input-group-text" }, [
+        _c("i", { staticClass: "fas fa-palette" })
       ])
     ])
   }

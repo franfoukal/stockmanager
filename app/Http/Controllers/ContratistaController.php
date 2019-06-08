@@ -43,6 +43,7 @@ class ContratistaController extends Controller
         $contratista->nombre = $request->nombre;
         $contratista->centro_SAP = $request->centro_SAP;
         $contratista->almacen_SAP = $request->almacen_SAP;
+        $contratista->color = $request->color;
         $contratista->added_by = Auth::user()->name;
         $contratista->save();
 
@@ -84,6 +85,7 @@ class ContratistaController extends Controller
         $contratista->nombre = $request->nombre;
         $contratista->centro_SAP = $request->centro_SAP;
         $contratista->almacen_SAP = $request->almacen_SAP;
+        $contratista->color = $request->color;
         $contratista->added_by = Auth::user()->name;
         $contratista->save();
     }
