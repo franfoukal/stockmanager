@@ -16063,6 +16063,14 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
 /* harmony default export */ __webpack_exports__["default"] = ({
   data: function data() {
     return {
@@ -16072,7 +16080,8 @@ __webpack_require__.r(__webpack_exports__);
       contr_id: '',
       fecha: '',
       cur_user: '',
-      cur_cont: ''
+      cur_cont: '',
+      error: 1
     };
   },
   methods: {
@@ -16114,11 +16123,21 @@ __webpack_require__.r(__webpack_exports__);
         contratista_id: me.contr_id
       }).then(function (response) {
         console.log(response);
-        alert(response);
+        alert('Consumo cargado correctamente');
+        window.location.reload();
+        me.error = 1;
       })["catch"](function (error) {
         console.log(error);
-        alert(error);
-      });
+        me.error = 0;
+      })["finally"](function () {});
+    },
+    errorToggle: function errorToggle() {
+      this.error++;
+      this.error = this.error % 2;
+    },
+    filterInput: function filterInput(e) {
+      e.consumo = e.consumo.replace(/[^0-9]+/g, '');
+      console.log(e.consumo);
     }
   },
   mounted: function mounted() {
@@ -16564,6 +16583,45 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 
 
 
@@ -16582,6 +16640,12 @@ __webpack_require__.r(__webpack_exports__);
       contr: this.$attrs.cur_cont,
       selected: {},
       consumos: {},
+      goTo: '',
+      filter: '',
+      filterData: {},
+      hasCont: '',
+      refresh: 0,
+      visible: 1,
       calendarPlugins: [// plugins must be defined in the JS
       _fullcalendar_daygrid__WEBPACK_IMPORTED_MODULE_1___default.a, _fullcalendar_timegrid__WEBPACK_IMPORTED_MODULE_2___default.a, _fullcalendar_interaction__WEBPACK_IMPORTED_MODULE_3___default.a // needed for dateClick
       ],
@@ -16599,6 +16663,9 @@ __webpack_require__.r(__webpack_exports__);
           allDay: arg.allDay
         });
       }
+    },
+    goToDate: function goToDate(date) {
+      this.$refs.fullCalendar.getApi().gotoDate(date);
     },
     handleEventClick: function handleEventClick(info) {
       this.selected = this.events.filter(function (obj) {
@@ -16648,6 +16715,25 @@ __webpack_require__.r(__webpack_exports__);
         // always executed
         me.parses(me.events);
       });
+    },
+    filterCont: function filterCont(cont) {
+      var me = this;
+
+      if (me.contr[0] != null || me.contr[0] != undefined) {
+        console.log(me.events);
+      } else {
+        me.filterData = me.events.filter(function (obj) {
+          console.log(obj);
+          return obj.contratista[0].nombre == cont;
+        }).pop();
+      }
+
+      this.parses(me.filterData);
+      console.log(this.$refs.fullCalendar.getApi());
+    },
+    showSearch: function showSearch() {
+      this.visible++;
+      this.visible = this.visible % 2;
     }
   },
   mounted: function mounted() {
@@ -53323,6 +53409,20 @@ var render = function() {
   var _h = _vm.$createElement
   var _c = _vm._self._c || _h
   return _c("div", { staticClass: "container col-md-7 mb-5" }, [
+    _c(
+      "div",
+      {
+        staticClass: "alert alert-warning alert-dismissible",
+        class: { "d-none": _vm.error }
+      },
+      [
+        _vm._m(0),
+        _vm._v(
+          "\n        Error en la carga del consumo, revisar si la fecha/contratista ingresada es correcta.\n    "
+        )
+      ]
+    ),
+    _vm._v(" "),
     _c("div", { staticClass: "card mx-auto" }, [
       _c("div", { staticClass: "card-header" }, [
         _c("div", { staticClass: "row" }, [
@@ -53463,7 +53563,7 @@ var render = function() {
               attrs: { id: "table" }
             },
             [
-              _vm._m(0),
+              _vm._m(1),
               _vm._v(" "),
               _c(
                 "tbody",
@@ -53477,6 +53577,11 @@ var render = function() {
                       _c("td", [_vm._v(_vm._s(material.descripcion))]),
                       _vm._v(" "),
                       _c("editable", {
+                        on: {
+                          input: function($event) {
+                            return _vm.filterInput(material)
+                          }
+                        },
                         model: {
                           value: material.consumo,
                           callback: function($$v) {
@@ -53515,6 +53620,15 @@ var render = function() {
   ])
 }
 var staticRenderFns = [
+  function() {
+    var _vm = this
+    var _h = _vm.$createElement
+    var _c = _vm._self._c || _h
+    return _c("h5", [
+      _c("i", { staticClass: "icon fas fa-exclamation-triangle" }),
+      _vm._v(" Alert!")
+    ])
+  },
   function() {
     var _vm = this
     var _h = _vm.$createElement
@@ -54104,18 +54218,132 @@ var render = function() {
   var _h = _vm.$createElement
   var _c = _vm._self._c || _h
   return _c("div", [
-    _c("div", { staticClass: "container col-md-7" }, [
+    _c("div", { staticClass: "container col-sm-8" }, [
       _c("div", { staticClass: "card" }, [
-        _vm._m(0),
+        _c("div", { staticClass: "card-header " }, [
+          _c("h3", { staticClass: "card-title my-auto" }, [
+            _vm._v("Lista de Materiales")
+          ]),
+          _vm._v(" "),
+          _c("div", { staticClass: "card-tools" }, [
+            _c(
+              "button",
+              {
+                staticClass: "btn btn-tool btn-sm",
+                on: {
+                  click: function($event) {
+                    return _vm.showSearch()
+                  }
+                }
+              },
+              [_c("i", { staticClass: "fa fa-search" })]
+            )
+          ])
+        ]),
         _vm._v(" "),
         _c("div", { staticClass: "card-body" }, [
           _c(
             "div",
             { staticClass: "calendar" },
             [
-              _c("div", { staticClass: "calendar-top" }),
+              _c("div", { class: { "d-none": _vm.visible } }, [
+                _c("div", { staticClass: "col-auto" }, [
+                  _c("label", {
+                    staticClass: "sr-only",
+                    attrs: { for: "inlineFormInputGroup" }
+                  }),
+                  _vm._v(" "),
+                  _c("div", { staticClass: "input-group mb-2" }, [
+                    _vm._m(0),
+                    _vm._v(" "),
+                    _c("input", {
+                      directives: [
+                        {
+                          name: "model",
+                          rawName: "v-model",
+                          value: _vm.goTo,
+                          expression: "goTo"
+                        }
+                      ],
+                      staticClass: "form-control",
+                      attrs: { type: "date" },
+                      domProps: { value: _vm.goTo },
+                      on: {
+                        input: [
+                          function($event) {
+                            if ($event.target.composing) {
+                              return
+                            }
+                            _vm.goTo = $event.target.value
+                          },
+                          function($event) {
+                            return _vm.goToDate(_vm.goTo)
+                          }
+                        ]
+                      }
+                    })
+                  ])
+                ]),
+                _vm._v(" "),
+                _c("div", { staticClass: "col-auto" }, [
+                  _c("label", {
+                    staticClass: "sr-only",
+                    attrs: { for: "inlineFormInputGroup" }
+                  }),
+                  _vm._v(" "),
+                  _c("div", { staticClass: "input-group mb-2" }, [
+                    _vm._m(1),
+                    _vm._v(" "),
+                    _c(
+                      "select",
+                      {
+                        directives: [
+                          {
+                            name: "model",
+                            rawName: "v-model",
+                            value: _vm.filter,
+                            expression: "filter"
+                          }
+                        ],
+                        staticClass: "form-control",
+                        on: {
+                          change: [
+                            function($event) {
+                              var $$selectedVal = Array.prototype.filter
+                                .call($event.target.options, function(o) {
+                                  return o.selected
+                                })
+                                .map(function(o) {
+                                  var val = "_value" in o ? o._value : o.value
+                                  return val
+                                })
+                              _vm.filter = $event.target.multiple
+                                ? $$selectedVal
+                                : $$selectedVal[0]
+                            },
+                            function($event) {
+                              return _vm.filterCont(_vm.filter)
+                            }
+                          ]
+                        }
+                      },
+                      _vm._l(_vm.events, function(cont) {
+                        return _c("option", { key: cont.id }, [
+                          _vm._v(
+                            "\n                    " +
+                              _vm._s(cont.contratista[0].nombre) +
+                              "\n                  "
+                          )
+                        ])
+                      }),
+                      0
+                    )
+                  ])
+                ])
+              ]),
               _vm._v(" "),
               _c("FullCalendar", {
+                key: _vm.refresh,
                 ref: "fullCalendar",
                 staticClass: "calendar-render",
                 attrs: {
@@ -54199,7 +54427,7 @@ var render = function() {
               _vm._v(" "),
               _c("div", { staticClass: "modal-body" }, [
                 _c("table", { staticClass: "table table-bordered" }, [
-                  _vm._m(1),
+                  _vm._m(2),
                   _vm._v(" "),
                   _c(
                     "tbody",
@@ -54232,7 +54460,7 @@ var render = function() {
                   [_vm._v("Close")]
                 ),
                 _vm._v(" "),
-                _vm._m(2)
+                _vm._m(3)
               ])
             ])
           ]
@@ -54246,8 +54474,20 @@ var staticRenderFns = [
     var _vm = this
     var _h = _vm.$createElement
     var _c = _vm._self._c || _h
-    return _c("div", { staticClass: "card-header" }, [
-      _c("h3", { staticClass: "card-title" }, [_vm._v("Lista de Materiales")])
+    return _c("div", { staticClass: "input-group-prepend" }, [
+      _c("div", { staticClass: "input-group-text" }, [
+        _c("i", { staticClass: "fas fa-calendar" })
+      ])
+    ])
+  },
+  function() {
+    var _vm = this
+    var _h = _vm.$createElement
+    var _c = _vm._self._c || _h
+    return _c("div", { staticClass: "input-group-prepend" }, [
+      _c("div", { staticClass: "input-group-text" }, [
+        _c("i", { staticClass: "fas fa-truck" })
+      ])
     ])
   },
   function() {

@@ -21,49 +21,62 @@ Route::get('/home', 'HomeController@index');
 Auth::routes();
 
 
-//Rutas para materiales
-Route::get('/materiales', function(){
-    return view('modules/container')->with('component', 'materiales');
-})->middleware(['auth', 'auth.admin:admin, user,employee']);
-Route::get('/materiales/listar', 'MaterialController@index');
-Route::post('/materiales/agregar', 'MaterialController@store');
-Route::post('/materiales/actualizar', 'MaterialController@update');
-Route::delete('/materiales/eliminar/{id}', 'MaterialController@destroy');
+Route::group(['middleware' => ['auth']], function(){
+    
+    Route::group(['middleware' => ['auth.admin:admin']], function () {
+        
+        //Rutas para materiales
+        Route::get('/materiales', function () {
+            return view('modules/container')->with('component', 'materiales');
+        });
+        Route::get('/materiales/listar', 'MaterialController@index');
+        Route::post('/materiales/agregar', 'MaterialController@store');
+        Route::post('/materiales/actualizar', 'MaterialController@update');
+        Route::delete('/materiales/eliminar/{id}', 'MaterialController@destroy');   
+        
+        //Rutas para contratistas
+        Route::get('/contratistas', function () {
+            return view('modules/container')->with('component', 'contratistas');
+        });
+        Route::get('/contratistas/listar', 'ContratistaController@index');
+        Route::post('/contratistas/agregar', 'ContratistaController@store');
+        Route::post('/contratistas/actualizar', 'ContratistaController@update');
+        Route::delete('/contratistas/eliminar/{id}', 'ContratistaController@destroy');
+    
+        //Rutas para usuarios
+        Route::get('/user', function () {
+            return view('modules/container')->with('component', 'usuarios');
+        });
+        Route::get('/user/list', 'UserController@index');
+        Route::get('/user/roles', 'UserController@getRoles');
+        Route::post('/user/config', 'UserController@attachUser');
 
-//Rutas para calendario
-Route::get('/calendario', function () {
-    return view( 'modules/container')->with('component', 'full-calendar');
-});
+    });
+   
+    //Rutas para calendario
+    Route::get('/calendario', function () {
+        return view('modules/container')->with('component', 'full-calendar');
+    });
 
-//Rutas para consumo
-Route::get('/consumo', function () {
-    return view('modules/container')->with('component', 'consumos');
-});
-Route::get('/consumo/listar', 'ConsumoController@index');
-Route::get('/consumo/fecha/{month}/{contratista}', 'ConsumoController@getSingleContratistaConsumo');
-Route::get('/consumo/fecha/{month}', 'ConsumoController@getContratistasConsumos');
-Route::post('/consumo/agregar', 'ConsumoController@store');
-Route::post('/consumo/actualizar', 'ConsumoController@update');
-Route::delete('/consumo/eliminar/{id}', 'ConsumoController@destroy');
+    //Rutas para consumo
+    Route::get('/consumo', function () {
+        return view('modules/container')->with('component', 'consumos');
+    });
+    Route::get('/consumo/listar', 'ConsumoController@index');
+    Route::get('/consumo/fecha/{month}/{contratista}', 'ConsumoController@getSingleContratistaConsumo');
+    Route::get('/consumo/fecha/{month}', 'ConsumoController@getContratistasConsumos');
+    Route::post('/consumo/agregar', 'ConsumoController@store');
+    Route::post('/consumo/actualizar', 'ConsumoController@update');
+    Route::delete('/consumo/eliminar/{id}', 'ConsumoController@destroy');
 
-//Rutas para contratistas
-Route::get('/contratistas', function () {
-    return view( 'modules/container')->with('component', 'contratistas');
-});
-Route::get('/contratistas/listar', 'ContratistaController@index');
-Route::post('/contratistas/agregar', 'ContratistaController@store');
-Route::post('/contratistas/actualizar', 'ContratistaController@update');
-Route::delete('/contratistas/eliminar/{id}', 'ContratistaController@destroy');
 
-//Rutas para usuarios
-Route::get('/user', function () {
-    return view('modules/container')->with('component', 'usuarios');
-});
-Route::get('/user/list', 'UserController@index');
-Route::get('/user/roles', 'UserController@getRoles');
-Route::post('/user/config', 'UserController@attachUser');
+    Route::get('/clear-cache', function () {
+        Artisan::call('cache:clear');
+        return "Cache is cleared";
+    });
 
-Route::get('/clear-cache', function () {
-    Artisan::call('cache:clear');
-    return "Cache is cleared";
+    Route::get('/error', function(){
+        return view('errors/roleError');
+    });
+
 });

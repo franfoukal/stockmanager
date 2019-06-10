@@ -1,15 +1,54 @@
 <template>
 <div>
-<div class="container col-md-7">
+<div class="container col-sm-8">
   <div class="card">
-    <div class="card-header">
-      <h3 class="card-title">Lista de Materiales</h3>
+    <div class="card-header ">
+      <h3 class="card-title my-auto">Lista de Materiales</h3>
+      <div class="card-tools">
+                  <button class="btn btn-tool btn-sm" @click="showSearch()">
+                    <i class="fa fa-search"></i>
+                  </button>
+        </div>
     </div>
     <div class="card-body">
         <div class='calendar'>
-          <div class='calendar-top'>
+          <div :class="{'d-none' : visible}" >
+              
+            <div class="col-auto">
+              <label class="sr-only" for="inlineFormInputGroup"></label>
+              <div class="input-group mb-2">
+                <div class="input-group-prepend">
+                  <div class="input-group-text">
+                    <i class="fas fa-calendar"></i>
+                  </div>
+                </div>
+                <input type="date" v-model="goTo" class="form-control" @input="goToDate(goTo)">
+              </div>
+            </div>
+            <!--/form imput -->
+
+            <div class="col-auto">
+              <label class="sr-only" for="inlineFormInputGroup"></label>
+              <div class="input-group mb-2">
+                <div class="input-group-prepend">
+                  <div class="input-group-text">
+                    <i class="fas fa-truck"></i>
+                  </div>
+                </div>
+
+                <select class="form-control" v-model="filter" @change="filterCont(filter)">
+                  <option v-for="cont in events" :key="cont.id">
+                    {{cont.contratista[0].nombre}}
+                  </option>
+                </select>
+
+              </div>
+            </div>
+            <!--/form imput -->
+                      
           </div>
           <FullCalendar
+          :key="refresh"
             class='calendar-render'
             ref="fullCalendar"
             defaultView="dayGridMonth"
@@ -98,6 +137,12 @@ export default {
       contr: this.$attrs.cur_cont,
       selected: {},
       consumos: {},
+      goTo: '',
+      filter: '',
+      filterData: {},
+      hasCont: '',
+      refresh: 0,
+      visible: 1,
 
       calendarPlugins: [ // plugins must be defined in the JS
         dayGridPlugin,
@@ -119,6 +164,10 @@ export default {
           allDay: arg.allDay
         })
       }
+    },
+
+    goToDate(date){
+      this.$refs.fullCalendar.getApi().gotoDate(date);
     },
 
     handleEventClick(info){
@@ -182,6 +231,27 @@ export default {
                     me.parses(me.events);
                 });
       },
+
+      filterCont(cont){
+        let me = this;
+        if(me.contr[0] != null || me.contr[0] != undefined){
+          console.log(me.events);
+          
+        }else{
+          me.filterData = me.events.filter((obj)=>{
+            console.log(obj);
+                return obj.contratista[0].nombre == cont;
+                }).pop();
+        }
+
+        this.parses(me.filterData);
+        console.log(this.$refs.fullCalendar.getApi());
+      },
+
+      showSearch(){
+        this.visible++;
+        this.visible = this.visible%2;
+      }
 
   },
 

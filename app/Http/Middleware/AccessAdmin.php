@@ -17,10 +17,10 @@ class AccessAdmin
     public function handle($request, Closure $next, ...$role)
     {
         
-        if (\Auth::user()->hasAnyrole($role)) {
+        if (\Auth::user()->hasAnyroles($role)) {
             return $next($request);
         }
 
-        return redirect('/404');
+        return redirect('/error');
     }
 }
