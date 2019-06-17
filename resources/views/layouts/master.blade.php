@@ -54,7 +54,7 @@ scratch. This page gets rid of all links and provides the needed markup only.
 
                 <!-- Right navbar links -->
                 <ul class="navbar-nav ml-auto mr-2">
-                    
+
                     <li class="nav-item dropdown mr-4">
                         <a id="navbarDropdown" class="nav-link dropdown-toggle" href="#" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
                             {{ Auth::user()->name }} <span class="caret"></span>
@@ -154,19 +154,22 @@ scratch. This page gets rid of all links and provides the needed markup only.
 
 
 
-                <!-- Main Footer -->
-                <div class="fixed-bottom">
-                    <footer class="main-footer">
-                        <!-- To the right -->
-                        <div class="float-right d-none d-sm-inline">
-                            Soft developed for Telecom
-                        </div>
-                        <!-- Default to the left -->
-                        <strong>Copyright &copy; {{date("Y")}} <a href="">Foukal, F.</a></strong>
-                    </footer>
-                </div>
+
+
             </div>
             <!-- ./wrapper -->
+
+            <!-- Main Footer -->
+
+                <footer class="main-footer">
+                    <!-- To the right -->
+                    <div class="float-right d-none d-sm-inline mr-sm-6">
+                        Soft desarrollado para Telecom
+                    </div>
+                    <!-- Default to the left -->
+                    <strong class="">Copyright &copy; {{date("Y")}} <a href="">Foukal, F.</a></strong>
+                </footer>
+            
         </div>
         <!-- REQUIRED SCRIPTS -->
     </div>
@@ -176,3 +179,7 @@ scratch. This page gets rid of all links and provides the needed markup only.
 </body>
 
 </html>
+
+<style>
+    
+</style>

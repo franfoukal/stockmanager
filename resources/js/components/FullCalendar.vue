@@ -1,6 +1,6 @@
 <template>
 <div>
-<div class="container col-sm-8">
+<div class="container col-md-10 col-sm-10">
   <div class="card">
     <div class="card-header ">
       <h3 class="card-title my-auto">Lista de Materiales</h3>
@@ -36,10 +36,9 @@
                   </div>
                 </div>
 
-                <select class="form-control" v-model="filter" @change="filterCont(filter)">
-                  <option v-for="cont in events" :key="cont.id">
-                    {{cont.contratista[0].nombre}}
-                  </option>
+                <select class="form-control" v-model="filter" @change="getEvents(filter)">
+                  <option value="">Seleccione Contratista...</option>
+                  <option v-for="cont in contratistas"  :key="cont.id" :value="cont" v-text="cont.nombre"></option>
                 </select>
 
               </div>
@@ -67,9 +66,7 @@
     </div>
   </div>
 
-  <div class="alert alert-primary" role="alert">
-  A simple primary alert—check it out!
-  </div>
+  
 
   </div>
 
@@ -134,11 +131,12 @@ export default {
       modal: 0,
       tituloModal: '',
       events: [],
+      contratistas: [],
       contr: this.$attrs.cur_cont,
       selected: {},
       consumos: {},
       goTo: '',
-      filter: '',
+      filter: [],
       filterData: {},
       hasCont: '',
       refresh: 0,
@@ -157,13 +155,7 @@ export default {
   methods: {
     
     handleDateClick(arg) {
-      if (confirm('Would you like to add an event to ' + arg.dateStr + ' ?')) {
-        this.calendarEvents.push({ // add new event data
-          title: 'New Event',
-          start: arg.date,
-          allDay: arg.allDay
-        })
-      }
+      
     },
 
     goToDate(date){
@@ -191,6 +183,7 @@ export default {
     },
 
     parses(events){
+      this.calendarEvents = [];
         for (let index = 0; index < events.length; index++) {
           this.calendarEvents.push({
             id: this.events[index].id,
@@ -209,17 +202,19 @@ export default {
       var date = me.$refs.fullCalendar.getApi().getDate();
       var month = date.getMonth();
       var uri = '';
+      var id_cont = me.contratista == undefined ? '' : me.contratista;
+      
+      id_cont = me.filter.id == undefined ? '' : me.filter.id;
+
       if(me.contr[0] != null || me.contr[0] != undefined){
         uri = '/consumo/fecha/' + (month +1) + '/' + me.contr[0].id;
       } else{
-        uri = '/consumo/fecha/' + (month +1);
+        uri = '/consumo/fecha/' + (month +1) + '/' + id_cont;
       }
-
             axios.get(uri)
                 .then(function (response) {
                     
                     me.events = response.data;
-                    console.log(response.data, uri);
                     
                 })
                 .catch(function (error) {
@@ -232,21 +227,25 @@ export default {
                 });
       },
 
-      filterCont(cont){
-        let me = this;
-        if(me.contr[0] != null || me.contr[0] != undefined){
-          console.log(me.events);
-          
-        }else{
-          me.filterData = me.events.filter((obj)=>{
-            console.log(obj);
-                return obj.contratista[0].nombre == cont;
-                }).pop();
-        }
 
-        this.parses(me.filterData);
-        console.log(this.$refs.fullCalendar.getApi());
+      getContratistas(){
+        let me = this;
+
+          axios.get('/contratistas/listar')
+                .then(function (response) {
+                    
+                    me.contratistas = response.data;
+                    
+                })
+                .catch(function (error) {
+                    // handle error
+                    console.log(error);
+                })
+                .finally(function () {
+                    // always executed
+                });
       },
+
 
       showSearch(){
         this.visible++;
@@ -257,6 +256,7 @@ export default {
 
   mounted() {
       this.getEvents();
+      this.getContratistas();
     },
   
 }

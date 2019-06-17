@@ -16619,9 +16619,6 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
-//
-//
-//
 
 
 
@@ -16637,11 +16634,12 @@ __webpack_require__.r(__webpack_exports__);
       modal: 0,
       tituloModal: '',
       events: [],
+      contratistas: [],
       contr: this.$attrs.cur_cont,
       selected: {},
       consumos: {},
       goTo: '',
-      filter: '',
+      filter: [],
       filterData: {},
       hasCont: '',
       refresh: 0,
@@ -16654,16 +16652,7 @@ __webpack_require__.r(__webpack_exports__);
     };
   },
   methods: {
-    handleDateClick: function handleDateClick(arg) {
-      if (confirm('Would you like to add an event to ' + arg.dateStr + ' ?')) {
-        this.calendarEvents.push({
-          // add new event data
-          title: 'New Event',
-          start: arg.date,
-          allDay: arg.allDay
-        });
-      }
-    },
+    handleDateClick: function handleDateClick(arg) {},
     goToDate: function goToDate(date) {
       this.$refs.fullCalendar.getApi().gotoDate(date);
     },
@@ -16683,6 +16672,8 @@ __webpack_require__.r(__webpack_exports__);
       this.modal = 0;
     },
     parses: function parses(events) {
+      this.calendarEvents = [];
+
       for (var index = 0; index < events.length; index++) {
         this.calendarEvents.push({
           id: this.events[index].id,
@@ -16698,16 +16689,17 @@ __webpack_require__.r(__webpack_exports__);
       var date = me.$refs.fullCalendar.getApi().getDate();
       var month = date.getMonth();
       var uri = '';
+      var id_cont = me.contratista == undefined ? '' : me.contratista;
+      id_cont = me.filter.id == undefined ? '' : me.filter.id;
 
       if (me.contr[0] != null || me.contr[0] != undefined) {
         uri = '/consumo/fecha/' + (month + 1) + '/' + me.contr[0].id;
       } else {
-        uri = '/consumo/fecha/' + (month + 1);
+        uri = '/consumo/fecha/' + (month + 1) + '/' + id_cont;
       }
 
       axios.get(uri).then(function (response) {
         me.events = response.data;
-        console.log(response.data, uri);
       })["catch"](function (error) {
         // handle error
         console.log(error);
@@ -16716,20 +16708,15 @@ __webpack_require__.r(__webpack_exports__);
         me.parses(me.events);
       });
     },
-    filterCont: function filterCont(cont) {
+    getContratistas: function getContratistas() {
       var me = this;
-
-      if (me.contr[0] != null || me.contr[0] != undefined) {
-        console.log(me.events);
-      } else {
-        me.filterData = me.events.filter(function (obj) {
-          console.log(obj);
-          return obj.contratista[0].nombre == cont;
-        }).pop();
-      }
-
-      this.parses(me.filterData);
-      console.log(this.$refs.fullCalendar.getApi());
+      axios.get('/contratistas/listar').then(function (response) {
+        me.contratistas = response.data;
+      })["catch"](function (error) {
+        // handle error
+        console.log(error);
+      })["finally"](function () {// always executed
+      });
     },
     showSearch: function showSearch() {
       this.visible++;
@@ -16738,6 +16725,7 @@ __webpack_require__.r(__webpack_exports__);
   },
   mounted: function mounted() {
     this.getEvents();
+    this.getContratistas();
   }
 });
 
@@ -54218,7 +54206,7 @@ var render = function() {
   var _h = _vm.$createElement
   var _c = _vm._self._c || _h
   return _c("div", [
-    _c("div", { staticClass: "container col-sm-8" }, [
+    _c("div", { staticClass: "container col-md-10 col-sm-10" }, [
       _c("div", { staticClass: "card" }, [
         _c("div", { staticClass: "card-header " }, [
           _c("h3", { staticClass: "card-title my-auto" }, [
@@ -54322,21 +54310,27 @@ var render = function() {
                                 : $$selectedVal[0]
                             },
                             function($event) {
-                              return _vm.filterCont(_vm.filter)
+                              return _vm.getEvents(_vm.filter)
                             }
                           ]
                         }
                       },
-                      _vm._l(_vm.events, function(cont) {
-                        return _c("option", { key: cont.id }, [
-                          _vm._v(
-                            "\n                    " +
-                              _vm._s(cont.contratista[0].nombre) +
-                              "\n                  "
-                          )
-                        ])
-                      }),
-                      0
+                      [
+                        _c("option", { attrs: { value: "" } }, [
+                          _vm._v("Seleccione Contratista...")
+                        ]),
+                        _vm._v(" "),
+                        _vm._l(_vm.contratistas, function(cont) {
+                          return _c("option", {
+                            key: cont.id,
+                            domProps: {
+                              value: cont,
+                              textContent: _vm._s(cont.nombre)
+                            }
+                          })
+                        })
+                      ],
+                      2
                     )
                   ])
                 ])
@@ -54366,13 +54360,7 @@ var render = function() {
             1
           )
         ])
-      ]),
-      _vm._v(" "),
-      _c(
-        "div",
-        { staticClass: "alert alert-primary", attrs: { role: "alert" } },
-        [_vm._v("\n  A simple primary alert—check it out!\n  ")]
-      )
+      ])
     ]),
     _vm._v(" "),
     _c(
