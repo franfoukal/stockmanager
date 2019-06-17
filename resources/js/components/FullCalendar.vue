@@ -1,9 +1,9 @@
 <template>
 <div>
-<div class="container col-md-10 col-sm-10">
+<div class="container col-12 col-md-8 col-sm-10">
   <div class="card">
     <div class="card-header ">
-      <h3 class="card-title my-auto">Lista de Materiales</h3>
+      <h3 class="card-title my-auto">Calendario</h3>
       <div class="card-tools">
                   <button class="btn btn-tool btn-sm" @click="showSearch()">
                     <i class="fa fa-search"></i>
@@ -27,7 +27,7 @@
             </div>
             <!--/form imput -->
 
-            <div class="col-auto">
+            <div class="col-auto" :class="{'d-none' : toggleContratistaFilter}">
               <label class="sr-only" for="inlineFormInputGroup"></label>
               <div class="input-group mb-2">
                 <div class="input-group-prepend">
@@ -35,12 +35,10 @@
                     <i class="fas fa-truck"></i>
                   </div>
                 </div>
-
-                <select class="form-control" v-model="filter" @change="getEvents(filter)">
+                <select class="form-control custom-select" v-model="filter" @change="getEvents(filter)">
                   <option value="">Seleccione Contratista...</option>
                   <option v-for="cont in contratistas"  :key="cont.id" :value="cont" v-text="cont.nombre"></option>
                 </select>
-
               </div>
             </div>
             <!--/form imput -->
@@ -141,6 +139,7 @@ export default {
       hasCont: '',
       refresh: 0,
       visible: 1,
+      toggleContratistaFilter: 0,
 
       calendarPlugins: [ // plugins must be defined in the JS
         dayGridPlugin,
@@ -169,8 +168,6 @@ export default {
       
         this.consumos = JSON.parse(this.selected.datos_consumo);
         this.tituloModal = this.selected.contratista[0].nombre + ' ' + new Date(this.selected.fecha + ' ').toLocaleDateString('es-AR');
-        console.log(this.selected);
-        
         this.abrirModal();
 
     },
@@ -180,6 +177,7 @@ export default {
     },
     cerrarModal(){
       this.modal = 0;
+      this.tituloModal = '';
     },
 
     parses(events){
@@ -250,6 +248,10 @@ export default {
       showSearch(){
         this.visible++;
         this.visible = this.visible%2;
+      },
+
+      showContratistaFilter(){
+       return this.toggleContratistaFilter = (Array.isArray(this.contr) && this.contr.length) ? 1 : 0;
       }
 
   },
@@ -257,6 +259,7 @@ export default {
   mounted() {
       this.getEvents();
       this.getContratistas();
+      this.showContratistaFilter();
     },
   
 }
@@ -285,7 +288,7 @@ export default {
   position: absolute !important;
 }
   .mostrar{
-    display: list-item !important;
+    display: block !important;  //list-item 
     opacity: 1 !important;
     position: absolute !important;
     background-color: #3c29297A;

@@ -127,7 +127,7 @@ return [
                     'icon' => 'address-card',
                 ],
 
-                [
+               /* [
                     'text'    => 'Level One',
                     'url'     => '#',
                     'submenu' => [
@@ -155,7 +155,7 @@ return [
                 [
                     'text' => 'Level One',
                     'url'  => '#',
-                ],
+                ],*/
             ],
         ],
         '-',

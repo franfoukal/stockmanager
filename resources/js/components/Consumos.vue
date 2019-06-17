@@ -3,7 +3,11 @@
 
         <div class="alert alert-warning alert-dismissible" :class="{'d-none' : error}">
             <h5><i class="icon fas fa-exclamation-triangle"></i> Alert!</h5>
-            Error en la carga del consumo, revisar si la fecha/contratista ingresada es correcta.
+            Error en la carga del consumo, revisar datos: 
+            <ul>
+                <li>Fecha ya ingresada</li>
+                <li>Cantidad no numerica</li>
+            </ul>
         </div>
 
         <div class="card mx-auto">
@@ -42,17 +46,15 @@
                             <tr v-for="(material) in materiales" :key="material.id" >
                                 <td>{{material.codigo}}</td>
                                 <td>{{material.descripcion}}</td>
-                                <editable v-model="material.consumo"  @input="filterInput(material)">
-                                    
-                                </editable>
-                                
+                                <!--editable  v-model="material.consumo"   @input="filterInput(material)"></editable-->
+                                <td><input min="0" type="number" v-model="material.consumo" v-text="material.consumo" @input="isPositive(material)"></td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
             </div>
             <div class="card-footer">
-                <button type="button" @click="guardarConsumo()" class="btn btn-primary">Guardar</button>
+                <button type="submit" @click="guardarConsumo()" class="btn btn-primary">Guardar</button>
             </div>
         </div>
 
@@ -127,6 +129,8 @@ export default {
 
         guardarConsumo(){
         var me = this;
+
+    
         axios.post('/consumo/agregar', {
             
                 fecha: me.fecha,
@@ -135,7 +139,6 @@ export default {
 
             })
             .then(function (response) {
-                console.log(response);
                 alert('Consumo cargado correctamente');
                 window.location.reload();
                 me.error=1;
@@ -154,11 +157,9 @@ export default {
             this.error = this.error%2;
         },
 
-        filterInput(e){
+        isPositive(e){
             e.consumo = e.consumo.replace(/[^0-9]+/g, '');
-            console.log(e.consumo);
         },
-
     },
 
     
@@ -172,7 +173,23 @@ export default {
 </script>
 
 <style lang="css">
+    table td {
+        position: relative;
+    }
 
+    table td input {
+        position: absolute;
+        display: block;
+        top:0;
+        left:0;
+        margin: 0;
+        height: 100%;
+        width: 100%;
+        border: none;
+        padding: 10px;
+        box-sizing: border-box;
+        
+    }
 
     
 </style>

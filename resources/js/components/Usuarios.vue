@@ -87,12 +87,11 @@
                 <i class="fas fa-user-tag"></i>
             </div>
             </div>
-            <select class="form-control" name="" id="" v-model="role">
+            <select class="form-control custom-select" name="" id="" v-model="role">
                 <option value="">Elegir Rol...</option>
                 <option v-for="role in roles" :key="role.id" :value="role.id">
                     {{role.name}}
                 </option>
-
             </select>
         </div>
         </div>
@@ -105,7 +104,7 @@
                 <i class="fas fa-truck-pickup"></i>
             </div>
             </div>
-            <select class="form-control" v-model="cont">
+            <select class="form-control custom-select" v-model="cont">
                 <option value="">Elegir Contratista...</option>
                 <option v-for="contratista in conts" :key="contratista.id" :value="contratista.id">
                     {{contratista.nombre}} - {{contratista.centro_SAP}}
