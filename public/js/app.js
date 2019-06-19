@@ -16079,7 +16079,7 @@ __webpack_require__.r(__webpack_exports__);
       materiales: [],
       consumos: [],
       contratistas: [],
-      contr_id: '',
+      contr: '',
       fecha: '',
       cur_user: '',
       cur_cont: '',
@@ -16122,7 +16122,7 @@ __webpack_require__.r(__webpack_exports__);
       axios.post('/consumo/agregar', {
         fecha: me.fecha,
         datos_consumo: JSON.stringify(me.printMateriales()),
-        contratista_id: me.contr_id
+        contratista_id: me.contr.id
       }).then(function (response) {
         alert('Consumo cargado correctamente');
         window.location.reload();
@@ -16137,7 +16137,9 @@ __webpack_require__.r(__webpack_exports__);
       this.error = this.error % 2;
     },
     isPositive: function isPositive(e) {
-      e.consumo = e.consumo.replace(/[^0-9]+/g, '');
+      if (!(e.keyCode > 95 && e.keyCode < 106 || e.keyCode > 47 && e.keyCode < 58 || e.keyCode == 8)) {
+        return false;
+      }
     }
   },
   mounted: function mounted() {
@@ -16620,7 +16622,6 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
- //import { parseEvents } from '@fullcalendar/core/structs/event-store';
 
 /* harmony default export */ __webpack_exports__["default"] = ({
   components: {
@@ -16638,8 +16639,6 @@ __webpack_require__.r(__webpack_exports__);
       consumos: {},
       goTo: '',
       filter: [],
-      filterData: {},
-      hasCont: '',
       refresh: 0,
       visible: 1,
       toggleContratistaFilter: 0,
@@ -16647,7 +16646,20 @@ __webpack_require__.r(__webpack_exports__);
       _fullcalendar_daygrid__WEBPACK_IMPORTED_MODULE_1___default.a, _fullcalendar_timegrid__WEBPACK_IMPORTED_MODULE_2___default.a, _fullcalendar_interaction__WEBPACK_IMPORTED_MODULE_3___default.a // needed for dateClick
       ],
       calendarWeekends: true,
-      calendarEvents: []
+      eventos: {
+        url: '/consumos',
+        eventDataTransform: function eventDataTransform(e) {
+          return {
+            title: e.contratista[0].nombre,
+            start: e.fecha,
+            color: e.contratista[0].color,
+            consumo: e.datos_consumo
+          };
+        },
+        extraParams: {
+          contr_id: undefined
+        }
+      }
     };
   },
   methods: {
@@ -16656,11 +16668,8 @@ __webpack_require__.r(__webpack_exports__);
       this.$refs.fullCalendar.getApi().gotoDate(date);
     },
     handleEventClick: function handleEventClick(info) {
-      this.selected = this.events.filter(function (obj) {
-        return obj.id == info.event.id;
-      }).pop();
-      this.consumos = JSON.parse(this.selected.datos_consumo);
-      this.tituloModal = this.selected.contratista[0].nombre + ' ' + new Date(this.selected.fecha + ' ').toLocaleDateString('es-AR');
+      this.consumos = JSON.parse(info.event.extendedProps.consumo);
+      this.tituloModal = info.event.title + ' ' + new Date(info.event.start + ' ').toLocaleDateString('es-AR');
       this.abrirModal();
     },
     abrirModal: function abrirModal() {
@@ -16669,43 +16678,6 @@ __webpack_require__.r(__webpack_exports__);
     cerrarModal: function cerrarModal() {
       this.modal = 0;
       this.tituloModal = '';
-    },
-    parses: function parses(events) {
-      this.calendarEvents = [];
-
-      for (var index = 0; index < events.length; index++) {
-        this.calendarEvents.push({
-          id: this.events[index].id,
-          title: this.events[index].contratista[0].nombre,
-          start: this.events[index].fecha,
-          allDay: 'true',
-          color: this.events[index].contratista[0].color
-        });
-      }
-    },
-    getEvents: function getEvents() {
-      var me = this;
-      var date = me.$refs.fullCalendar.getApi().getDate();
-      var month = date.getMonth();
-      var uri = '';
-      var id_cont = me.contratista == undefined ? '' : me.contratista;
-      id_cont = me.filter.id == undefined ? '' : me.filter.id;
-
-      if (me.contr[0] != null || me.contr[0] != undefined) {
-        uri = '/consumo/fecha/' + (month + 1) + '/' + me.contr[0].id;
-      } else {
-        uri = '/consumo/fecha/' + (month + 1) + '/' + id_cont;
-      }
-
-      axios.get(uri).then(function (response) {
-        me.events = response.data;
-      })["catch"](function (error) {
-        // handle error
-        console.log(error);
-      })["finally"](function () {
-        // always executed
-        me.parses(me.events);
-      });
     },
     getContratistas: function getContratistas() {
       var me = this;
@@ -16717,16 +16689,24 @@ __webpack_require__.r(__webpack_exports__);
       })["finally"](function () {// always executed
       });
     },
+    refetch: function refetch(e) {
+      this.eventos.extraParams.contr_id = e.id;
+      this.$refs.fullCalendar.$emit('removeEvents');
+      this.$refs.fullCalendar.$emit('refetchEvents');
+    },
     showSearch: function showSearch() {
       this.visible++;
       this.visible = this.visible % 2;
     },
     showContratistaFilter: function showContratistaFilter() {
-      return this.toggleContratistaFilter = Array.isArray(this.contr) && this.contr.length ? 1 : 0;
+      if (this.contr[0]) {
+        this.eventos.extraParams.contr_id = this.contr[0].id;
+      }
+
+      this.toggleContratistaFilter = Array.isArray(this.contr) && this.contr.length ? 1 : 0;
     }
   },
   mounted: function mounted() {
-    this.getEvents();
     this.getContratistas();
     this.showContratistaFilter();
   }
@@ -53500,8 +53480,8 @@ var render = function() {
                     {
                       name: "model",
                       rawName: "v-model",
-                      value: _vm.contr_id,
-                      expression: "contr_id"
+                      value: _vm.contr,
+                      expression: "contr"
                     }
                   ],
                   staticClass: "custom-select col-3 mr-2",
@@ -53515,7 +53495,7 @@ var render = function() {
                           var val = "_value" in o ? o._value : o.value
                           return val
                         })
-                      _vm.contr_id = $event.target.multiple
+                      _vm.contr = $event.target.multiple
                         ? $$selectedVal
                         : $$selectedVal[0]
                     }
@@ -53527,7 +53507,7 @@ var render = function() {
                         "option",
                         {
                           attrs: { selected: "" },
-                          domProps: { value: _vm.$attrs.cur_cont[0].id }
+                          domProps: { value: _vm.$attrs.cur_cont[0] }
                         },
                         [_vm._v(" " + _vm._s(_vm.$attrs.cur_cont[0].nombre))]
                       )
@@ -53541,8 +53521,8 @@ var render = function() {
                     {
                       name: "model",
                       rawName: "v-model",
-                      value: _vm.contr_id,
-                      expression: "contr_id"
+                      value: _vm.contr,
+                      expression: "contr"
                     }
                   ],
                   staticClass: "custom-select col-3 mr-2",
@@ -53556,7 +53536,7 @@ var render = function() {
                           var val = "_value" in o ? o._value : o.value
                           return val
                         })
-                      _vm.contr_id = $event.target.multiple
+                      _vm.contr = $event.target.multiple
                         ? $$selectedVal
                         : $$selectedVal[0]
                     }
@@ -53574,10 +53554,7 @@ var render = function() {
                   _vm._l(_vm.contratistas, function(contratista) {
                     return _c(
                       "option",
-                      {
-                        key: contratista.id,
-                        domProps: { value: contratista.id }
-                      },
+                      { key: contratista.id, domProps: { value: contratista } },
                       [
                         _vm._v(
                           "\n                       " +
@@ -53623,23 +53600,19 @@ var render = function() {
                             expression: "material.consumo"
                           }
                         ],
-                        attrs: { min: "0", type: "number" },
-                        domProps: {
-                          value: material.consumo,
-                          textContent: _vm._s(material.consumo)
+                        attrs: {
+                          min: "0",
+                          type: "number",
+                          oninput: "this.value = Math.abs(this.value)"
                         },
+                        domProps: { value: material.consumo },
                         on: {
-                          input: [
-                            function($event) {
-                              if ($event.target.composing) {
-                                return
-                              }
-                              _vm.$set(material, "consumo", $event.target.value)
-                            },
-                            function($event) {
-                              return _vm.isPositive(material)
+                          input: function($event) {
+                            if ($event.target.composing) {
+                              return
                             }
-                          ]
+                            _vm.$set(material, "consumo", $event.target.value)
+                          }
                         }
                       })
                     ])
@@ -54389,7 +54362,7 @@ var render = function() {
                                   : $$selectedVal[0]
                               },
                               function($event) {
-                                return _vm.getEvents(_vm.filter)
+                                return _vm.refetch(_vm.filter)
                               }
                             ]
                           }
@@ -54429,7 +54402,7 @@ var render = function() {
                   },
                   plugins: _vm.calendarPlugins,
                   weekends: _vm.calendarWeekends,
-                  events: _vm.calendarEvents
+                  events: _vm.eventos
                 },
                 on: {
                   dateClick: _vm.handleDateClick,

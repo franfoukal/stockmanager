@@ -7,6 +7,7 @@ use App\Consumo;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Mockery\Undefined;
 
 class ConsumoController extends Controller
 {
@@ -103,6 +104,30 @@ class ConsumoController extends Controller
         $consumo = Consumo::findOrFail($id);
         $consumo->delete();
 
+    }
+
+    public function getConsumeByDate(Request $request){
+
+        $contratista = $request->query('contr_id');
+        $date1 = date('Y-m-d', strtotime($request->query('start')));
+        $date2 = date('Y-m-d', strtotime($request->query('end')));
+        
+            
+            
+            if($contratista != 'undefined'){
+                $consumos = Consumo::with('contratista')
+                    ->whereBetween('fecha', [$date1, $date2])
+                    ->where('contratista_id', $contratista)->get();
+            return $consumos;
+                    
+            }
+            else{
+                $consumos = Consumo::with('contratista')
+                    ->whereBetween('fecha', [$date1, $date2])->get();
+
+                return $consumos;
+            }
+  
     }
 
     public function getSingleContratistaConsumo($month, $contratista){

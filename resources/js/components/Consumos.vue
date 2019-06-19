@@ -19,13 +19,13 @@
                     
                     <input type="date" class="form-control col-3 mr-2" v-model="fecha" >
                     
-                    <select class="custom-select col-3 mr-2" v-model="contr_id" v-if="$attrs.cur_cont[0] !== undefined">
-                        <option  v-if="$attrs.cur_cont[0] !== undefined" v-bind:value="$attrs.cur_cont[0].id" selected> {{$attrs.cur_cont[0].nombre}}</option>
+                    <select class="custom-select col-3 mr-2" v-model="contr" v-if="$attrs.cur_cont[0] !== undefined">
+                        <option  v-if="$attrs.cur_cont[0] !== undefined" v-bind:value="$attrs.cur_cont[0]" selected> {{$attrs.cur_cont[0].nombre}}</option>
                     </select>
                     
-                    <select class="custom-select col-3 mr-2" v-model="contr_id" v-else>
+                    <select class="custom-select col-3 mr-2" v-model="contr" v-else>
                         <option  v-if="$attrs.cur_cont[0] !== undefined" v-bind:value="$attrs.cur_cont[0].id"> {{$attrs.cur_cont[0].nombre}}</option>
-                        <option  v-for="contratista in contratistas" :key="contratista.id" v-bind:value="contratista.id">
+                        <option  v-for="contratista in contratistas" :key="contratista.id" v-bind:value="contratista">
                            {{contratista.nombre}}
                         </option>
                     </select>
@@ -47,7 +47,7 @@
                                 <td>{{material.codigo}}</td>
                                 <td>{{material.descripcion}}</td>
                                 <!--editable  v-model="material.consumo"   @input="filterInput(material)"></editable-->
-                                <td><input min="0" type="number" v-model="material.consumo" v-text="material.consumo" @input="isPositive(material)"></td>
+                                <td><input min="0" type="number" v-model="material.consumo"   oninput="this.value = Math.abs(this.value)"></td>
                             </tr>
                         </tbody>
                     </table>
@@ -70,7 +70,7 @@ export default {
             materiales: [],
             consumos: [],
             contratistas: [],
-            contr_id: '',
+            contr: '',
             fecha: '',
             cur_user: '',
             cur_cont: '',
@@ -135,8 +135,7 @@ export default {
             
                 fecha: me.fecha,
                 datos_consumo: JSON.stringify(me.printMateriales()),
-                contratista_id: me.contr_id
-
+                contratista_id: me.contr.id,
             })
             .then(function (response) {
                 alert('Consumo cargado correctamente');
@@ -158,7 +157,12 @@ export default {
         },
 
         isPositive(e){
-            e.consumo = e.consumo.replace(/[^0-9]+/g, '');
+
+                if(!((e.keyCode > 95 && e.keyCode < 106)
+                || (e.keyCode > 47 && e.keyCode < 58) 
+                || e.keyCode == 8)) {
+                    return false;
+                }
         },
     },
 

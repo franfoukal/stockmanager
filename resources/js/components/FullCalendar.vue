@@ -35,7 +35,7 @@
                     <i class="fas fa-truck"></i>
                   </div>
                 </div>
-                <select class="form-control custom-select" v-model="filter" @change="getEvents(filter)">
+                <select class="form-control custom-select" v-model="filter" @change="refetch(filter)">
                   <option value="">Seleccione Contratista...</option>
                   <option v-for="cont in contratistas"  :key="cont.id" :value="cont" v-text="cont.nombre"></option>
                 </select>
@@ -56,7 +56,7 @@
             }"
             :plugins="calendarPlugins"
             :weekends="calendarWeekends"
-            :events="calendarEvents"
+            :events="eventos"       
             @dateClick="handleDateClick"
             @eventClick ="handleEventClick"
             />
@@ -118,7 +118,6 @@ import FullCalendar from '@fullcalendar/vue'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
-//import { parseEvents } from '@fullcalendar/core/structs/event-store';
 
 export default {
   components: {
@@ -135,8 +134,6 @@ export default {
       consumos: {},
       goTo: '',
       filter: [],
-      filterData: {},
-      hasCont: '',
       refresh: 0,
       visible: 1,
       toggleContratistaFilter: 0,
@@ -147,7 +144,25 @@ export default {
         interactionPlugin // needed for dateClick
       ],
       calendarWeekends: true,
-      calendarEvents: []
+      
+
+      eventos: {
+        url: '/consumos',
+        eventDataTransform: function(e){
+          return {
+            title: e.contratista[0].nombre,
+            start: e.fecha,
+            color: e.contratista[0].color,
+            consumo: e.datos_consumo,
+            }
+        },
+
+        extraParams: {
+          contr_id: undefined,
+        },
+      }
+      
+      
     }
   },
 
@@ -162,14 +177,9 @@ export default {
     },
 
     handleEventClick(info){
-      this.selected = this.events.filter((obj)=>{
-          return obj.id == info.event.id;
-        }).pop();
-      
-        this.consumos = JSON.parse(this.selected.datos_consumo);
-        this.tituloModal = this.selected.contratista[0].nombre + ' ' + new Date(this.selected.fecha + ' ').toLocaleDateString('es-AR');
-        this.abrirModal();
-
+      this.consumos = JSON.parse(info.event.extendedProps.consumo);
+      this.tituloModal = info.event.title + ' ' + new Date(info.event.start + ' ').toLocaleDateString('es-AR');
+      this.abrirModal();
     },
 
     abrirModal(){
@@ -180,68 +190,28 @@ export default {
       this.tituloModal = '';
     },
 
-    parses(events){
-      this.calendarEvents = [];
-        for (let index = 0; index < events.length; index++) {
-          this.calendarEvents.push({
-            id: this.events[index].id,
-            title: this.events[index].contratista[0].nombre,
-            start: this.events[index].fecha,
-            allDay: 'true',
-            color: this.events[index].contratista[0].color,
-
-          });
-          
-        }
-    },
-
-    getEvents(){
-      let me = this;
-      var date = me.$refs.fullCalendar.getApi().getDate();
-      var month = date.getMonth();
-      var uri = '';
-      var id_cont = me.contratista == undefined ? '' : me.contratista;
-      
-      id_cont = me.filter.id == undefined ? '' : me.filter.id;
-
-      if(me.contr[0] != null || me.contr[0] != undefined){
-        uri = '/consumo/fecha/' + (month +1) + '/' + me.contr[0].id;
-      } else{
-        uri = '/consumo/fecha/' + (month +1) + '/' + id_cont;
-      }
-            axios.get(uri)
-                .then(function (response) {
-                    
-                    me.events = response.data;
-                    
-                })
-                .catch(function (error) {
-                    // handle error
-                    console.log(error);
-                })
-                .finally(function () {
-                    // always executed
-                    me.parses(me.events);
-                });
-      },
-
 
       getContratistas(){
         let me = this;
+        axios.get('/contratistas/listar')
+              .then(function (response) {
+                  
+                  me.contratistas = response.data;
+                  
+              })
+              .catch(function (error) {
+                  // handle error
+                  console.log(error);
+              })
+              .finally(function () {
+                  // always executed
+              });
+      },
 
-          axios.get('/contratistas/listar')
-                .then(function (response) {
-                    
-                    me.contratistas = response.data;
-                    
-                })
-                .catch(function (error) {
-                    // handle error
-                    console.log(error);
-                })
-                .finally(function () {
-                    // always executed
-                });
+      refetch(e){
+        this.eventos.extraParams.contr_id = e.id;
+        this.$refs.fullCalendar.$emit('removeEvents')
+        this.$refs.fullCalendar.$emit('refetchEvents');
       },
 
 
@@ -251,13 +221,15 @@ export default {
       },
 
       showContratistaFilter(){
-       return this.toggleContratistaFilter = (Array.isArray(this.contr) && this.contr.length) ? 1 : 0;
+        if(this.contr[0]){
+          this.eventos.extraParams.contr_id = this.contr[0].id;
+        }
+        this.toggleContratistaFilter = (Array.isArray(this.contr) && this.contr.length) ? 1 : 0;
       }
 
   },
 
   mounted() {
-      this.getEvents();
       this.getContratistas();
       this.showContratistaFilter();
     },
