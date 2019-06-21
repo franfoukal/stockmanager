@@ -100,7 +100,7 @@
               </div>
               <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal" @click="cerrarModal()">Close</button>
-                <button type="button"   class="btn btn-primary">
+                <button type="button"   class="btn btn-primary" @click="exportToExcel(consumos)">
                   <i class="fas fa-edit"></i> Editar
                 </button>
               </div>
@@ -118,6 +118,9 @@ import FullCalendar from '@fullcalendar/vue'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
+import Excel from 'exceljs/dist/exceljs.min.js';
+import { saveAs } from 'file-saver';
+
 
 export default {
   components: {
@@ -160,8 +163,7 @@ export default {
         extraParams: {
           contr_id: undefined,
         },
-      }
-      
+      },
       
     }
   },
@@ -225,7 +227,28 @@ export default {
           this.eventos.extraParams.contr_id = this.contr[0].id;
         }
         this.toggleContratistaFilter = (Array.isArray(this.contr) && this.contr.length) ? 1 : 0;
-      }
+      },
+
+      exportToExcel: async function (json) {
+            var wb = new Excel.Workbook();
+
+            var ws = wb.addWorksheet();
+
+            ws.columns = [
+              { header: 'Código', key: 'codigo'},
+              { header: 'Descripción', key: 'descripcion'},
+              { header: 'Ctdad.', key: 'consumo'}
+            ];
+
+            json.forEach(d => {
+              let row = ws.addRow(d);
+            });
+            
+
+            var buf = await wb.xlsx.writeBuffer();
+
+            saveAs(new Blob([buf]), 'abc.xlsx');
+      },
 
   },
 

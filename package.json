@@ -13,24 +13,27 @@
         "axios": "^0.18.1",
         "bootstrap": "^4.0.0",
         "cross-env": "^5.1",
-        "jquery": "^3.2",
-        "laravel-mix": "^4.0.7",
+        "jquery": "^3.4.1",
+        "laravel-mix": "^4.0.16",
         "lodash": "^4.17.5",
         "popper.js": "^1.12",
         "resolve-url-loader": "^2.3.1",
-        "sass": "^1.15.2",
+        "sass": "^1.21.0",
         "sass-loader": "^7.1.0",
         "vue": "^2.5.17",
         "vue-template-compiler": "^2.6.10"
     },
     "dependencies": {
-        "@fortawesome/fontawesome-free": "^5.8.1",
+        "@fortawesome/fontawesome-free": "^5.9.0",
         "@fullcalendar/core": "^4.2.0",
         "@fullcalendar/daygrid": "^4.2.0",
         "@fullcalendar/interaction": "^4.2.0",
         "@fullcalendar/timegrid": "^4.2.0",
         "@fullcalendar/vue": "^4.2.2",
         "admin-lte": "^3.0.0-alpha.2",
-        "exceljs": "^1.12.2"
+        "exceljs": "^1.12.2",
+        "file-saver": "^2.0.2",
+        "xlsx": "^0.14.3",
+        "xlsx-style": "^0.8.13"
     }
 }
