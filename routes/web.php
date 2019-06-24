@@ -63,6 +63,11 @@ Route::group(['middleware' => ['auth']], function(){
         return view('modules/container')->with('component', 'full-calendar');
     });
 
+    //Rutas para equipos
+    Route::get('/equipos', function () {
+        return view('modules/container')->with('component', 'equipos');
+    });
+
     //Rutas para consumo
     Route::get('/consumo', function () {
         return view('modules/container')->with('component', 'consumos');
