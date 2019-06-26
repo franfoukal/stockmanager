@@ -67,6 +67,7 @@ Route::group(['middleware' => ['auth']], function(){
     Route::get('/equipos', function () {
         return view('modules/container')->with('component', 'equipos');
     });
+    Route::post('/equipos/agregar', 'EquipoController@store');
 
     //Rutas para consumo
     Route::get('/consumo', function () {

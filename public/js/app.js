@@ -16586,26 +16586,83 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
 /* harmony default export */ __webpack_exports__["default"] = ({
   data: function data() {
     return {
-      inputs: [{
-        instala: '',
-        recupera: ''
-      }],
-      equipos: {},
-      fecha: ''
+      input: {
+        OT: '',
+        movil: '',
+        series: [{
+          instala: '',
+          recupera: ''
+        }],
+        comentario: ''
+      },
+      equipos: {
+        contratista: '',
+        fecha: '',
+        data: []
+      },
+      contratistas: [],
+      rememberMovil: false
     };
   },
   methods: {
     addInputsRow: function addInputsRow() {
-      this.inputs.push({
+      this.input.series.push({
         instala: '',
         recupera: ''
       });
+    },
+    getContratistas: function getContratistas() {
+      var me = this;
+      axios.get('/contratistas/listar').then(function (response) {
+        me.contratistas = response.data;
+      })["catch"](function (error) {
+        // handle error
+        console.log(error);
+      })["finally"](function () {// always executed
+      });
+    },
+    saveOT: function saveOT() {
+      var me = this;
+      this.equipos.data.push(JSON.stringify(this.input));
+      this.input.OT = '';
+      this.input.movil = this.rememberMovil ? this.input.movil : '';
+      this.input.series = [];
+      me.addInputsRow();
+    },
+    storeData: function storeData() {
+      var me = this;
+      axios.post('/equipos/agregar', {
+        fecha: me.fecha,
+        datos_equipos: JSON.stringify(me.equipos.data),
+        contratista_id: me.equipos.contratista.id
+      }).then(function (response) {
+        alert('Equipos cargados correctamente');
+      })["catch"](function (error) {
+        console.log(error);
+      })["finally"](function () {});
+    },
+    toogleRememberMovil: function toogleRememberMovil() {
+      this.rememberMovil = !this.rememberMovil;
+    },
+    deleteLine: function deleteLine(row) {
+      this.input.series[row];
     }
   },
-  mounted: function mounted() {}
+  mounted: function mounted() {
+    this.getContratistas();
+  }
 });
 
 /***/ }),
@@ -21957,7 +22014,7 @@ exports = module.exports = __webpack_require__(/*! ../../../node_modules/css-loa
 
 
 // module
-exports.push([module.i, "\n.input-list{\n    list-style: none;\n    padding: 0;\n}\n.form{\n    padding: 20px;\n}\n    \n", ""]);
+exports.push([module.i, "\n.input-list{\n    list-style: none;\n    padding: 0;\n}\n.form{\n    padding: 20px;\n}\n.btn-circle.btn-xl {\n    width: 70px;\n    height: 70px;\n    padding: 10px 16px;\n    border-radius: 35px;\n    font-size: 24px;\n    line-height: 1.33;\n}\n.btn-circle {\n    width: 30px;\n    height: 30px;\n    padding: 6px 0px;\n    border-radius: 15px;\n    text-align: center;\n    font-size: 12px;\n    line-height: 1.42857;\n}\n.has-icon .form-control {\n    padding-right: 2.375rem;\n}\n.has-icon .form-control-icon {\n    position: absolute;\n    z-index: 2;\n    display: block;\n    width: 2.375rem;\n    height: 2.375rem;\n    line-height: 2.375rem;\n    text-align: right;\n    color: #aaa;\n    right: 3%;\n}\n\n    \n", ""]);
 
 // exports
 
@@ -55273,19 +55330,19 @@ var render = function() {
                 {
                   name: "model",
                   rawName: "v-model",
-                  value: _vm.fecha,
-                  expression: "fecha"
+                  value: _vm.equipos.fecha,
+                  expression: "equipos.fecha"
                 }
               ],
               staticClass: "form-control col-3 mr-2",
               attrs: { type: "date" },
-              domProps: { value: _vm.fecha },
+              domProps: { value: _vm.equipos.fecha },
               on: {
                 input: function($event) {
                   if ($event.target.composing) {
                     return
                   }
-                  _vm.fecha = $event.target.value
+                  _vm.$set(_vm.equipos, "fecha", $event.target.value)
                 }
               }
             }),
@@ -55329,7 +55386,7 @@ var render = function() {
                           "option",
                           {
                             attrs: { selected: "" },
-                            domProps: { value: _vm.$attrs.cur_cont[0] }
+                            domProps: { value: _vm.$attrs.cur_cont[0].id }
                           },
                           [_vm._v(" " + _vm._s(_vm.$attrs.cur_cont[0].nombre))]
                         )
@@ -55368,87 +55425,162 @@ var render = function() {
                       }
                     }
                   },
-                  [
-                    _vm.$attrs.cur_cont[0] !== undefined
-                      ? _c(
-                          "option",
-                          { domProps: { value: _vm.$attrs.cur_cont[0].id } },
-                          [_vm._v(" " + _vm._s(_vm.$attrs.cur_cont[0].nombre))]
+                  _vm._l(_vm.contratistas, function(contratista) {
+                    return _c(
+                      "option",
+                      {
+                        key: contratista.id,
+                        domProps: { value: contratista.id }
+                      },
+                      [
+                        _vm._v(
+                          "\n                            " +
+                            _vm._s(contratista.nombre) +
+                            "\n                            "
                         )
-                      : _vm._e(),
-                    _vm._v(" "),
-                    _vm._l(_vm.contratistas, function(contratista) {
-                      return _c(
-                        "option",
-                        {
-                          key: contratista.id,
-                          domProps: { value: contratista }
-                        },
-                        [
-                          _vm._v(
-                            "\n                            " +
-                              _vm._s(contratista.nombre) +
-                              "\n                            "
-                          )
-                        ]
-                      )
-                    })
-                  ],
-                  2
+                      ]
+                    )
+                  }),
+                  0
                 )
           ])
         ]),
         _vm._v(" "),
         _c("div", { staticClass: "card-body" }, [
           _c("div", { staticClass: "form col-md-10  mx-auto" }, [
-            _vm._m(0),
-            _vm._v(" "),
-            _vm._m(1),
-            _vm._v(" "),
-            _c(
-              "button",
-              {
-                staticClass: "col btn btn-primary ",
+            _c("div", { staticClass: "input-group mb-2" }, [
+              _vm._m(0),
+              _vm._v(" "),
+              _c("input", {
+                directives: [
+                  {
+                    name: "model",
+                    rawName: "v-model",
+                    value: _vm.input.OT,
+                    expression: "input.OT"
+                  }
+                ],
+                staticClass: "form-control",
+                attrs: { type: "text", placeholder: "Orden Nº.:" },
+                domProps: { value: _vm.input.OT },
                 on: {
-                  click: function($event) {
-                    return _vm.addInputsRow()
+                  input: function($event) {
+                    if ($event.target.composing) {
+                      return
+                    }
+                    _vm.$set(_vm.input, "OT", $event.target.value)
                   }
                 }
-              },
-              [_vm._v("Agregar equipos")]
-            ),
+              }),
+              _vm._v(" "),
+              _c("div", { staticClass: "valid-feedback" }),
+              _vm._v(" "),
+              _c("div", { staticClass: "invalid-feedback" }, [
+                _vm._v("9 caracteres numericos")
+              ])
+            ]),
+            _vm._v(" "),
+            _c("div", { staticClass: "input-group mb-2 has-icon" }, [
+              _vm._m(1),
+              _vm._v(" "),
+              _c("input", {
+                directives: [
+                  {
+                    name: "model",
+                    rawName: "v-model",
+                    value: _vm.input.movil,
+                    expression: "input.movil"
+                  }
+                ],
+                staticClass: "form-control",
+                attrs: { type: "text", placeholder: "Tecnico WFX:" },
+                domProps: { value: _vm.input.movil },
+                on: {
+                  input: function($event) {
+                    if ($event.target.composing) {
+                      return
+                    }
+                    _vm.$set(_vm.input, "movil", $event.target.value)
+                  }
+                }
+              }),
+              _vm._v(" "),
+              _c("i", {
+                staticClass: "fas fa-thumbtack my-auto form-control-icon",
+                class: { "text-success": _vm.rememberMovil },
+                on: {
+                  click: function($event) {
+                    return _vm.toogleRememberMovil()
+                  }
+                }
+              }),
+              _vm._v(" "),
+              _c("div", { staticClass: "valid-feedback" }, [
+                _vm._v(
+                  "\n                                Looks good!\n                            "
+                )
+              ])
+            ]),
+            _vm._v(" "),
+            _c("div", { staticClass: "btn-group mt-2" }, [
+              _c(
+                "button",
+                {
+                  staticClass: "col btn btn-dark ",
+                  on: {
+                    click: function($event) {
+                      return _vm.addInputsRow()
+                    }
+                  }
+                },
+                [_vm._v("Agregar equipos")]
+              ),
+              _vm._v(" "),
+              _c(
+                "button",
+                {
+                  staticClass: "col btn btn-success ",
+                  on: {
+                    click: function($event) {
+                      return _vm.saveOT()
+                    }
+                  }
+                },
+                [_vm._v("Guardar OT")]
+              )
+            ]),
             _vm._v(" "),
             _c("hr"),
+            _vm._v(" "),
+            _vm._m(2),
             _vm._v(" "),
             _c(
               "ul",
               { staticClass: "input-list" },
-              _vm._l(_vm.inputs, function(input, index) {
+              _vm._l(_vm.input.series, function(series, index) {
                 return _c("li", { key: index }, [
-                  _c("div", { staticClass: "input-group" }, [
-                    _vm._m(2, true),
-                    _vm._v(" "),
+                  _c("div", { staticClass: "input-group has-icon" }, [
                     _c("input", {
                       directives: [
                         {
                           name: "model",
                           rawName: "v-model",
-                          value: input.instala,
-                          expression: "input.instala"
+                          value: series.instala,
+                          expression: "series.instala"
                         }
                       ],
-                      staticClass: "form-control",
+                      staticClass: "form-control has-icon",
                       attrs: {
                         type: "text",
                         placeholder: "Serie a instalar..."
                       },
-                      domProps: { value: input.instala },
+                      domProps: { value: series.instala },
                       on: {
                         input: function($event) {
                           if ($event.target.composing) {
                             return
                           }
-                          _vm.$set(input, "instala", $event.target.value)
+                          _vm.$set(series, "instala", $event.target.value)
                         }
                       }
                     }),
@@ -55458,8 +55590,8 @@ var render = function() {
                         {
                           name: "model",
                           rawName: "v-model",
-                          value: input.recupera,
-                          expression: "input.recupera"
+                          value: series.recupera,
+                          expression: "series.recupera"
                         }
                       ],
                       staticClass: "form-control",
@@ -55467,16 +55599,18 @@ var render = function() {
                         type: "text",
                         placeholder: "Serie a retirar..."
                       },
-                      domProps: { value: input.recupera },
+                      domProps: { value: series.recupera },
                       on: {
                         input: function($event) {
                           if ($event.target.composing) {
                             return
                           }
-                          _vm.$set(input, "recupera", $event.target.value)
+                          _vm.$set(series, "recupera", $event.target.value)
                         }
                       }
-                    })
+                    }),
+                    _vm._v(" "),
+                    _vm._m(3, true)
                   ])
                 ])
               }),
@@ -55493,45 +55627,9 @@ var staticRenderFns = [
     var _vm = this
     var _h = _vm.$createElement
     var _c = _vm._self._c || _h
-    return _c("div", { staticClass: "input-group mb-2" }, [
-      _c("div", { staticClass: "input-group-prepend" }, [
-        _c("span", { staticClass: "input-group-text" }, [
-          _c("i", { staticClass: "fas fa-file-signature" })
-        ])
-      ]),
-      _vm._v(" "),
-      _c("input", {
-        staticClass: "form-control",
-        attrs: { type: "text", placeholder: "Orden Nº.:" }
-      }),
-      _vm._v(" "),
-      _c("div", { staticClass: "valid-feedback" }),
-      _vm._v(" "),
-      _c("div", { staticClass: "invalid-feedback" }, [
-        _vm._v("9 caracteres numericos")
-      ])
-    ])
-  },
-  function() {
-    var _vm = this
-    var _h = _vm.$createElement
-    var _c = _vm._self._c || _h
-    return _c("div", { staticClass: "input-group mb-2" }, [
-      _c("div", { staticClass: "input-group-prepend" }, [
-        _c("span", { staticClass: "input-group-text" }, [
-          _c("i", { staticClass: "fas fa-truck" })
-        ])
-      ]),
-      _vm._v(" "),
-      _c("input", {
-        staticClass: "form-control",
-        attrs: { type: "text", placeholder: "Tecnico WFX:" }
-      }),
-      _vm._v(" "),
-      _c("div", { staticClass: "valid-feedback" }, [
-        _vm._v(
-          "\n                                Looks good!\n                            "
-        )
+    return _c("div", { staticClass: "input-group-prepend" }, [
+      _c("span", { staticClass: "input-group-text" }, [
+        _c("i", { staticClass: "fas fa-file-signature" })
       ])
     ])
   },
@@ -55541,9 +55639,30 @@ var staticRenderFns = [
     var _c = _vm._self._c || _h
     return _c("div", { staticClass: "input-group-prepend" }, [
       _c("span", { staticClass: "input-group-text" }, [
-        _c("i", { staticClass: "fas fa-barcode" })
+        _c("i", { staticClass: "fas fa-truck" })
       ])
     ])
+  },
+  function() {
+    var _vm = this
+    var _h = _vm.$createElement
+    var _c = _vm._self._c || _h
+    return _c("p", { staticClass: "text-lg mx-auto" }, [
+      _c("i", { staticClass: "fas fa-barcode text-xl" }),
+      _vm._v(
+        "  \n                            Serializables\n                    "
+      )
+    ])
+  },
+  function() {
+    var _vm = this
+    var _h = _vm.$createElement
+    var _c = _vm._self._c || _h
+    return _c(
+      "button",
+      { staticClass: "btn btn-outline-danger btn-circle my-auto ml-2" },
+      [_c("i", { staticClass: "fas fa-times" })]
+    )
   }
 ]
 render._withStripped = true

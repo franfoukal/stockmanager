@@ -5,9 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Consumo;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Date;
-use Illuminate\Support\Facades\DB;
-use Mockery\Undefined;
+
 
 class ConsumoController extends Controller
 {
@@ -90,6 +88,9 @@ class ConsumoController extends Controller
         $consumo->added_by = Auth::user()->name;
         $consumo->save();
 
+        $consumo->contratista()->detach();
+        $consumo->contratista()->attach($request->contratista_id);
+
     }
 
     /**
@@ -102,6 +103,7 @@ class ConsumoController extends Controller
     {
         //
         $consumo = Consumo::findOrFail($id);
+        $consumo->contratista()->detach();
         $consumo->delete();
 
     }

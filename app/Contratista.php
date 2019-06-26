@@ -22,4 +22,9 @@ class Contratista extends Model
         return $this->belongsToMany('App\Consumo')->withTimestamps();
     }
 
+    public function contratista()
+    {
+        return $this->belongsToMany('App\Equipo')->withTimestamps();
+    }
+
 }

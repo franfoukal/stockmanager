@@ -79,7 +79,12 @@ return [
                 [
                     'text' => 'Agregar Consumo',
                     'url'  => '/consumo',
-                    'icon' => 'plus',
+                    'icon' => 'boxes',
+                ],
+                [
+                    'text' => 'Agregar Equipos',
+                    'url'  => '/equipos',
+                    'icon' => 'hdd',
                 ],
             ],
         ],
