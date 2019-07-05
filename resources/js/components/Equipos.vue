@@ -1,12 +1,10 @@
 <template>
 <div class="component">
     <div class="container col-md-10">
-        <div class="card">
+        <div class="card collapse show">
             <div class="card-header">
                 <div class="row">
-
                     <p class="card-title my-auto col">Carga de equipos</p>
-
                     <input type="date" class="form-control col-3 mr-2" v-model="equipos.fecha" >
                         
                         <select class="custom-select col-3 mr-2" v-model="equipos.contratista" v-if="$attrs.cur_cont[0] !== undefined">
@@ -18,8 +16,14 @@
                             {{contratista.nombre}}
                             </option>
                         </select>
-                </div>
+
+                        <div class="card-tools">
+                            <button type="button" class="btn btn-tool" data-widget="collapse"><i class="fas fa-plus"></i></button>
+                        </div>
+                        <!-- /.card-tools -->
+                </div>    
             </div>
+            
             <div class="card-body">
                 <!--form-->
                 <form class="form col-md-10  mx-auto" @submit.prevent="">
@@ -62,18 +66,17 @@
                         
                         <div class="btn-group mt-2">
                             <button class="col btn btn-dark " @click="addInputsRow()">Agregar equipos</button>
-                            <button class="col btn btn-success " @click="saveOT()" value="Guardar OT">Guardar OT</button>
+                            <button class="col btn btn-success " @click="saveOT(input)" value="Guardar OT">Guardar OT</button>
                         </div>
-                        
-
 
                     <hr>
+
                     <div class="row">
                         <i class="fas fa-barcode text-xl ml-3 mr-3 mb-2"> </i>  
                         <p class="text-lg my-auto">Serializables</p>
                     </div>
 
-                    <ul class="input-list">
+                    <ul class="input-list" :key="refresh">
                         <li v-for="(series, index) in input.series" :key="index">
     
                                 <div class="input-group mb-1">
@@ -97,22 +100,57 @@
                                 </div>
                         </li>
                     </ul>
-
                 </form>
-                
             </div>
         </div>
+            <div class="card card-outline card-primary collapsed-card">
+              <div class="card-header">
+                <h3 class="card-title">Equipos Cargados</h3>
+
+                <div class="card-tools">
+                  <button type="button" class="btn btn-tool" data-widget="collapse"><i class="fas fa-plus"></i>
+                  </button>
+                </div>
+                <!-- /.card-tools -->
+              </div>
+              <!-- /.card-header -->
+              <div class="card-body" style="display: none;">
+                <table class="table table-bordered">
+                    <thead class="thead-dark">
+                        <th>OT</th>
+                        <th>Móvil</th>
+                        <th>Instala</th>
+                        <th>Retira</th>
+                        <th>Acciones</th>
+                    </thead>
+                    <tbody v-for="(data, index) in equipos.data" :key="index">
+                            <tr v-for="(serie, key) in data.series" :key="key">
+                                <td>{{data.OT}}</td>
+                                <td>{{data.movil}}</td>
+                                <td>{{serie.instala}}</td>
+                                <td>{{serie.recupera}}</td>
+                                <td>
+                                    <button class="btn btn-outline-primary btn-circle my-auto ml-2" @click="editLineData(index, data)"><i class="fas fa-edit"></i></button>
+                                    <button class="btn btn-outline-danger btn-circle my-auto ml-2" @click="removeLineData(index, key)"><i class="fas fa-times"></i></button>
+                                </td>
+                            </tr>
+                    </tbody>
+                </table>
+              </div>
+              <!-- /.card-body -->
+            </div>
+
+        
     </div>
 </div>
 </template>
 
 <script>
-import { log } from 'util';
 export default {
     
     data() {
         return {
-            input: {   
+            input: {
                 OT: '',
                 movil: '',
                 series:[
@@ -122,7 +160,7 @@ export default {
                     }, 
                 ],
                 comentario: ''
-            },
+            },   
             
             equipos: {
                 contratista: '',
@@ -142,7 +180,7 @@ export default {
                 ],
             },
 
-            valid: '',
+            refresh: 0,
         }
     },
 
@@ -158,6 +196,7 @@ export default {
                 recupera: ''
             });
         },
+
 
         getContratistas(){
             let me = this;
@@ -176,12 +215,13 @@ export default {
             });
         },
 
-        saveOT(){
+        saveOT(currentInput){
             if (this.isValidated() === false) {
                 return;
             }
             let me = this;
-            this.equipos.data.push(JSON.stringify(this.input));
+            const tempMyObj = Object.assign({}, currentInput);
+            this.equipos.data.push(tempMyObj);//JSON.stringify(this.input));
             this.input.OT='';
             this.input.movil = this.rememberMovil ? this.input.movil : '';
             this.input.series = [];
@@ -217,6 +257,26 @@ export default {
         removeLine(row){
             this.input.series.splice(row, 1);
             this.validation.series.splice(row, 1);
+        },
+
+        editLineData(row, data){
+            this.refresh += 1;
+            this.validation.series = [];
+            this.input.series = [];
+            for (let index = 0; index < data.series.length; index++) {
+                this.addInputsRow();  
+            }
+            this.input = data;
+            this.equipos.data.splice(row, 1);
+        },
+
+        removeLineData(row,key){
+            if(this.equipos.data[row].series.length === 1){
+                this.equipos.data.splice(row, 1);
+            }else{
+                this.equipos.data[row].series.splice(key, 1);
+            }
+            
         },
 
         comprobeFields(regex, input){
@@ -285,7 +345,8 @@ export default {
 
         test(){
             console.log(this.isValidated());
-        }
+        },
+
         
     },
     
