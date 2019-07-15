@@ -16509,6 +16509,8 @@ __webpack_require__.r(__webpack_exports__);
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
+/* harmony import */ var jexcel__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! jexcel */ "./node_modules/jexcel/dist/jexcel.js");
+/* harmony import */ var jexcel__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(jexcel__WEBPACK_IMPORTED_MODULE_0__);
 //
 //
 //
@@ -16656,6 +16658,34 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+
 /* harmony default export */ __webpack_exports__["default"] = ({
   data: function data() {
     return {
@@ -16665,8 +16695,8 @@ __webpack_require__.r(__webpack_exports__);
         series: [{
           instala: '',
           recupera: ''
-        }],
-        comentario: ''
+        }] //comentario: ''
+
       },
       equipos: {
         contratista: '',
@@ -16683,18 +16713,22 @@ __webpack_require__.r(__webpack_exports__);
           recupera: ''
         }]
       },
-      refresh: 0
+      refresh: 0,
+      formDisplay: true,
+      tableDisplay: false,
+      newEntry: true,
+      error: []
     };
   },
   methods: {
-    addInputsRow: function addInputsRow() {
+    addInputsRow: function addInputsRow(state) {
       this.input.series.push({
         instala: '',
         recupera: ''
       });
       this.validation.series.push({
-        instala: '',
-        recupera: ''
+        instala: state ? state : '',
+        recupera: state ? state : ''
       });
     },
     getContratistas: function getContratistas() {
@@ -16708,14 +16742,27 @@ __webpack_require__.r(__webpack_exports__);
       });
     },
     saveOT: function saveOT(currentInput) {
+      var _this = this;
+
       if (this.isValidated() === false) {
+        this.error.push('Verificar fecha, contratista y que hayan equipos cargados');
         return;
       }
 
       var me = this;
       var tempMyObj = Object.assign({}, currentInput);
-      this.equipos.data.push(tempMyObj); //JSON.stringify(this.input));
+      var objToData = {};
+      tempMyObj.series.forEach(function (element) {
+        objToData.OT = tempMyObj.OT;
+        objToData.movil = tempMyObj.movil;
+        objToData.instala = element.instala;
+        objToData.recupera = element.recupera;
+        var temp = Object.assign({}, objToData);
 
+        _this.equipos.data.push(temp);
+
+        console.log(temp);
+      });
       this.input.OT = '';
       this.input.movil = this.rememberMovil ? this.input.movil : '';
       this.input.series = [];
@@ -16723,15 +16770,22 @@ __webpack_require__.r(__webpack_exports__);
       me.addInputsRow();
     },
     storeData: function storeData() {
+      if (this.equipos.data.length === 0) {
+        this.error.push('Verificar fecha, contratista y equipos cargados');
+        return;
+      }
+
       var me = this;
       axios.post('/equipos/agregar', {
-        fecha: me.fecha,
+        fecha: me.equipos.fecha,
         datos_equipos: JSON.stringify(me.equipos.data),
-        contratista_id: me.equipos.contratista.id
+        contratista_id: me.equipos.contratista
       }).then(function (response) {
-        alert('Equipos cargados correctamente');
+        alert('Equipos cargados correctamente' + response);
+        me.newEntry = false;
       })["catch"](function (error) {
         console.log(error);
+        me.error.push('Verificar fecha, contratista y equipos cargados');
       })["finally"](function () {});
     },
     toogleRememberMovil: function toogleRememberMovil() {
@@ -16741,24 +16795,47 @@ __webpack_require__.r(__webpack_exports__);
       this.input.series.splice(row, 1);
       this.validation.series.splice(row, 1);
     },
-    editLineData: function editLineData(row, data) {
+    editLineData: function editLineData(serie) {
+      var _this2 = this;
+
+      var me = this;
+      var eq = {
+        OT: '',
+        movil: '',
+        series: []
+      };
       this.refresh += 1;
       this.validation.series = [];
       this.input.series = [];
+      eq.OT = serie.OT;
+      eq.movil = serie.movil;
+      this.equipos.data.forEach(function (element, index) {
+        if (element.OT === serie.OT) {
+          _this2.addInputsRow(true);
 
-      for (var index = 0; index < data.series.length; index++) {
-        this.addInputsRow();
+          eq.series.push({
+            instala: element.instala,
+            recupera: element.recupera
+          });
+        }
+      });
+      var OTnumber = serie.OT;
+
+      for (var index = 0; index < this.equipos.data.length; index++) {
+        if (this.equipos.data[index].OT === OTnumber) {
+          this.equipos.data.splice(index, 1);
+
+          if (this.equipos.data.length >= 1) {
+            index--;
+          }
+        }
       }
 
-      this.input = data;
-      this.equipos.data.splice(row, 1);
+      var temp = Object.assign({}, eq);
+      this.input = temp;
     },
-    removeLineData: function removeLineData(row, key) {
-      if (this.equipos.data[row].series.length === 1) {
-        this.equipos.data.splice(row, 1);
-      } else {
-        this.equipos.data[row].series.splice(key, 1);
-      }
+    removeLineData: function removeLineData(index) {
+      this.equipos.data.splice(index, 1);
     },
     comprobeFields: function comprobeFields(regex, input) {
       if (regex.test(input)) {
@@ -16818,10 +16895,29 @@ __webpack_require__.r(__webpack_exports__);
     },
     test: function test() {
       console.log(this.isValidated());
+    },
+    commitData: function commitData() {
+      if (this.equipos.data.length === 0) {
+        this.error.push('Verificar fecha, contratista y equipos cargados');
+        return;
+      }
+
+      var me = this;
+      axios.post('/equipos/editar', {
+        fecha: me.equipos.fecha,
+        datos_equipos: JSON.stringify(me.equipos.data),
+        contratista_id: me.equipos.contratista
+      }).then(function (response) {
+        console.log(response);
+      })["catch"](function (error) {
+        console.log(error);
+        me.error.push('Verificar fecha, contratista y equipos cargados');
+      });
     }
   },
   mounted: function mounted() {
-    this.getContratistas();
+    this.getContratistas(); // let spreadsheet = jexcel($ref.jexcel, this.options);
+    //     Object.assign(this, spreadsheet);
   }
 });
 
@@ -17142,27 +17238,31 @@ __webpack_require__.r(__webpack_exports__);
 //
 /* harmony default export */ __webpack_exports__["default"] = ({
   props: {
-    tableTitles: Array,
-    tableData: Object,
-    singleData: Object
+    keysProp: Array,
+    dataProp: Array,
+    titlesProp: Array
   },
   data: function data() {
     return {
-      datas: []
+      keys: [],
+      titlesData: []
     };
   },
-  methods: {
-    chooseFieldsToRender: function chooseFieldsToRender(arr) {
-      this.tableData = this.arr.filter(function (element) {
-        this.data.forEach(function (c) {
-          (function (element) {
-            return element.c;
-          });
-        });
+  computed: {
+    titles: function titles() {
+      var temp = Object.assign({}, this.dataProp[0]);
+      console.log(temp);
+      return Object.keys(temp);
+    },
+    dataComp: function dataComp() {
+      var temp = Object.assign({}, this.dataProp);
+      return temp.filter(function (element) {//foreach con los keysProps
       });
     }
   },
-  mounted: function mounted() {}
+  methods: {},
+  mounted: function mounted() {},
+  created: function created() {}
 });
 
 /***/ }),
@@ -17176,6 +17276,11 @@ __webpack_require__.r(__webpack_exports__);
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
+//
+//
+//
+//
+//
 //
 //
 //
@@ -22179,6 +22284,25 @@ exports.push([module.i, ".calendar {\n  font-family: Arial, Helvetica Neue, Helv
 
 /***/ }),
 
+/***/ "./node_modules/css-loader/index.js?!./node_modules/postcss-loader/src/index.js?!./node_modules/jsuites/dist/jsuites.css":
+/*!*******************************************************************************************************************************!*\
+  !*** ./node_modules/css-loader??ref--6-1!./node_modules/postcss-loader/src??ref--6-2!./node_modules/jsuites/dist/jsuites.css ***!
+  \*******************************************************************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+exports = module.exports = __webpack_require__(/*! ../../css-loader/lib/css-base.js */ "./node_modules/css-loader/lib/css-base.js")(false);
+// imports
+
+
+// module
+exports.push([module.i, "\r\n/**\r\n * (c) jSuites Javascript Web Components\r\n *\r\n * Author: Paul Hodel <paul.hodel@gmail.com>\r\n * Website: https://bossanova.uk/jsuites/\r\n * Description: Create amazing web based applications.\r\n *\r\n * MIT License\r\n *\r\n */\r\n\r\n/** General **/\r\n\r\n.jdragging {\r\n    opacity:0.2;\r\n    filter: alpha(opacity=20);\r\n}\r\n\r\n.jupload {\r\n    background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAABQCAYAAACOEfKtAAAACXBIWXMAAAsTAAALEwEAmpwYAAA7emlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4KPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNS42LWMxMzggNzkuMTU5ODI0LCAyMDE2LzA5LzE0LTAxOjA5OjAxICAgICAgICAiPgogICA8cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPgogICAgICA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIgogICAgICAgICAgICB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iCiAgICAgICAgICAgIHhtbG5zOmRjPSJodHRwOi8vcHVybC5vcmcvZGMvZWxlbWVudHMvMS4xLyIKICAgICAgICAgICAgeG1sbnM6cGhvdG9zaG9wPSJodHRwOi8vbnMuYWRvYmUuY29tL3Bob3Rvc2hvcC8xLjAvIgogICAgICAgICAgICB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIKICAgICAgICAgICAgeG1sbnM6c3RFdnQ9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZUV2ZW50IyIKICAgICAgICAgICAgeG1sbnM6dGlmZj0iaHR0cDovL25zLmFkb2JlLmNvbS90aWZmLzEuMC8iCiAgICAgICAgICAgIHhtbG5zOmV4aWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20vZXhpZi8xLjAvIj4KICAgICAgICAgPHhtcDpDcmVhdG9yVG9vbD5BZG9iZSBQaG90b3Nob3AgQ0MgMjAxNyAoV2luZG93cyk8L3htcDpDcmVhdG9yVG9vbD4KICAgICAgICAgPHhtcDpDcmVhdGVEYXRlPjIwMTctMTItMzFUMjI6NDM6MzBaPC94bXA6Q3JlYXRlRGF0ZT4KICAgICAgICAgPHhtcDpNb2RpZnlEYXRlPjIwMTgtMDEtMDFUMjA6MDM6MjNaPC94bXA6TW9kaWZ5RGF0ZT4KICAgICAgICAgPHhtcDpNZXRhZGF0YURhdGU+MjAxOC0wMS0wMVQyMDowMzoyM1o8L3htcDpNZXRhZGF0YURhdGU+CiAgICAgICAgIDxkYzpmb3JtYXQ+aW1hZ2UvcG5nPC9kYzpmb3JtYXQ+CiAgICAgICAgIDxwaG90b3Nob3A6Q29sb3JNb2RlPjM8L3Bob3Rvc2hvcDpDb2xvck1vZGU+CiAgICAgICAgIDx4bXBNTTpJbnN0YW5jZUlEPnhtcC5paWQ6ZDE3NGVkY2UtNWZkNC0wODRkLTkzNzAtZDRhODVmMzdkNjdiPC94bXBNTTpJbnN0YW5jZUlEPgogICAgICAgICA8eG1wTU06RG9jdW1lbnRJRD54bXAuZGlkOjBmYzcxZDEyLTg1MGUtY2E0NS05MzE4LWRhYjI5YWZhMmQ4MjwveG1wTU06RG9jdW1lbnRJRD4KICAgICAgICAgPHhtcE1NOk9yaWdpbmFsRG9jdW1lbnRJRD54bXAuZGlkOjBmYzcxZDEyLTg1MGUtY2E0NS05MzE4LWRhYjI5YWZhMmQ4MjwveG1wTU06T3JpZ2luYWxEb2N1bWVudElEPgogICAgICAgICA8eG1wTU06SGlzdG9yeT4KICAgICAgICAgICAgPHJkZjpTZXE+CiAgICAgICAgICAgICAgIDxyZGY6bGkgcmRmOnBhcnNlVHlwZT0iUmVzb3VyY2UiPgogICAgICAgICAgICAgICAgICA8c3RFdnQ6YWN0aW9uPmNyZWF0ZWQ8L3N0RXZ0OmFjdGlvbj4KICAgICAgICAgICAgICAgICAgPHN0RXZ0Omluc3RhbmNlSUQ+eG1wLmlpZDowZmM3MWQxMi04NTBlLWNhNDUtOTMxOC1kYWIyOWFmYTJkODI8L3N0RXZ0Omluc3RhbmNlSUQ+CiAgICAgICAgICAgICAgICAgIDxzdEV2dDp3aGVuPjIwMTctMTItMzFUMjI6NDM6MzBaPC9zdEV2dDp3aGVuPgogICAgICAgICAgICAgICAgICA8c3RFdnQ6c29mdHdhcmVBZ2VudD5BZG9iZSBQaG90b3Nob3AgQ0MgMjAxNyAoV2luZG93cyk8L3N0RXZ0OnNvZnR3YXJlQWdlbnQ+CiAgICAgICAgICAgICAgIDwvcmRmOmxpPgogICAgICAgICAgICAgICA8cmRmOmxpIHJkZjpwYXJzZVR5cGU9IlJlc291cmNlIj4KICAgICAgICAgICAgICAgICAgPHN0RXZ0OmFjdGlvbj5zYXZlZDwvc3RFdnQ6YWN0aW9uPgogICAgICAgICAgICAgICAgICA8c3RFdnQ6aW5zdGFuY2VJRD54bXAuaWlkOjk2MTA5Y2Y0LTEwM2ItNTc0Ny1hZWE3LWI5NDMxOWY0NWFkZjwvc3RFdnQ6aW5zdGFuY2VJRD4KICAgICAgICAgICAgICAgICAgPHN0RXZ0OndoZW4+MjAxOC0wMS0wMVQyMDowMjoyMFo8L3N0RXZ0OndoZW4+CiAgICAgICAgICAgICAgICAgIDxzdEV2dDpzb2Z0d2FyZUFnZW50PkFkb2JlIFBob3Rvc2hvcCBDQyAyMDE3IChXaW5kb3dzKTwvc3RFdnQ6c29mdHdhcmVBZ2VudD4KICAgICAgICAgICAgICAgICAgPHN0RXZ0OmNoYW5nZWQ+Lzwvc3RFdnQ6Y2hhbmdlZD4KICAgICAgICAgICAgICAgPC9yZGY6bGk+CiAgICAgICAgICAgICAgIDxyZGY6bGkgcmRmOnBhcnNlVHlwZT0iUmVzb3VyY2UiPgogICAgICAgICAgICAgICAgICA8c3RFdnQ6YWN0aW9uPnNhdmVkPC9zdEV2dDphY3Rpb24+CiAgICAgICAgICAgICAgICAgIDxzdEV2dDppbnN0YW5jZUlEPnhtcC5paWQ6ZDE3NGVkY2UtNWZkNC0wODRkLTkzNzAtZDRhODVmMzdkNjdiPC9zdEV2dDppbnN0YW5jZUlEPgogICAgICAgICAgICAgICAgICA8c3RFdnQ6d2hlbj4yMDE4LTAxLTAxVDIwOjAzOjIzWjwvc3RFdnQ6d2hlbj4KICAgICAgICAgICAgICAgICAgPHN0RXZ0OnNvZnR3YXJlQWdlbnQ+QWRvYmUgUGhvdG9zaG9wIENDIDIwMTcgKFdpbmRvd3MpPC9zdEV2dDpzb2Z0d2FyZUFnZW50PgogICAgICAgICAgICAgICAgICA8c3RFdnQ6Y2hhbmdlZD4vPC9zdEV2dDpjaGFuZ2VkPgogICAgICAgICAgICAgICA8L3JkZjpsaT4KICAgICAgICAgICAgPC9yZGY6U2VxPgogICAgICAgICA8L3htcE1NOkhpc3Rvcnk+CiAgICAgICAgIDx0aWZmOk9yaWVudGF0aW9uPjE8L3RpZmY6T3JpZW50YXRpb24+CiAgICAgICAgIDx0aWZmOlhSZXNvbHV0aW9uPjcyMDAwMC8xMDAwMDwvdGlmZjpYUmVzb2x1dGlvbj4KICAgICAgICAgPHRpZmY6WVJlc29sdXRpb24+NzIwMDAwLzEwMDAwPC90aWZmOllSZXNvbHV0aW9uPgogICAgICAgICA8dGlmZjpSZXNvbHV0aW9uVW5pdD4yPC90aWZmOlJlc29sdXRpb25Vbml0PgogICAgICAgICA8ZXhpZjpDb2xvclNwYWNlPjY1NTM1PC9leGlmOkNvbG9yU3BhY2U+CiAgICAgICAgIDxleGlmOlBpeGVsWERpbWVuc2lvbj44MDwvZXhpZjpQaXhlbFhEaW1lbnNpb24+CiAgICAgICAgIDxleGlmOlBpeGVsWURpbWVuc2lvbj44MDwvZXhpZjpQaXhlbFlEaW1lbnNpb24+CiAgICAgIDwvcmRmOkRlc2NyaXB0aW9uPgogICA8L3JkZjpSREY+CjwveDp4bXBtZXRhPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgIAo8P3hwYWNrZXQgZW5kPSJ3Ij8+tc8AsgAAACBjSFJNAAB6JQAAgIMAAPn/AACA6QAAdTAAAOpgAAA6mAAAF2+SX8VGAAAGjUlEQVR42uycW2xURRjHf91SoEIBUQpYI8VSVBDExniLERNUJBpQVEDFqE1AEYkX0JCC0YjgBdEYDOIFeVEEFRBilKBogg+KiQoV5Q6Khla8lrZRBLo+zLdazs7ZM2d3zsJu55/sy3dmz5797Vy+y8wWxONxnNJXzCFwAB1AB9ABdHIAHUAH0AF0Cq929fX1ufbMA4HLgSqgHOgPdJJrfwPbgb3AJuBD4KsoH6agrq4uF6CVAncC4wVYGP0ALAVeAva0NYDFwOPARKBzhvc6ArwG1AC/toU5cDSwFXjAAjyAQmACsAOozneATwLLgdMM2/8jLxN1AxYBC/J1CL8F3BjQZhOwCqgFvgd+AuJAT6ACOBMYCVwUcJ91siDlDcC3gRtSXF8IzAe+M7xfOXC3TAOFPm3WA0NzAeDp8oUGASeKrUF60R6Zn6an6CnTgI1pfnYFMAcY43N9GTDueAR4sQylK8RvS0dzgYcsPc9U4Bmfa9XA4uMF4GXypUdkeJ8Z0nNs6hbgdZ9rPcK6OLZX4XbisH5iAd68COABvAHc63NtwbHsgf2B94BKC/faAFwY8Zy8ErhWYx8EbM42wAuAj4ETAtptllh1N9AiC0t/YLCnXV9xT6JUJ6AOKPHYX5HIJ2sAK4BvgQ4+17fJ5LxKIgudzgBGySS/3sAPtKWZwCyPrQk4ydQxtwFwH9BbY4/LIvBEyF5RIF8iG+oC/K7xEUfLEI98EVnsA28/MCQkPIDmLMIDOCDOu1fXZGMVrgJu19gbZCKuJTek62mV2QD4XIoFZT+5o10a2ylRA6wCLtXYp8uikUv6Webr1uoOdIwS4HiNbS/wFLmnZuCgx9Y+hVdhBeBwjW1+BF9uFvBqFiDGDW3a0Cus+gADPLYWVB7PpiaJn5YYZjMigles6W2NskJH0gN1RZ1EJcyWJnvi0hpUbSQK9dRwaDGIqtIGeLbG9o3lnveCT2YmCogVPqvwdpOIKB2A7TU2W+XCiQEZkSggTvGxl8m0NNc2wDKNrcXCF5mASoUFaQYw2xK8Iv4vyvtpmsTxGQHsLPPQLp9frI+FYftyiPY1liAeBs5DZYNS/XgjgTXpApwq4Gaj0k86DbK4YISBmOlwjreaw+8CzvEDJa7bojAATwU+QtUQSg0Wlr4WFwxT2Z4Ta1GZ9Md8rlcDY00ADpFfZViID7/D8oJxrCACPCIjQ6elqOK8ryM9GPg64AM+B1YAW1BJ0r9M/aaQC0YYiAWWne0FQFf0dZnngdsgOaHaXVySLj43XSY3zCRVNclSz9NpTgQRywfAVRr7WcDWmKaxDl4TKuU+LkN4kyOEF1XEMk5GmFf3eOfAKcD5moY/ypy4OsMHeTjDBSPMcF5o8X4NPs70eKAoMYSLJIDuoOl5AwRiJroJWIIq1BwM8DcLDFyPpoAESTEqN/m0aVYlQF1RtRPviB2ZWEQeRJ//Gm0BHqhttieTutJVgkrGBu0FbEbtvmoMgNjLErxEL3yH5L01oxIA79O8aTVqj7ENmWSpGw1DwhZUJTBIf1ieGlZoAFbGxG3pESLIjkolBsMXaVNC9qWrnZTFZJh69SV283v5oHrNlNA9JvGfV0scL+3cm1Q7iaFPKNY6XimTD0fFwuWaRrscqyR11Hgqh2IkZ5gPy7LtdLRKNX7gnzHgkMdYGDIx0FZUrrHVxVBHBLzDup/jlaSrNbbdMWCn5sIAxyspsrlZY18TQ3/mYoxjdpQmkFx8OgKsjAHvat4wlFZZVyce1diWA80x4DOf7Ma8LD+kaYhmGvLZ0ovoa0LP0mpZ1qXXq4Fzs/igiSRBY8BrH3bq0Ca6HlWt82od6iTBfyn9Lj6+Xx2q2nYwSz3Q9FhrE/ZSVX66BPjU51q/RLCR6IEH0KfCe8sQL85SmNRo+Ioa3tgU8Ga2jtS8RaUdPj7gTtQRqS/yfLHogErf+6Xykk52ekOTESm67AbUrvuyPARXAtyPSvz6wduK5myx7pzIcPy3N4D6Z4w3pc0O1IbybAwrWyqSubZUOsYw4DrU4Ro/bUEd3m4wAZjoie8bPtARVNkvVwAWypxu6gqtRW0u0i6kqU4qDUEVUirasANdQ8BhoVSbizai/uRmbhsEtxp1lCPwpJXpWbmBqD++uTWPQ7xm1NaVJeIomzmvIQ8bdpO0zpWozea9Aibf41WHgd9QhaJtqAPia4FfQnv/7l98M5P79zYH0AF0AB1AJwfQAXQAHUCnNPTvAKemiFU6nb96AAAAAElFTkSuQmCC);\r\n    background-repeat: no-repeat;\r\n    background-size: 100px;\r\n    background-position: center;\r\n    background-color: rgb(230, 230, 230, 0.1);\r\n    border: 1px dotted #eee;\r\n    cursor: pointer;\r\n    box-sizing: border-box;\r\n}\r\n\r\n.jbackdrop {\r\n    position:fixed;\r\n    top:0px;\r\n    left:0px;\r\n    min-width:100%;\r\n    min-height:100%;\r\n    background-color:rgba(0,0,0,0.5);\r\n    border:0px;\r\n    padding:0px;\r\n    z-index:8000;\r\n    \r\n  -webkit-touch-callout: none; /* iOS Safari */\r\n    -webkit-user-select: none; /* Safari */ /* Konqueror HTML */\r\n       -moz-user-select: none; /* Firefox */\r\n        -ms-user-select: none; /* Internet Explorer/Edge */\r\n            user-select: none; /* Non-prefixed version, currently\r\n                                  supported by Chrome and Opera */\r\n}\r\n\r\n.jremove {\r\n    opacity: 0.2;\r\n    filter: alpha(opacity=20);\r\n}\r\n\r\n/** Animations **/\r\n.fade-in {\r\n    animation: fade-in 2s forwards;\r\n    -webkit-animation: fade-in 2s forwards;\r\n}\r\n\r\n.fade-out {\r\n    animation: fade-out 1s forwards;\r\n    -webkit-animation: fade-out 1s forwards;\r\n}\r\n\r\n.slide-left-in {\r\n    animation: slide-left-in 0.4s forwards;\r\n    -webkit-animation: slide-left-in 0.4s forwards;\r\n}\r\n\r\n.slide-left-out {\r\n    animation: slide-left-out 0.4s forwards;\r\n    -webkit-animation: slide-left-out 0.4s forwards;\r\n}\r\n\r\n.slide-right-in {\r\n    animation: slide-right-in 0.4s forwards;\r\n    -webkit-animation: slide-right-in 0.4s forwards;\r\n}\r\n\r\n.slide-right-out {\r\n    animation: slide-right-out 0.4s forwards;\r\n    -webkit-animation: slide-right-out 0.4s forwards;\r\n}\r\n\r\n.slide-top-in {\r\n    animation: slide-top-in 0.4s forwards;\r\n    -webkit-animation: slide-top-in 0.4s forwards;\r\n}\r\n\r\n.slide-top-out {\r\n    animation: slide-top-out 0.2s forwards;\r\n    -webkit-animation: slide-top-out 0.2s forwards;\r\n}\r\n\r\n.slide-bottom-in {\r\n    animation: slide-bottom-in 0.4s forwards;\r\n    -webkit-animation: slide-bottom-in 0.4s forwards;\r\n}\r\n\r\n.slide-bottom-out {\r\n    animation: slide-bottom-out 0.2s forwards;\r\n    -webkit-animation: slide-bottom-out 0.2s forwards;\r\n}\r\n\r\n/** Fadein and Fadeout **/\r\n@keyframes fade-in {\r\n    0% { opacity: 0; }\r\n    100% { opacity: 100; }\r\n}\r\n\r\n@-webkit-keyframes fade-in {\r\n    0% { opacity: 0; }\r\n    100% { opacity: 100; }\r\n}\r\n\r\n@keyframes fade-out {\r\n    0% { opacity: 100; }\r\n    100% { opacity: 0; }\r\n}\r\n\r\n@-webkit-keyframes fade-out {\r\n    0% { opacity: 100; }\r\n    100% { opacity: 0; }\r\n}\r\n\r\n/** Keyframes Left to Right **/\r\n@keyframes slide-left-in {\r\n    0% { -webkit-transform: translateX(-100%); transform: translateX(-100%); }\r\n    100% { -webkit-transform: translateX(0%); transform: translateX(0%); }\r\n}\r\n\r\n@-webkit-keyframes slide-left-in {\r\n    0% { -webkit-transform: translateX(-100%); transform: translateX(-100%); }\r\n    100% { -webkit-transform: translateX(0%); }\r\n}\r\n    \r\n@keyframes slide-left-out {\r\n    0% { -webkit-transform: translateX(0%); transform: translateX(0%); }\r\n    100% { -webkit-transform: translateX(-100%); transform: translateX(-100%); }\r\n}\r\n\r\n@-webkit-keyframes slide-left-out {\r\n    0% { -webkit-transform: translateX(0%); }\r\n    100% { -webkit-transform: translateX(-100%); }\r\n}\r\n\r\n/** Keyframes Right to Left **/\r\n@keyframes slide-right-in {\r\n    0% { -webkit-transform: translateX(100%); transform: translateX(100%); }\r\n    100% { -webkit-transform: translateX(0%); transform: translateX(0%); }\r\n}\r\n\r\n@-webkit-keyframes slide-right-in\r\n{\r\n    0% { -webkit-transform: translateX(100%); transform: translateX(100%); }\r\n    100% { -webkit-transform: translateX(0%); }\r\n}\r\n    \r\n@keyframes slide-right-out {\r\n    0% { -webkit-transform: translateX(0%); transform: translateX(0%); }\r\n    100% { -webkit-transform: translateX(100%); transform: translateX(100%); }\r\n}\r\n\r\n@-webkit-keyframes slide-right-out {\r\n    0% { -webkit-transform: translateX(0%); }\r\n    100% { -webkit-transform: translateX(100%); }\r\n}\r\n\r\n/** Keyframes Top to Bottom **/\r\n@keyframes slide-top-in {\r\n    0% { -webkit-transform: translateY(-100%); transform: translateY(-100%); }\r\n    100% { -webkit-transform: translateY(0%); transform: translateY(0%); }\r\n}\r\n\r\n@-webkit-keyframes slide-top-in {\r\n    0% { -webkit-transform: translateY(-100%); transform: translateY(-100%); }\r\n    100% { -webkit-transform: translateY(0%); }\r\n}\r\n    \r\n@keyframes slide-top-out {\r\n    0% { -webkit-transform: translateY(0%); transform: translateY(0%); }\r\n    100% { -webkit-transform: translateY(-100%); transform: translateY(-100%); }\r\n}\r\n\r\n@-webkit-keyframes slide-top-out {\r\n    0% { -webkit-transform: translateY(0%); }\r\n    100% { -webkit-transform: translateY(-100%); }\r\n}\r\n\r\n/** Keyframes Bottom to Top **/\r\n@keyframes slide-bottom-in {\r\n    0% { -webkit-transform: translateY(100%); transform: translateY(100%); }\r\n    100% { -webkit-transform: translateY(0%); transform: translateY(0%); }\r\n}\r\n\r\n@-webkit-keyframes slide-bottom-in {\r\n    0% { -webkit-transform: translateY(100%); transform: translateY(100%); }\r\n    100% { -webkit-transform: translateY(0%); }\r\n}\r\n    \r\n@keyframes slide-bottom-out {\r\n    0% { -webkit-transform: translateY(0%); transform: translateY(0%); }\r\n    100% { -webkit-transform: translateY(100%); transform: translateY(100%); }\r\n}\r\n\r\n@-webkit-keyframes slide-bottom-out {\r\n    0% { -webkit-transform: translateY(0%); }\r\n    100% { -webkit-transform: translateY(100%); }\r\n}\r\n\r\n@supports (-webkit-overflow-scrolling: touch) {\r\n    .app .options input:checked:before {\r\n        top:-12px;\r\n    }\r\n}\r\n\r\n@-webkit-keyframes spin {\r\n    from {\r\n        -webkit-transform:rotate(0deg);\r\n    }\r\n    to {\r\n        -webkit-transform:rotate(360deg);\r\n    }\r\n}\r\n\r\n@keyframes spin {\r\n    from {\r\n        -webkit-transform:rotate(0deg);\r\n                transform:rotate(0deg);\r\n    }\r\n    to {\r\n        -webkit-transform:rotate(360deg);\r\n                transform:rotate(360deg);\r\n    }\r\n}\r\n\r\n/**\n * Date & Datetime picker v1.0.1\n * Author: paul.hodel@gmail.com\n * https://github.com/paulhodel/jtools\n */\n \n.jcalendar {\n    position:relative;\n    z-index:9000;\n    display:none;\n    box-sizing:border-box;\n    -webkit-touch-callout: none;\n    -webkit-user-select: none;\n    -moz-user-select: none;\n    -ms-user-select: none;\n    user-select: none;\n    -webkit-tap-highlight-color: rgba(0,0,0,0);\n    -webkit-tap-highlight-color: transparent;\n    min-width:280px;\n}\n\n.jcalendar-focus {\n    display:block;\n}\n\n.jcalendar-backdrop {\n    position:fixed;\n    top:0px;\n    left:0px;\n    z-index:9000;\n    min-width:100%;\n    min-height:100%;\n    background-color:rgba(0,0,0,0.5);\n    border:0px;\n    padding:0px;\n    display:none;\n}\n\n.jcalendar-container {\n    position:relative;\n    box-sizing:border-box;\n}\n\n.jcalendar-content {\n    position:absolute;\n    z-index:9001;\n    box-shadow: 1px 1px 5px 0px rgba(0,0,0,0.39);\n    background-color:#fff;\n}\n\n.jcalendar-content > table {\n    width:100%;\n    background-color:#fff;\n    border-top:1px solid #ddd;\n}\n\n.jcalendar-content > table > tbody td {\n    box-sizing:border-box;\n    cursor:pointer;\n    padding:9px;\n    font-size:0.9em;\n}\n\n.jcalendar-content > table > thead {\n    cursor:pointer;\n}\n\n.jcalendar-header {\n    text-align:center;\n}\n\n.jcalendar-header span {\n    margin-right:4px;\n    font-size:1.2em;\n    font-weight:bold;\n}\n\n.jcalendar-prev {\n    cursor:pointer;\n    background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z' fill='%23000' /%3E%3Cpath fill='none' d='M0 0h24v24H0V0z'/%3E%3C/svg%3E\");\n    background-position:center;\n    background-repeat:no-repeat;\n}\n\n.jcalendar-next {\n    cursor:pointer;\n    background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z' fill='%23000' /%3E%3Cpath fill='none' d='M0 0h24v24H0V0z'/%3E%3C/svg%3E\");\n    background-position:center;\n    background-repeat:no-repeat;\n}\n\n.jcalendar-weekday {\n    font-weight:550;\n    background-color:#fcfcfc;\n    padding:14px;\n}\n\n.jcalendar thead td {\n    padding:10px;\n    height:40px;\n}\n\n.jcalendar tfoot td {\n    padding:10px;\n}\n\n.jcalendar-months td, .jcalendar-years td {\n    height:24px;\n} \n\n.jcalendar-input {\n    padding-right:18px;\n    background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24'%3E%3Cpath d='M20 3h-1V1h-2v2H7V1H5v2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 18H4V8h16v13z'/%3E%3Cpath fill='none' d='M0 0h24v24H0z'/%3E%3C/svg%3E\");\n    background-position:right;\n    background-repeat:no-repeat;\n    box-sizing: border-box;\n}\n\n.jcalendar-done {\n    box-shadow: 1px 1px 5px 0px rgba(0,0,0,0.39);\n    background-color:#fff;\n}\n\n.jcalendar-update {\n    border:1px solid #ccc;\n    background-color:#fff;\n    border-radius:4px;\n    padding:5px;\n    width:100%;\n}\n\n.jcalendar select {\n    width:55px;\n    display:inline-block;\n    border:0px;\n    padding:4px;\n    text-align:center;\n    font-size:1.1em;\n    -webkit-user-select:none;\n       -moz-user-select:none;\n        -ms-user-select:none;\n            user-select:none;\n    margin-right:10px;\n}\n\n.jcalendar select:first-child\n{\n    margin-right:2px;\n}\n\n.jcalendar-selected {\n    background-color:#eee;\n}\n\n.jcalendar-reset, .jcalendar-confirm {\n    text-transform:uppercase;\n    cursor:pointer;\n}\n\n.jcalendar-controls {\n    padding:15px;\n    box-sizing: border-box;\n    vertical-align:middle;\n    display: -webkit-flex;\n    display: flex;\n\n    -webkit-flex-flow: row wrap;\n    -webkit-justify-content: space-between;\n            justify-content: space-between;\n    -webkit-align-items:center;\n            align-items:center;\n}\n\n.jcalendar-controls div {\n    font-weight:bold;\n}\n\n.jcalendar-fullsize  {\n    position:fixed;\n    width:100%;\n    top:0px;\n    left:0px;\n}\n\n.jcalendar-fullsize .jcalendar-content\n{\n    position:fixed;\n    width:100%;\n    left:0px;\n    bottom:0px;\n}\n\n.jcalendar-fullsize .jcalendar-backdrop {\n    display:block;\n}\n\r\n\r\n/**\r\n * Color Picker v1.0.1\r\n * Author: paul.hodel@gmail.com\r\n * https://github.com/paulhodel/jtools\r\n */\r\n\r\n.jcolor {\r\n    position:relative;\r\n    display:none;\r\n    outline:none;\r\n}\r\n\r\n.jcolor-content {\r\n    position:absolute;\r\n    z-index:9000;\r\n    -webkit-user-select:none;\r\n       -moz-user-select:none;\r\n        -ms-user-select:none;\r\n            user-select:none;\r\n    -webkit-font-smoothing: antialiased;\r\n    font-size: .875rem;\r\n    letter-spacing: .2px;\r\n    border-radius: 4px;\r\n    box-shadow: 0 8px 10px 1px rgba(0,0,0,0.14), 0 3px 14px 2px rgba(0,0,0,0.12), 0 5px 5px -3px rgba(0,0,0,0.2);\r\n    padding:10px;\r\n    background-color:#fff;\r\n}\r\n\r\n.jcolor-focus {\r\n    display:block;\r\n}\r\n\r\n.jcolor td {\r\n    border:2px solid #fff;\r\n}\r\n\r\n.jcolor-selected {\r\n    border:2px solid #000 !important;\r\n    background-repeat:no-repeat;\r\n    background-size: cover;\r\n    background-position:0 0;\r\n    background-image: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M0 0h24v24H0z' fill='none'/%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z' fill='white'/%3E%3C/svg%3E\");\r\n}\r\n\r\n/**\r\n * Contextmenu v1.0.1\r\n * Author: paul.hodel@gmail.com\r\n * https://github.com/paulhodel/jtools\r\n */\r\n \r\n.jcontextmenu {\r\n    position:absolute;\r\n    z-index:10000;\r\n    background:#fff;\r\n    color: #555;\r\n    font-family: sans-serif;\r\n    font-size: 11px;\r\n    -webkit-user-select: none;\r\n    -moz-user-select: none;\r\n    -ms-user-select: none;\r\n        user-select: none;\r\n    box-shadow: 2px 2px 2px 0px rgba(143, 144, 145, 1);\r\n    border: 1px solid #C6C6C6;\r\n    padding: 0px;\r\n    padding-top:4px;\r\n    padding-bottom:4px;\r\n    margin:0px;\r\n    outline:none;\r\n    display:none;\r\n}\r\n\r\n.jcontextmenu.jcontextmenu-focus {\r\n    display:inline-block;\r\n}\r\n\r\n.jcontextmenu li {\r\n    box-sizing: border-box;\r\n    display: block;\r\n    padding: 8px 8px 8px 30px;\r\n    width: 250px;\r\n    position: relative;\r\n    cursor: default;\r\n}\r\n\r\n.jcontextmenu li a {\r\n    color: #555;\r\n    text-decoration: none;\r\n}\r\n\r\n.jcontextmenu li span {\r\n    float: right;\r\n    margin-right:10px;\r\n}\r\n\r\n.jcontextmenu .contextmenu-disabled {\r\n    color: #a1a192;\r\n}\r\n\r\n.jcontextmenu li:not(.contextmenu-line):hover {\r\n    background: #ebebeb;\r\n}\r\n\r\n.jcontextmenu li.contextmenu-line {\r\n    border-top: 1px solid #e9e9e9;\r\n    margin-top:5px;\r\n    padding:2px;\r\n}\r\n\r\n.jcontextmenu hr {\r\n    border: 1px solid #e9e9e9;\r\n    border-bottom: 0;\r\n    margin-top:5px;\r\n    margin-bottom:5px;\r\n}\r\n\r\n/**\n * (c) 2013 jDropdown\n * http://www.github.com/paulhodel/jdropdown\n *\n * @author: Paul Hodel <paul.hodel@gmail.com>\n * @description: Custom dropdowns\n */\n\n.jdropdown\n{\n    cursor:pointer;\n    -webkit-touch-callout: none;\n    -webkit-user-select: none;\n    -moz-user-select: none;\n    -ms-user-select: none;\n    user-select: none;\n    box-sizing: border-box;\n    background:#fff;\n    -webkit-tap-highlight-color: transparent;\n}\n\n.jdropdown-header::-webkit-input-placeholder\n{\n    color:#000;\n}\n\n.jdropdown-header:-ms-input-placeholder\n{\n    color:#000;\n}\n\n.jdropdown-header::-ms-input-placeholder\n{\n    color:#000;\n}\n\n.jdropdown-header::placeholder\n{\n    color:#000;\n}\n\n.jdropdown-backdrop\n{\n    position:fixed;\n    top:0px;\n    left:0px;\n    min-width:100%;\n    min-height:100%;\n    background-color:rgba(0,0,0,0.5);\n    border:0px;\n    padding:0px;\n    z-index:8000;\n    display:none;\n}\n\n.jdropdown-focus\n{\n    position:relative;\n}\n\n.jdropdown-focus .jdropdown-container\n{\n    display:block;\n}\n\n.jdropdown-focus .jdropdown-header\n{\n    outline:auto 5px -webkit-focus-ring-color;\n}\n\n.jdropdown-container-header\n{\n    padding:0px;\n    margin:0px;\n}\n\n.jdropdown-header\n{\n    width:100%;\n    appearance: none;\n    background-repeat: no-repeat;\n    background-position:top 50% right 5px;\n    background-image: url(\"data:image/svg+xml,%0A%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='none' d='M0 0h24v24H0V0z'/%3E%3Cpath d='M7 10l5 5 5-5H7z' fill='gray'/%3E%3C/svg%3E\");\n    text-overflow: ellipsis;\n    cursor:pointer;\n    box-sizing: border-box;\n    -webkit-appearance: none;\n    -moz-appearance: none;\n}\n\n.jdropdown-container\n{\n    display:none;\n}\n\n.jdropdown-close\n{\n    display:none;\n    font-size:1em;\n    color:#1f93ff;\n    text-transform:uppercase;\n    text-align:right;\n    padding:10px;\n    padding-right:15px;\n}\n\n.jdropdown-content\n{\n    min-width:inherit;\n    margin:0px;\n    box-sizing:border-box;\n}\n\n.jdropdown-content:empty\n{\n}\n\n.jdropdown-item\n{\n    white-space: nowrap;\n    text-align:left;\n    text-overflow: ellipsis;\n    overflow-x:hidden;\n    color:#000;\n    display:-webkit-flex;\n    display:flex;\n    -webkit-align-items:center;\n            align-items:center;\n}\n\n.jdropdown-image\n{\n    margin-right:10px;\n    width:40px;\n    height:40px;\n    border-radius:20px;\n}\n\n.jdropdown-image-small\n{\n    width:24px;\n    height:24px;\n}\n\n.jdropdown-title\n{\n    font-size:0.7em;\n    color:#aaa;\n    text-overflow: ellipsis;\n    overflow-x:hidden;\n    display:block;\n}\n\n/** Default visual **/\n\n.jdropdown-default .jdropdown-header\n{\n    border:1px solid #ccc;\n    padding:5px;\n    padding-left:10px;\n    padding-right:16px;\n}\n\n.jdropdown-default .jdropdown-container\n{\n    position:absolute;\n    z-index:9001;\n    background-color:#fff;\n}\n\n.jdropdown-default .jdropdown-content\n{\n    min-width:inherit;\n    border:1px solid #8fb1e3;\n    margin:0px;\n    background-color:#fff;\n    box-sizing:border-box;\n    min-height:10px;\n    max-height:215px;\n    overflow-y:auto;\n}\n\n.jdropdown-default .jdropdown-item\n{\n    padding:4px;\n    padding-left:8px;\n    padding-right:40px;\n}\n\n.jdropdown-default .jdropdown-item:hover\n{\n    background-color:#1f93ff;\n    color:#fff;\n}\n\n.jdropdown-default .jdropdown-cursor\n{\n    background-color:#1f93ff;\n    color:#fff;\n}\n\n.jdropdown-default .jdropdown-selected\n{\n    background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBkPSJNMCAwaDI0djI0SDB6IiBmaWxsPSJub25lIiAvPjxwYXRoIGQ9Ik05IDE2LjE3TDQuODMgMTJsLTEuNDIgMS40MUw5IDE5IDIxIDdsLTEuNDEtMS40MXoiIGZpbGw9IndoaXRlIiAvPjwvc3ZnPgo=');\n    background-repeat:no-repeat;\n    background-position:top 50% right 5px;\n    background-color:#1f93ff;\n    color:#fff;\n}\n\n.jdropdown-default .jdropdown-group\n{\n    margin-top:5px;\n}\n\n.jdropdown-default .jdropdown-group .jdropdown-item\n{\n    padding-left:16px;\n}\n\n.jdropdown-default .jdropdown-group-name\n{\n    padding-left:8px;\n    font-weight:bold;\n}\n\n\n/** Default render for mobile **/\n\n.jdropdown-picker\n{\n    width:100% !important;\n    border-top:1px solid #e6e6e8;\n    border-bottom:1px solid #e6e6e8;\n    padding-top:10px;\n    padding-bottom:10px;\n    box-sizing: border-box;\n}\n\n.jdropdown-picker.jdropdown-focus .jdropdown-backdrop\n{\n    display:block;\n}\n\n.jdropdown-picker .jdropdown-header\n{\n    border:0px;\n    padding:0px;\n    margin:0px;\n    outline:none;\n    text-transform:uppercase;\n    font-size:1em;\n    padding-right:24px;\n}\n\n.jdropdown-picker .jdropdown-container\n{\n    position:fixed;\n    bottom:0px;\n    left:0px;\n    border-bottom:1px solid #e6e6e8;\n    width:100%;\n    background-color:#fff;\n    box-sizing: border-box;\n    z-index:9000;\n}\n\n.jdropdown-picker .jdropdown-close\n{\n    box-shadow: 0px -1px 5px 0px rgba(0,0,0,0.39);\n    background-color:#fff;\n    display:block;\n}\n\n.jdropdown-picker .jdropdown-content\n{\n    overflow-y:scroll;\n    height:280px;\n    background-color:#fafafa;\n    border-top:1px solid #e6e6e8;\n}\n\n.jdropdown-picker .jdropdown-group-name\n{\n    font-size: 1em;\n    text-transform: uppercase;\n    padding-top:10px;\n    padding-bottom:10px;\n    display: block;\n    border-bottom: 1px solid #e6e6e8;\n    padding-left:20px;\n    padding-right:20px;\n    text-align:center;\n    font-weight:bold;\n}\n\n.jdropdown-picker .jdropdown-item\n{\n    font-size: 1em;\n    text-transform: uppercase;\n    padding-top:10px;\n    padding-bottom:10px;\n    display: block;\n    border-bottom: 1px solid #e6e6e8;\n    padding-left:20px;\n    padding-right:20px;\n}\n\n.jdropdown-picker .jdropdown-selected\n{\n    background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBkPSJNMCAwaDI0djI0SDB6IiBmaWxsPSJub25lIiAvPjxwYXRoIGQ9Ik05IDE2LjE3TDQuODMgMTJsLTEuNDIgMS40MUw5IDE5IDIxIDdsLTEuNDEtMS40MXoiIGZpbGw9IndoaXRlIiAvPjwvc3ZnPgo=');\n    background-repeat:no-repeat;\n    background-position:top 50% right 15px;\n    background-color:#1f93ff;\n    color:#fff;\n}\n\n.jdropdown-picker .jdropdown-cursor\n{\n    background-color:#1f93ff;\n    color:#fff;\n}\n\n/** Default render for mobile searchbar **/\n\n.jdropdown-searchbar\n{\n    width:100%;\n    border-top:1px solid #e6e6e8;\n    border-bottom:1px solid #e6e6e8;\n    padding-top:10px;\n    padding-bottom:10px;\n}\n\n.jdropdown-searchbar.jdropdown-focus\n{\n    position:absolute;\n    top:0px;\n    left:0px;\n    min-height:100%;\n    background-color:#fafafa;\n    padding:0px;\n    padding-top:40px;\n    z-index:9001;\n}\n\n.jdropdown-searchbar.jdropdown-focus .jdropdown-container-header\n{\n    padding:10px;\n    background-color:#fff;\n    box-shadow: 0 1px 2px rgba(0,0,0,.1);\n    position:fixed;\n    top:0px;\n    left:0px;\n    width:100%;\n}\n\n.jdropdown-searchbar.jdropdown-focus .jdropdown-header\n{\n    background-repeat: no-repeat;\n    background-position-x: 0%;\n    background-position-y: 40%;\n    background-image: url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBkPSJNMTUuNSAxNGgtLjc5bC0uMjgtLjI3QzE1LjQxIDEyLjU5IDE2IDExLjExIDE2IDkuNSAxNiA1LjkxIDEzLjA5IDMgOS41IDNTMyA1LjkxIDMgOS41IDUuOTEgMTYgOS41IDE2YzEuNjEgMCAzLjA5LS41OSA0LjIzLTEuNTdsLjI3LjI4di43OWw1IDQuOTlMMjAuNDkgMTlsLTQuOTktNXptLTYgMEM3LjAxIDE0IDUgMTEuOTkgNSA5LjVTNy4wMSA1IDkuNSA1IDE0IDcuMDEgMTQgOS41IDExLjk5IDE0IDkuNSAxNHoiIGZpbGw9IiNlNmU2ZTgiLz48cGF0aCBkPSJNMCAwaDI0djI0SDB6IiBmaWxsPSJub25lIi8+PC9zdmc+);\n    padding-left:30px !important;\n}\n\n.jdropdown-searchbar.jdropdown-focus .jdropdown-close\n{\n    display:block;\n}\n\n.jdropdown-searchbar .jdropdown-header\n{\n    border:0px;\n    padding:0px;\n    margin:0px;\n    outline:none;\n    text-transform:uppercase;\n    font-size:1em;\n    padding-right:30px;\n}\n\n.jdropdown-searchbar .jdropdown-close\n{\n    position:fixed;\n    top:0px;\n    right:0px;\n}\n\n.jdropdown-searchbar .jdropdown-content\n{\n    margin-top:10px;\n}\n\n.jdropdown-searchbar .jdropdown-group\n{\n    margin-top:10px;\n    margin-bottom:15px;\n    background-color:#fff;\n}\n\n.jdropdown-searchbar .jdropdown-group-name\n{\n    border-top: 1px solid #e6e6e8;\n    border-bottom: 1px solid #e6e6e8;\n    padding:10px;\n    padding-left:12px;\n    font-weight:bold;\n}\n\n.jdropdown-searchbar .jdropdown-group-arrow\n{\n    float:right;\n    width:24px;\n    height:24px;\n    background-repeat:no-repeat;\n}\n\n.jdropdown-searchbar .jdropdown-group-arrow-down\n{\n    background-image: url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBkPSJNNy40MSA4LjU5TDEyIDEzLjE3bDQuNTktNC41OEwxOCAxMGwtNiA2LTYtNiAxLjQxLTEuNDF6Ii8+PHBhdGggZmlsbD0ibm9uZSIgZD0iTTAgMGgyNHYyNEgwVjB6Ii8+PC9zdmc+);\n}\n\n.jdropdown-searchbar .jdropdown-group-arrow-up\n{\n    background-image: url(data:image/svg+xml;base64,CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTcuNDEgMTUuNDFMMTIgMTAuODNsNC41OSA0LjU4TDE4IDE0bC02LTYtNiA2eiIvPjxwYXRoIGQ9Ik0wIDBoMjR2MjRIMHoiIGZpbGw9Im5vbmUiLz48L3N2Zz4=);\n}\n\n.jdropdown-searchbar .jdropdown-item\n{\n    padding-top:10px;\n    padding-bottom:10px;\n    border-bottom: 1px solid #e6e6e8;\n    padding-left:15px;\n    padding-right:40px;\n    background-color:#fff;\n    font-size:0.9em;\n}\n\n.jdropdown-searchbar .jdropdown-description {\n    text-overflow: ellipsis;\n    overflow: hidden;\n    max-width:calc(100%-20px);\n}\n\n.jdropdown-searchbar .jdropdown-content > .jdropdown-item:first-child\n{\n    border-top: 1px solid #e6e6e8;\n}\n\n.jdropdown-searchbar .jdropdown-selected\n{\n    background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBkPSJNMCAwaDI0djI0SDB6IiBmaWxsPSJub25lIi8+PHBhdGggZD0iTTkgMTYuMTdMNC44MyAxMmwtMS40MiAxLjQxTDkgMTkgMjEgN2wtMS40MS0xLjQxeiIgZmlsbD0iIzAwN2FmZiIvPjwvc3ZnPg==');\n    background-repeat:no-repeat;\n    background-position:top 50% right 15px;\n}\n\n/** List render **/\n\n.jdropdown-list\n{\n}\n\n.jdropdown-list .jdropdown-container\n{\n    display:block;\n}\n\n.jdropdown-list .jdropdown-header\n{\n    display:none;\n}\n\n.jdropdown-list .jdropdown-group\n{\n    background-color:#fff;\n}\n\n.jdropdown-list .jdropdown-group-name\n{\n    border-bottom: 1px solid #e6e6e8;\n    padding-top:10px;\n    padding-bottom:10px;\n    font-weight:bold;\n}\n\n.jdropdown-list .jdropdown-item\n{\n    padding-top:10px;\n    padding-bottom:10px;\n    border-bottom: 1px solid #e6e6e8;\n    padding-left:10px;\n    padding-right:40px;\n    background-color:#fff;\n}\n\n.jdropdown-list .jdropdown-selected\n{\n    background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBkPSJNMCAwaDI0djI0SDB6IiBmaWxsPSJub25lIi8+PHBhdGggZD0iTTkgMTYuMTdMNC44MyAxMmwtMS40MiAxLjQxTDkgMTkgMjEgN2wtMS40MS0xLjQxeiIgZmlsbD0iIzAwN2FmZiIvPjwvc3ZnPg==');\n    background-repeat:no-repeat;\n    background-position:top 50% right 10px;\n}\n\n@media only screen and (max-device-width : 800px)\n{\n    .jdropdown-list\n    {\n        width:100% !important;\n        border:0px;\n        padding:0px;\n    }\n\n    .jdropdown-list .jdropdown-container\n    {\n        min-width:100%;\n    }\n}\r\n\r\n/**\r\n * (c) jLoading\r\n * https://github.com/paulhodel/jtools\r\n *\r\n * @author: Paul Hodel <paul.hodel@gmail.com>\r\n * @description: Page loading spin\r\n */\r\n\r\n.jloading {\r\n    position:fixed;\r\n    z-index:10001;\r\n    width:100%;\r\n    left:0;\r\n    right:0;\r\n    top:0;\r\n    bottom:0;\r\n    background-color: rgba(0,0,0,0.7);\r\n}\r\n\r\n.jloading::after {\r\n    content:'';\r\n    display:block;\r\n    margin:0 auto;\r\n    margin-top:50vh;\r\n    width:40px;\r\n    height:40px;\r\n    border-style:solid;\r\n    border-color:white;\r\n    border-top-color:transparent;\r\n    border-width:4px;\r\n    border-radius:50%;\r\n    -webkit-animation: spin .8s linear infinite;\r\n    animation: spin .8s linear infinite;\r\n}\r\n\r\n.jloading.spin {\r\n    background-color:transparent;\r\n}\r\n\r\n.jloading.spin::after {\r\n    margin:0 auto;\r\n    margin-top:80px;\r\n    border-color:#aaa;\r\n    border-top-color:transparent;\r\n}\r\n\r\n/**\r\n * (c) jTools Modal page\r\n * https://github.com/paulhodel/jtools\r\n *\r\n * @author: Paul Hodel <paul.hodel@gmail.com>\r\n * @description: Modal page\r\n */\r\n\r\n.jmodal {\r\n    position:fixed;\r\n    top:50%;\r\n    left:50%;\r\n    width:60%;\r\n    height:60%;\r\n    -webkit-box-shadow: 0 2px 10px rgba(0,0,0,.2);\r\n    -moz-box-shadow: 0 2px 10px rgba(0,0,0,.2);\r\n    border:1px solid #ccc;\r\n    background-color:#fff;\r\n    -webkit-transform: translate(-50%, -50%);\r\n            transform: translate(-50%, -50%);\r\n    box-sizing: border-box;\r\n    padding-top:50px;\r\n    z-index:9002;\r\n    display:none;\r\n    border-radius:5px;\r\n}\r\n\r\n.jmodal:before {\r\n    position:absolute;\r\n    top:0;\r\n    left:0;\r\n    width:100%;\r\n    content:attr(title);\r\n    padding:15px;\r\n    box-sizing: border-box;\r\n    background: #e3e3e3;\r\n    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#ededed', endColorstr='#e3e3e3');\r\n    background: -moz-linear-gradient(top,  #ededed,  #e3e3e3);\r\n    font-size:1.2em;\r\n}\r\n\r\n.jmodal > div {\r\n    padding:20px;\r\n    overflow-y:auto;\r\n    max-height:100%;\r\n}\r\n.jmodal.no-title {\r\n    padding-top:0px;\r\n}\r\n\r\n.jmodal.no-title:before {\r\n    display:none;\r\n}\r\n\r\n.jmodal:after {\r\n    content:'';\r\n    background-image: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z'/%3E%3Cpath d='M0 0h24v24H0z' fill='none'/%3E%3C/svg%3E\");\r\n    position:absolute;\r\n    top:0;\r\n    right:0;\r\n    margin:14px;\r\n    font-size:24px;\r\n    width:24px;\r\n    height:24px;\r\n    cursor:pointer;\r\n    text-shadow: 0px 0px 5px #fff;\r\n}\r\n\r\n\r\n", ""]);
+
+// exports
+
+
+/***/ }),
+
 /***/ "./node_modules/css-loader/index.js?!./node_modules/vue-loader/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/src/index.js?!./node_modules/vue-loader/lib/index.js?!./resources/js/components/Consumos.vue?vue&type=style&index=0&lang=css&":
 /*!**************************************************************************************************************************************************************************************************************************************************************************!*\
   !*** ./node_modules/css-loader??ref--6-1!./node_modules/vue-loader/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/src??ref--6-2!./node_modules/vue-loader/lib??vue-loader-options!./resources/js/components/Consumos.vue?vue&type=style&index=0&lang=css& ***!
@@ -22229,7 +22353,7 @@ exports = module.exports = __webpack_require__(/*! ../../../node_modules/css-loa
 
 
 // module
-exports.push([module.i, "\n.input-list{\n    list-style: none;\n    padding: 0;\n}\n.form{\n    padding: 20px;\n}\n.btn-circle.btn-xl {\n    width: 70px;\n    height: 70px;\n    padding: 10px 16px;\n    border-radius: 35px;\n    font-size: 24px;\n    line-height: 1.33;\n}\n.btn-circle {\n    width: 30px;\n    height: 30px;\n    padding: 6px 0px;\n    border-radius: 15px;\n    text-align: center;\n    font-size: 12px;\n    line-height: 1.42857;\n}\n.has-icon .form-control {\n    padding-right: 2.375rem;\n}\n.has-icon .form-control-icon {\n    position: absolute;\n    z-index: 2;\n    display: block;\n    width: 2.375rem;\n    height: 2.375rem;\n    line-height: 2.375rem;\n    text-align: right;\n    color: #aaa;\n    right: 3%;\n}\n.input-group .invalid{\n    border-color: red !important;\n}\n\n    \n", ""]);
+exports.push([module.i, "\n.input-list{\n    list-style: none;\n    padding: 0;\n}\n.form{\n    padding: 20px;\n}\n.btn-circle.btn-xl {\n    width: 70px;\n    height: 70px;\n    padding: 10px 16px;\n    border-radius: 35px;\n    font-size: 24px;\n    line-height: 1.33;\n}\n.btn-circle {\n    width: 30px;\n    height: 30px;\n    padding: 6px 0px;\n    border-radius: 15px;\n    text-align: center;\n    font-size: 12px;\n    line-height: 1.42857;\n}\n.has-icon .form-control {\n    padding-right: 2.375rem;\n}\n.has-icon .form-control-icon {\n    position: absolute;\n    z-index: 2;\n    display: block;\n    width: 2.375rem;\n    height: 2.375rem;\n    line-height: 2.375rem;\n    text-align: right;\n    color: #aaa;\n    right: 3%;\n}\n.input-group .invalid{\n    border-color: red !important;\n}\n.w-20 {\n  width: 20%;\n}\n.w-10 {\n  width: 10%\n}\n.w-40 {\n  width: 40%;\n}\ntable {\n    table-layout:auto;\n    word-wrap: break-word;\n}\n\n    \n", ""]);
 
 // exports
 
@@ -22456,6 +22580,12273 @@ module.exports = function equal(a, b) {
 
 //# sourceMappingURL=FileSaver.min.js.map
 /* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
+
+/***/ }),
+
+/***/ "./node_modules/jexcel/dist/jexcel.js":
+/*!********************************************!*\
+  !*** ./node_modules/jexcel/dist/jexcel.js ***!
+  \********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/**
+ * (c) jExcel v3.3.0
+ * 
+ * Author: Paul Hodel <paul.hodel@gmail.com>
+ * Website: https://bossanova.uk/jexcel/
+ * Description: Create amazing web based spreadsheets.
+ * 
+ * This software is distribute under MIT License
+ */
+
+
+
+if (! jSuites && "function" === 'function') {
+    var jSuites = __webpack_require__(/*! jsuites */ "./node_modules/jsuites/dist/jsuites.js");
+    __webpack_require__(/*! jsuites/dist/jsuites.css */ "./node_modules/jsuites/dist/jsuites.css");
+}
+
+var jexcel = (function(el, options) {
+    // Create jexcel object
+    var obj = {};
+    obj.options = {};
+
+    // Loading default configuration
+    var defaults = {
+        // External data
+        url:null,
+        // Data
+        data:[[]],
+        // Copy behavior
+        copyCompatibility:false,
+        // Rows and columns definitions
+        rows:[],
+        columns:[],
+        // Deprected legacy options
+        colHeaders:[],
+        colWidths:[],
+        colAlignments:[],
+        nestedHeaders:null,
+        // Column width that is used by default
+        defaultColWidth:50,
+        // Spare rows and columns
+        minSpareRows:0,
+        minSpareCols:0,
+        // Minimal table dimensions
+        minDimensions:[0,0],
+        // Allow Export
+        allowExport:true,
+        // Allow column sorting
+        columnSorting:true,
+        // Allow column resizing
+        columnDrag:false,
+        // Allow column resizing
+        columnResize:true,
+        // Allow row resizing
+        rowResize:false,
+        // Allow row dragging
+        rowDrag:true,
+        // Allow table edition
+        editable:true,
+        // Allow new rows
+        allowInsertRow:true,
+        // Allow new rows
+        allowManualInsertRow:true,
+        // Allow new columns
+        allowInsertColumn:true,
+        // Allow new rows
+        allowManualInsertColumn:true,
+        // Allow row delete
+        allowDeleteRow:true,
+        // Allow column delete
+        allowDeleteColumn:true,
+        // Allow rename column
+        allowRenameColumn:true,
+        // Allow comments
+        allowComments:false,
+        // Global wrap
+        wordWrap:false,
+        // CSV source
+        csv:null,
+        // Filename
+        csvFileName:'jexcel',
+        // Consider first line as header
+        csvHeaders:true,
+        // Delimiters
+        csvDelimiter:',',
+        // Disable corner selection
+        selectionCopy:true,
+        // Merged cells
+        mergeCells:[],
+        // Create toolbar
+        toolbar:null,
+        // Allow search
+        search:false,
+        // Create pagination
+        pagination:false,
+        paginationOptions:null,
+        // Full screen
+        fullscreen:false,
+        // Lazy loading
+        lazyLoading:false,
+        loadingSpin:false,
+        // Table overflow
+        tableOverflow:false,
+        tableHeight:'300px',
+        tableWidth:null,
+        // Style
+        style:null,
+        // Event handles
+        onload:null,
+        onchange:null,
+        onbeforechange:null,
+        oninsertrow:null,
+        oninsertcolumn:null,
+        ondeleterow:null,
+        ondeletecolumn:null,
+        onmoverow:null,
+        onmovecolumn:null,
+        onresizerow:null,
+        onresizecolumn:null,
+        onsort:null,
+        onselection:null,
+        onpaste:null,
+        onmerge:null,
+        onfocus:null,
+        onblur:null,
+        // Customize any cell behavior
+        updateTable:null,
+        // Texts
+        text:{
+            noRecordsFound: 'No records found',
+            showingPage: 'Showing page {0} of {1} entries',
+            show: 'Show ',
+            search: 'Search',
+            entries: ' entries',
+            insertANewColumnBefore: 'Insert a new column before',
+            insertANewColumnAfter: 'Insert a new column after',
+            deleteSelectedColumns: 'Delete selected columns',
+            renameThisColumn: 'Rename this column',
+            orderAscending: 'Order ascending',
+            orderDescending: 'Order descending',
+            insertANewRowBefore: 'Insert a new row before',
+            insertANewRowAfter: 'Insert a new row after',
+            deleteSelectedRows: 'Delete selected rows',
+            editComments: 'Edit comments',
+            addComments: 'Add comments',
+            comments: 'Comments',
+            clearComments: 'Clear comments',
+            copy: 'Copy...',
+            paste: 'Paste...',
+            saveAs: 'Save as...',
+            about: 'About',
+            areYouSureToDeleteTheSelectedRows: 'Are you sure to delete the selected rows?',
+            areYouSureToDeleteTheSelectedColumns: 'Are you sure to delete the selected columns?',
+            thisActionWillDestroyAnyExistingMergedCellsAreYouSure: 'This action will destroy any existing merged cells. Are you sure?',
+            thisActionWillClearYourSearchResultsAreYouSure: 'This action will clear your search results. Are you sure?',
+            thereIsAConflictWithAnotherMergedCell: 'There is a conflict with another merged cell',
+            invalidMergeProperties: 'Invalid merged properties',
+            cellAlreadyMerged: 'Cell already merged',
+            noCellsSelected: 'No cells selected',
+        },
+        // About message
+        about:"jExcel CE Spreadsheet\nVersion 3.3.0\nAuthor: Paul Hodel <paul.hodel@gmail.com>\nWebsite: https://jexcel.net/v3",
+    };
+
+    // Loading initial configuration from user
+    for (var property in defaults) {
+        if (options && options.hasOwnProperty(property)) {
+            obj.options[property] = (property == 'text') ? Object.assign(defaults[property], options[property]) :  options[property];
+        } else {
+            obj.options[property] = defaults[property];
+        }
+    }
+
+    // Global elements
+    obj.el = el;
+    obj.corner = null;
+    obj.contextMenu = null;
+    obj.textarea = null;
+    obj.ads = null;
+    obj.content = null;
+    obj.table = null;
+    obj.thead = null;
+    obj.tbody = null;
+    obj.rows = [];
+    obj.results = null;
+    obj.searchInput = null;
+    obj.toolbar = null;
+    obj.pagination = null;
+    obj.pageNumber = null;
+    obj.headerContainer = null;
+    obj.colgroupContainer = null;
+
+    // Containers
+    obj.headers = [];
+    obj.records = [];
+    obj.history = [];
+    obj.formula = [];
+    obj.formulaStack = 0;
+    obj.colgroup = [];
+    obj.selection = [];
+    obj.highlighted  = [];
+    obj.selectedCell = null;
+    obj.selectedContainer = null;
+    obj.style = [];
+    obj.meta = [];
+    obj.data = null;
+
+    // Internal controllers
+    obj.cursor = null;
+    obj.historyIndex = -1;
+    obj.ignoreEvents = false;
+    obj.ignoreHistory = false;
+    obj.edition = null;
+    obj.hashString = null;
+    obj.resizing = null;
+    obj.dragging = null;
+
+    // Lazy loading
+    if (obj.options.lazyLoading == true && (obj.options.tableOverflow == false && obj.options.fullscreen == false)) {
+        console.error('JEXCEL: The lazyloading only works when tableOverflow = yes or fullscreen = yes');
+        obj.options.lazyLoading = false;
+    }
+
+    /**
+     * Prepare the jexcel table
+     * 
+     * @Param config
+     */
+    obj.prepareTable = function() {
+        // Loading initial data from remote sources
+        var results = [];
+
+        // Number of columns
+        var size = obj.options.columns.length;
+
+        if (obj.options.data[0].length > size) {
+            size = obj.options.data[0].length;
+        }
+
+        // Minimal dimensions
+        if (obj.options.minDimensions[0] > size) {
+            size = obj.options.minDimensions[0];
+        }
+
+        // Requests
+        var requests = [];
+        var requestsIndex = [];
+
+        // Preparations
+        for (var i = 0; i < size; i++) {
+            // Deprected options. You should use only columns
+            if (! obj.options.colHeaders[i]) {
+                obj.options.colHeaders[i] = '';
+            }
+            if (! obj.options.colWidths[i]) {
+                obj.options.colWidths[i] = obj.options.defaultColWidth || '50';
+            }
+            if (! obj.options.colAlignments[i]) {
+                obj.options.colAlignments[i] = 'center';
+            }
+
+            // Default column description
+            if (! obj.options.columns[i]) {
+                obj.options.columns[i] = { type:'text' };
+            } else if (! obj.options.columns[i]) {
+                obj.options.columns[i].type = 'text';
+            }
+            if (! obj.options.columns[i].source) {
+                obj.options.columns[i].source = [];
+            }
+            if (! obj.options.columns[i].options) {
+                obj.options.columns[i].options = [];
+            }
+            if (! obj.options.columns[i].editor) {
+                obj.options.columns[i].editor = null;
+            }
+            if (! obj.options.columns[i].allowEmpty) {
+                obj.options.columns[i].allowEmpty = false;
+            }
+            if (! obj.options.columns[i].title) {
+                obj.options.columns[i].title = obj.options.colHeaders[i] ? obj.options.colHeaders[i] : '';
+            }
+            if (! obj.options.columns[i].width) {
+                obj.options.columns[i].width = obj.options.colWidths[i] ? obj.options.colWidths[i] : '50';
+            }
+            if (! obj.options.columns[i].align) {
+                obj.options.columns[i].align = obj.options.colAlignments[i] ? obj.options.colAlignments[i] : 'center';
+            }
+
+            // Pre-load initial source for json autocomplete
+            if (obj.options.columns[i].type == 'autocomplete' || obj.options.columns[i].type == 'dropdown') {
+                // if remote content
+                if (obj.options.columns[i].url) {
+                    requestsIndex.push(i);
+                    requests.push(fetch(obj.options.columns[i].url, { headers: new Headers({ 'content-type': 'text/json' }) })
+                        .then(function(data) {
+                            return data.json();
+                        }));
+                }
+            } else if (obj.options.columns[i].type == 'calendar') {
+                // Default format for date columns
+                if (! obj.options.columns[i].options.format) {
+                    obj.options.columns[i].options.format = 'DD/MM/YYYY';
+                }
+            }
+        }
+
+        if (requests.length) {
+            Promise.all(requests).then(function(data) {
+                for (var i = 0; i < data.length; i++) {
+                    obj.options.columns[i].source = data[i];
+                }
+                obj.createTable();
+            });
+        } else {
+            // Create table
+            obj.createTable();
+        }
+    }
+
+    obj.createTable = function() {
+        // Elements
+        obj.table = document.createElement('table');
+        obj.thead = document.createElement('thead');
+        obj.tbody = document.createElement('tbody');
+
+        // Create headers controllers
+        obj.headers = [];
+        obj.colgroup = [];
+
+        // Create table container
+        obj.content = document.createElement('div');
+        obj.content.classList.add('jexcel_content');
+
+        // Create toolbar object
+        obj.toolbar = document.createElement('div');
+        obj.toolbar.classList.add('jexcel_toolbar');
+
+        // Search
+        var searchContainer = document.createElement('div');
+        var searchText = document.createTextNode((obj.options.text.search) + ': ');
+        obj.searchInput = document.createElement('input');
+        obj.searchInput.classList.add('jexcel_search');
+        searchContainer.appendChild(searchText);
+        searchContainer.appendChild(obj.searchInput);
+        obj.searchInput.onfocus = function() {
+            obj.resetSelection();
+        }
+
+        // Pagination select option
+        var paginationUpdateContainer = document.createElement('div');
+
+        if (obj.options.pagination > 0 && obj.options.paginationOptions && obj.options.paginationOptions.length > 0) {
+            obj.paginationDropdown = document.createElement('select');
+            obj.paginationDropdown.classList.add('jexcel_pagination_dropdown');
+            obj.paginationDropdown.onchange = function() {
+                obj.options.pagination = parseInt(this.value);
+                obj.page(0);
+            }
+
+            for (var i = 0; i < obj.options.paginationOptions.length; i++) {
+                var temp = document.createElement('option');
+                temp.value = obj.options.paginationOptions[i];
+                temp.innerHTML = obj.options.paginationOptions[i];
+                obj.paginationDropdown.appendChild(temp);
+            }
+
+            paginationUpdateContainer.appendChild(document.createTextNode(obj.options.text.show));
+            paginationUpdateContainer.appendChild(obj.paginationDropdown);
+            paginationUpdateContainer.appendChild(document.createTextNode(obj.options.text.entries));
+        }
+
+        // Filter and pagination container
+        obj.filter = document.createElement('div');
+        obj.filter.classList.add('jexcel_filter');
+        obj.filter.appendChild(paginationUpdateContainer);
+        obj.filter.appendChild(searchContainer);
+
+        // Colsgroup
+        obj.colgroupContainer = document.createElement('colgroup');
+        var tempCol = document.createElement('col');
+        tempCol.setAttribute('width', 50);
+        obj.colgroupContainer.appendChild(tempCol);
+
+        // Nested
+        if (obj.options.nestedHeaders && obj.options.nestedHeaders.length > 0) {
+            // Flexible way to handle nestedheaders
+            if (obj.options.nestedHeaders[0] && obj.options.nestedHeaders[0][0]) {
+                for (var j = 0; j < obj.options.nestedHeaders.length; j++) {
+                    obj.thead.appendChild(obj.createNestedHeader(obj.options.nestedHeaders[j]));
+                }
+            } else {
+                obj.thead.appendChild(obj.createNestedHeader(obj.options.nestedHeaders));
+            }
+        }
+
+        // Row
+        obj.headerContainer = document.createElement('tr');
+        var tempCol = document.createElement('td');
+        obj.headerContainer.appendChild(tempCol);
+
+        for (var i = 0; i < obj.options.columns.length; i++) {
+            // Create header
+            obj.createCellHeader(i);
+            // Append cell to the container
+            obj.headerContainer.appendChild(obj.headers[i]);
+            obj.colgroupContainer.appendChild(obj.colgroup[i]);
+        }
+
+        obj.thead.appendChild(obj.headerContainer);
+
+        // Content table
+        obj.table = document.createElement('table');
+        obj.table.classList.add('jexcel');
+        obj.table.setAttribute('cellpadding', '0');
+        obj.table.setAttribute('cellspacing', '0');
+        obj.table.setAttribute('unselectable', 'yes');
+        obj.table.setAttribute('onselectstart', 'return false');
+        obj.table.appendChild(obj.colgroupContainer);
+        obj.table.appendChild(obj.thead);
+        obj.table.appendChild(obj.tbody);
+
+        // Spreasheet corner
+        obj.corner = document.createElement('div');
+        obj.corner.className = 'jexcel_corner';
+        obj.corner.setAttribute('unselectable', 'on');
+        obj.corner.setAttribute('onselectstart', 'return false');
+
+        if (obj.selectionCopy == false) {
+            obj.corner.style.display = 'none';
+        }
+
+        // Textarea helper
+        obj.textarea = document.createElement('textarea');
+        obj.textarea.className = 'jexcel_textarea';
+        obj.textarea.id = 'jexcel_textarea';
+
+        // Contextmenu container
+        obj.contextMenu = document.createElement('div');
+        obj.contextMenu.className = 'jexcel_contextmenu';
+
+        // Create element
+        jSuites.contextmenu(obj.contextMenu, {
+            onclick:function() {
+                obj.contextMenu.contextmenu.close(false);
+            }
+        });
+
+        // Powered by jExcel
+        var ads = '<a href="https://bossanova.uk/jexcel/"><img src="//bossanova.uk/jexcel/logo.png">jExcel Spreadsheet</a>';
+        obj.ads = document.createElement('div');
+        obj.ads.className = 'jexcel_about';
+        if (typeof(sessionStorage) !== "undefined") {
+            if (! sessionStorage.getItem('jexcel')) {
+                sessionStorage.setItem('jexcel', true);
+                obj.ads.innerHTML = ads;
+            }
+        } else {
+            obj.ads.innerHTML = ads;
+        }
+
+        // Create table container TODO: frozen columns
+        var container = document.createElement('div');
+        container.classList.add('jexcel_table');
+
+        // Pagination
+        obj.pagination = document.createElement('div');
+        obj.pagination.classList.add('jexcel_pagination');
+        var paginationInfo = document.createElement('div');
+        var paginationPages = document.createElement('div');
+        obj.pagination.appendChild(paginationInfo);
+        obj.pagination.appendChild(paginationPages);
+
+        // Append containers to the table
+        if (obj.options.search == true) {
+            el.appendChild(obj.filter);
+        }
+
+        // Elements
+        obj.content.appendChild(obj.table);
+        obj.content.appendChild(obj.corner);
+        obj.content.appendChild(obj.textarea);
+
+        el.appendChild(obj.toolbar);
+        el.appendChild(obj.content);
+        el.appendChild(obj.pagination);
+        el.appendChild(obj.contextMenu);
+        el.appendChild(obj.ads);
+        el.classList.add('jexcel_container');
+
+        // Create toolbar
+        if (obj.options.toolbar && obj.options.toolbar.length) {
+            obj.createToolbar();
+        }
+
+        // Fullscreen
+        if (obj.options.fullscreen == true) {
+            el.classList.add('fullscreen');
+            if (obj.options.toolbar) {
+                el.classList.add('with-toolbar');
+            }
+        } else {
+            // Overflow
+            if (obj.options.tableOverflow == true) {
+                if (obj.options.tableHeight) {
+                    obj.content.style['overflow-y'] = 'auto';
+                    obj.content.style.height = obj.options.tableHeight;
+                }
+                if (obj.options.tableWidth) {
+                    el.content.style['overflow-x'] = 'auto';
+                    el.content.width = obj.options.tableWidth;
+                }
+            }
+        }
+
+        // Actions
+        if (obj.options.columnDrag == true) {
+            obj.thead.classList.add('draggable');
+        }
+        if (obj.options.columnResize == true) {
+            obj.thead.classList.add('resizable');
+        }
+        if (obj.options.rowDrag == true) {
+            obj.tbody.classList.add('draggable');
+        }
+        if (obj.options.rowResize == true) {
+            obj.tbody.classList.add('resizable');
+        }
+
+        // Load data
+        obj.setData();
+
+        // Style
+        if (obj.options.style) {
+            obj.setStyle(obj.options.style, null, null, 1, 1);
+        }
+    }
+
+    /**
+     * Set data
+     * 
+     * @param array data In case no data is sent, default is reloaded
+     * @return void
+     */
+    obj.setData = function(data) {
+        // Update data
+        if (data) {
+            if (typeof(data) == 'string') {
+                data = JSON.parse(data);
+            }
+
+            obj.options.data = data;
+        }
+
+        // Adjust minimal dimensions
+        var j = 0;
+        var i = 0;
+        var size_i = obj.options.columns.length;
+        var size_j = obj.options.data.length;
+        var min_i = obj.options.minDimensions[0];
+        var min_j = obj.options.minDimensions[1];
+        var max_i = min_i > size_i ? min_i : size_i;
+        var max_j = min_j > size_j ? min_j : size_j;
+
+        for (j = 0; j < max_j; j++) {
+            for (i = 0; i < max_i; i++) {
+                if (obj.options.data[j] == undefined) {
+                    obj.options.data[j] = [];
+                }
+
+                if (obj.options.data[j][i] == undefined) {
+                    obj.options.data[j][i] = '';
+                }
+            }
+        }
+
+        // Reset containers
+        obj.rows = [];
+        obj.results = null;
+        obj.records = [];
+        obj.history = [];
+
+        // Reset internal controllers
+        obj.historyIndex = -1;
+
+        // Reset data
+        obj.tbody.innerHTML = '';
+
+        // Lazy loading
+        if (obj.options.lazyLoading == true) {
+            // Load only 100 records
+            var startNumber = 0
+            var finalNumber = obj.options.data.length < 100 ? obj.options.data.length : 100;
+
+            if (obj.options.pagination) {
+                obj.options.pagination = false;
+                console.error('JEXCEL: Pagination will be disable due the lazyLoading');
+            }
+        } else if (obj.options.pagination) {
+            // Pagination
+            if (! obj.pageNumber) {
+                obj.pageNumber = 0;
+            }
+            var quantityPerPage = obj.options.pagination;
+            startNumber = (obj.options.pagination * obj.pageNumber);
+            finalNumber = (obj.options.pagination * obj.pageNumber) + obj.options.pagination;
+
+            if (obj.options.data.length < finalNumber) {
+                finalNumber = obj.options.data.length;
+            }
+        } else {
+            var startNumber = 0;
+            var finalNumber = obj.options.data.length;
+        }
+
+        // Append nodes to the HTML
+        for (j = 0; j < obj.options.data.length; j++) {
+            // Create row
+            var tr = obj.createRow(j, obj.options.data[j]);
+            // Append line to the table
+            if (j >= startNumber && j < finalNumber) {
+                obj.tbody.appendChild(tr);
+            }
+        }
+
+        if (obj.options.lazyLoading == true) {
+            // Do not create pagination with lazyloading activated
+        } else if (obj.options.pagination) {
+            obj.updatePagination();
+        }
+
+        // Merge cells
+        if (obj.options.mergeCells) {
+            var keys = Object.keys(obj.options.mergeCells);
+            for (var i = 0; i < keys.length; i++) {
+                var num = obj.options.mergeCells[keys[i]];
+                obj.setMerge(keys[i], num[0], num[1], 1);
+            }
+        }
+
+        // Updata table with custom configurations if applicable
+        obj.updateTable();
+
+        // Onload
+        if (! obj.ignoreEvents) {
+            if (typeof(obj.options.onload) == 'function') {
+                obj.options.onload(el);
+            }
+        }
+    }
+
+    /**
+     * Get the whole table data
+     * 
+     * @param integer row number
+     * @return string value
+     */
+    obj.getData = function(highlighted) {
+        // Control vars
+        var dataset = [];
+        var px = 0;
+        var py = 0;
+
+        // Column and row length
+        var x = obj.options.data[0].length
+        var y = obj.options.data.length
+
+        // Go through the columns to get the data
+        for (var j = 0; j < y; j++) {
+            px = 0;
+            for (var i = 0; i < x; i++) {
+                // Cell selected or fullset
+                if (! highlighted || obj.records[j][i].classList.contains('highlight')) {
+                    // Get value
+                    if (! dataset[py]) {
+                        dataset[py] = [];
+                    }
+                    dataset[py][px] = obj.options.data[j][i];
+                    px++;
+                }
+            }
+            if (px > 0) {
+                py++;
+            }
+       }
+
+       return dataset;
+    }
+
+    /**
+     * Get a row data by rowNumber
+     */
+    obj.getRowData = function(rowNumber) {
+        return obj.options.data[rowNumber];
+    }
+
+    /**
+     * Set a row data by rowNumber
+     */
+    obj.setRowData = function(rowNumber, data) {
+        for (var i = 0; i < obj.headers.length; i++) {
+            // Update cell
+            var columnName = jexcel.getColumnNameFromId([ i, rowNumber ]);
+            // Set value
+            obj.setValue(columnName, data[i]);
+        }
+    }
+
+    /**
+     * Get a column data by columnNumber
+     */
+    obj.getColumnData = function(columnNumber) {
+        var dataset = [];
+        // Go through the rows to get the data
+        for (var j = 0; j < obj.options.data.length; j++) {
+            dataset.push(obj.options.data[j][columnNumber]);
+        }
+        return dataset;
+    }
+
+    /**
+     * Create row
+     */
+    obj.createRow = function(j, data) {
+        // Create container
+        if (! obj.records[j]) {
+            obj.records[j] = [];
+        }
+        // New line of data to be append in the table
+        obj.rows[j] = document.createElement('tr');
+        obj.rows[j].setAttribute('data-y', j);
+        // Definitions
+        if (obj.options.rows[j]) {
+            if (obj.options.rows[j].height) {
+                obj.rows[j].style.height = obj.options.rows[j].height;
+            }
+        }
+        // Row number label
+        var td = document.createElement('td');
+        td.innerHTML = parseInt(j + 1);
+        td.setAttribute('data-y', j);
+        td.className = 'jexcel_row';
+        obj.rows[j].appendChild(td);
+
+        // Data columns
+        for (i = 0; i < obj.options.columns.length; i++) {
+            // New column of data to be append in the line
+            obj.records[j][i] = obj.createCell(i, j, data[i]);
+            // Add column to the row
+            obj.rows[j].appendChild(obj.records[j][i]);
+        }
+
+        // Add row to the table body
+        return obj.rows[j];
+    }
+
+    /**
+     * Create cell
+     */
+    obj.createCell = function(i, j, value) {
+        // Create cell and properties
+        var td = document.createElement('td');
+        td.setAttribute('data-x', i);
+        td.setAttribute('data-y', j);
+        // Hidden column
+        if (obj.options.columns[i].type == 'hidden') {
+            td.style.display = 'none';
+            td.innerHTML = value;
+        } else if (obj.options.columns[i].type == 'checkbox' || obj.options.columns[i].type == 'radio') {
+            // Create input
+            var element = document.createElement('input');
+            element.type = obj.options.columns[i].type;
+            element.name = 'c' + i;
+            element.checked = (value == 1 || value == true || value == 'true') ? true : false;
+            element.onclick = function() {
+                obj.setValue(td, this.checked);
+            }
+
+            if (obj.options.columns[i].readOnly == true) {
+                element.setAttribute('disabled', 'disabled');
+            }
+
+            // Append to the table
+            td.appendChild(element);
+            // Make sure the values are correct
+            obj.options.data[j][i] = element.checked;
+        } else if (obj.options.columns[i].type == 'calendar') {
+            // Try formatted date
+            var formatted = jSuites.calendar.extractDateFromString(value, obj.options.columns[i].options.format);
+            // Create calendar cell
+            td.innerHTML = jSuites.calendar.getDateString(formatted ? formatted : value, obj.options.columns[i].options.format);
+        } else if (obj.options.columns[i].type == 'dropdown' || obj.options.columns[i].type == 'autocomplete') {
+            // Create dropdown cell
+            td.classList.add('dropdown');
+            td.innerHTML = obj.getDropDownValue(i, value);
+        } else if (obj.options.columns[i].type == 'color') {
+            if (obj.options.columns[i].render == 'square') {
+                var color = document.createElement('div');
+                color.className = 'color';
+                color.style.backgroundColor = value;
+                td.appendChild(color);
+            } else {
+                td.style.color = value;
+                td.innerHTML = value;
+            }
+        } else if (obj.options.columns[i].type == 'image') {
+            if (value && value.substr(0, 10) == 'data:image') {
+                var img = document.createElement('img');
+                img.src = value;
+                td.appendChild(img);
+            }
+        } else {
+            if ((''+value).substr(0,1) == '=') {
+                value = obj.executeFormula(value, i, j)
+            }
+            if (obj.options.columns[i].mask) {
+                var decimal = obj.options.columns[i].decimal || '.'; 
+                value = '' + jSuites.mask.run(value, obj.options.columns[i].mask, decimal);
+            }
+
+            td.innerHTML = value;
+        }
+
+        // Readonly
+        if (obj.options.columns[i].readOnly == true) {
+            td.className = 'readonly';
+        }
+
+        // Text align
+        var colAlign = obj.options.columns[i].align ? obj.options.columns[i].align : 'center';
+        td.style.textAlign = colAlign;
+
+        // Wrap option
+        if (obj.options.wordWrap == true || obj.options.columns[i].wordWrap == true || td.innerHTML.length > 200) {
+            td.style.whiteSpace = 'pre-wrap';
+        }
+
+        // Overflow
+        if (i > 0) {
+            if (value || td.innerHTML) {
+                obj.records[j][i-1].style.overflow = 'hidden';
+            } else {
+                if (i == obj.options.columns.length - 1) {
+                    td.style.overflow = 'hidden';
+                }
+            }
+        }
+
+        return td;
+    }
+
+    obj.createCellHeader = function(colNumber) {
+        // Create col global control
+        var colWidth = obj.options.columns[colNumber].width ? obj.options.columns[colNumber].width : obj.options.defaultColWidth;
+        var colAlign = obj.options.columns[colNumber].align ? obj.options.columns[colNumber].align : 'center';
+
+        // Create header cell
+        obj.headers[colNumber] = document.createElement('td');
+        obj.headers[colNumber].innerHTML = obj.options.columns[colNumber].title ? obj.options.columns[colNumber].title : jexcel.getColumnName(colNumber);
+        obj.headers[colNumber].setAttribute('data-x', colNumber);
+        obj.headers[colNumber].style.textAlign = colAlign;
+        if (obj.options.columns[colNumber].title) {
+            obj.headers[colNumber].setAttribute('title', obj.options.columns[colNumber].title);
+        }
+
+        // Width control
+        obj.colgroup[colNumber] = document.createElement('col');
+        obj.colgroup[colNumber].setAttribute('width', colWidth);
+
+        // Hidden column
+        if (obj.options.columns[colNumber].type == 'hidden') {
+            obj.headers[colNumber].style.display = 'none';
+            obj.colgroup[colNumber].style.display = 'none';
+        }
+    }
+
+    obj.createNestedHeader = function(nestedInformation) {
+        var tr = document.createElement('tr');
+        tr.classList.add('jexcel_nested');
+        var td = document.createElement('td');
+        tr.appendChild(td);
+
+        var headerIndex = 0;
+        for (var i = 0; i < nestedInformation.length; i++) {
+            // Default values
+            if (! nestedInformation[i].colspan) {
+                nestedInformation[i].colspan = 1;
+            }
+            if (! nestedInformation[i].align) {
+                nestedInformation[i].align = 'center';
+            }
+            if (! nestedInformation[i].title) {
+                nestedInformation[i].title = '';
+            }
+
+            // Classes container
+            var column = [];
+            // Header classes for this cell
+            for (var x = 0; x < nestedInformation[i].colspan; x++) {
+                column.push(headerIndex);
+                headerIndex++;
+            }
+
+            // Created the nested cell
+            var td = document.createElement('td');
+            td.setAttribute('data-column', column.join(','));
+            td.setAttribute('colspan', nestedInformation[i].colspan);
+            td.setAttribute('align', nestedInformation[i].align);
+            td.innerHTML = nestedInformation[i].title;
+            tr.appendChild(td);
+        }
+
+        return tr;
+    }
+
+    /**
+     * Create toolbar
+     */
+    obj.createToolbar = function(toolbar) {
+        if (toolbar) {
+            obj.options.toolbar = toolbar;
+        } else {
+            var toolbar = obj.options.toolbar;
+        }
+ 
+        for (var i = 0; i < toolbar.length; i++) { 
+            if (toolbar[i].type == 'i') { 
+                var toolbarItem = document.createElement('i'); 
+                toolbarItem.classList.add('jexcel_toolbar_item');
+                toolbarItem.classList.add('material-icons');
+                toolbarItem.setAttribute('data-k', toolbar[i].k);
+                toolbarItem.setAttribute('data-v', toolbar[i].v);
+                // Handle click
+                if (toolbar[i].onclick && typeof(toolbar[i].onclick)) {
+                    toolbarItem.onclick = toolbar[i].onclick;
+                } else {
+                    toolbarItem.onclick = function() {
+                        var k = this.getAttribute('data-k');
+                        var v = this.getAttribute('data-v');
+                        obj.setStyle(obj.highlighted, k, v); 
+                    }
+                }
+                // Append element
+                toolbarItem.innerHTML = toolbar[i].content; 
+                obj.toolbar.appendChild(toolbarItem); 
+            } else if (toolbar[i].type == 'select') { 
+               var toolbarItem = document.createElement('select');
+               toolbarItem.classList.add('jexcel_toolbar_item');
+               toolbarItem.setAttribute('data-k', toolbar[i].k);
+               // Handle onchange
+               if (toolbar[i].onchange && typeof(toolbar[i].onchange)) {
+                   toolbarItem.onchange = toolbar[i].onchange;
+               } else {
+                   toolbarItem.onchange = function() {
+                       var k = this.getAttribute('data-k');
+                       obj.setStyle(obj.highlighted, k, this.value);
+                   }
+               }
+               // Add options to the dropdown
+               for(var j = 0; j < toolbar[i].v.length; j++) {
+                    var toolbarDropdownOption = document.createElement('option');
+                    toolbarDropdownOption.value = toolbar[i].v[j];
+                    toolbarDropdownOption.innerHTML = toolbar[i].v[j];
+                    toolbarItem.appendChild(toolbarDropdownOption);
+               }
+               obj.toolbar.appendChild(toolbarItem);
+            } else if (toolbar[i].type == 'color') { 
+                 var toolbarItem = document.createElement('i');
+                 toolbarItem.classList.add('jexcel_toolbar_item');
+                 toolbarItem.classList.add('material-icons');
+                 toolbarItem.setAttribute('data-k', toolbar[i].k);
+                 toolbarItem.setAttribute('data-v', '');
+                 obj.toolbar.appendChild(toolbarItem);
+                 toolbarItem.onclick = function() {
+                     this.color.open();
+                 }
+                 toolbarItem.innerHTML = toolbar[i].content;
+                 jSuites.color(toolbarItem, {
+                     onchange:function(o, v) {
+                         var k = o.getAttribute('data-k');
+                         obj.setStyle(obj.highlighted, k, v);
+                     }
+                 });
+            } 
+        }
+    }
+
+    /**
+     * Merge cells
+     * @param cellName
+     * @param colspan
+     * @param rowspan
+     * @param ignoreHistoryAndEvents
+     */
+    obj.setMerge = function(cellName, colspan, rowspan, ignoreHistoryAndEvents) {
+        var test = false;
+
+        if (! cellName) {
+            if (! obj.highlighted.length) {
+                alert(obj.options.text.noCellsSelected);
+                return null;
+            } else {
+                var x1 = parseInt(obj.highlighted[0].getAttribute('data-x'));
+                var y1 = parseInt(obj.highlighted[0].getAttribute('data-y'));
+                var x2 = parseInt(obj.highlighted[obj.highlighted.length-1].getAttribute('data-x'));
+                var y2 = parseInt(obj.highlighted[obj.highlighted.length-1].getAttribute('data-y'));
+                var cellName = jexcel.getColumnNameFromId([ x1, y1 ]);
+                var colspan = (x2 - x1) + 1;
+                var rowspan = (y2 - y1) + 1;
+            }
+        }
+
+        var cell = jexcel.getIdFromColumnName(cellName, true);
+
+        if (obj.options.mergeCells[cellName] && obj.options.mergeCells[cellName][2]) {
+            test = obj.options.text.cellAlreadyMerged;
+        } else if ((! colspan || colspan < 2) && (! rowspan || rowspan < 2)) {
+            test = obj.options.text.invalidMergeProperties;
+        } else {
+            var cells = [];
+            for (var j = cell[1]; j < cell[1] + rowspan; j++) {
+                for (var i = cell[0]; i < cell[0] + colspan; i++) {
+                    var columnName = jexcel.getColumnNameFromId([i, j]);
+                    if (obj.options.mergeCells[columnName] && obj.options.mergeCells[columnName][2]) {
+                        test = obj.options.text.thereIsAConflictWithAnotherMergedCell;
+                    }
+                }
+            }
+        }
+
+        if (test) {
+            alert(test);
+        } else {
+            // Add property
+            if (colspan > 1) {
+                obj.records[cell[1]][cell[0]].setAttribute('colspan', colspan);
+            } else {
+                colspan = 1;
+            }
+            if (rowspan > 1) {
+                obj.records[cell[1]][cell[0]].setAttribute('rowspan', rowspan);
+            } else {
+                rowspan = 1;
+            }
+            // Keep links to the existing nodes
+            obj.options.mergeCells[cellName] = [ colspan, rowspan, [] ];
+            // Mark cell as merged
+            obj.records[cell[1]][cell[0]].setAttribute('data-merged', 'true');
+            // Overflow
+            obj.records[cell[1]][cell[0]].style.overflow = 'hidden';
+            // History data
+            var data = [];
+            // Adjust the nodes
+            for (var y = cell[1]; y < cell[1] + rowspan; y++) {
+                for (var x = cell[0]; x < cell[0] + colspan; x++) {
+                    if (! (cell[0] == x && cell[1] == y)) {
+                        data.push(obj.options.data[y][x]);
+                        obj.updateCell(x, y, '', true);
+                        obj.options.mergeCells[cellName][2].push(obj.records[y][x]);
+                        obj.records[y][x].style.display = 'none';
+                        obj.records[y][x] = obj.records[cell[1]][cell[0]];
+                    }
+                }
+            }
+            // In the initialization is not necessary keep the history
+            obj.updateSelection(obj.records[cell[1]][cell[0]]);
+
+            if (! ignoreHistoryAndEvents) {
+                obj.setHistory({
+                    action:'setMerge',
+                    column:cellName,
+                    colspan:colspan,
+                    rowspan:rowspan,
+                    data:data,
+                });
+
+                if (typeof(obj.options.onmerge) == 'function') {
+                    obj.options.onmerge(el, column, width, oldWidth);
+                }
+            }
+        }
+    }
+
+    /**
+     * Merge cells
+     * @param cellName
+     * @param colspan
+     * @param rowspan
+     * @param ignoreHistoryAndEvents
+     */
+    obj.getMerge = function(cellName) {
+        var data = {};
+        if (cellName) {
+            if (obj.options.mergeCells[cellName]) {
+                data = [ obj.options.mergeCells[cellName][0], obj.options.mergeCells[cellName][1] ];
+            } else {
+                data = null;
+            }
+        } else {
+            if (obj.options.mergeCells) {
+                var mergedCells = obj.options.mergeCells;
+                var keys = Object.keys(obj.options.mergeCells);
+                for (var i = 0; i < keys.length; i++) {
+                    data[keys[i]] = [ obj.options.mergeCells[keys[i]][0], obj.options.mergeCells[keys[i]][1] ];
+                }
+            }
+        }
+        
+        return data;
+    }
+
+    /**
+     * Remove merge by cellname
+     * @param cellName
+     */
+    obj.removeMerge = function(cellName, data, keepOptions) {
+        if (obj.options.mergeCells[cellName]) {
+            var cell = jexcel.getIdFromColumnName(cellName, true);
+            obj.records[cell[1]][cell[0]].removeAttribute('colspan');
+            obj.records[cell[1]][cell[0]].removeAttribute('rowspan');
+            obj.records[cell[1]][cell[0]].removeAttribute('data-merged');
+            var info = obj.options.mergeCells[cellName];
+
+            var index = 0;
+            for (var j = 0; j < info[1]; j++) {
+                for (var i = 0; i < info[0]; i++) {
+                    if (j > 0 || i > 0) {
+                        obj.records[cell[1]+j][cell[0]+i] = info[2][index];
+                        obj.records[cell[1]+j][cell[0]+i].style.display = '';
+                        // Recover data
+                        if (data && data[index]) {
+                            obj.updateCell(cell[0]+i, cell[1]+j, data[index]);
+                        }
+                        index++;
+                    }
+                }
+            }
+
+            // Update selection
+            obj.updateSelection(obj.records[cell[1]][cell[0]], obj.records[cell[1]+j-1][cell[0]+i-1]);
+
+            if (! keepOptions) {
+                delete(obj.options.mergeCells[cellName]);
+            }
+        }
+    }
+
+    /**
+     * Remove all merged cells
+     */
+    obj.destroyMerged = function(keepOptions) {
+        // Remove any merged cells
+        if (obj.options.mergeCells) {
+            var mergedCells = obj.options.mergeCells;
+            var keys = Object.keys(obj.options.mergeCells);
+            for (var i = 0; i < keys.length; i++) {
+                obj.removeMerge(keys[i], null, keepOptions);
+            }
+        }
+    }
+
+    /**
+     * Is column merged
+     */
+    obj.isColMerged = function(x, insertBefore) {
+        var cols = [];
+        // Remove any merged cells
+        if (obj.options.mergeCells) {
+            var keys = Object.keys(obj.options.mergeCells);
+            for (var i = 0; i < keys.length; i++) {
+                var info = jexcel.getIdFromColumnName(keys[i], true);
+                var colspan = obj.options.mergeCells[keys[i]][0];
+                var x1 = info[0];
+                var x2 = info[0] + (colspan > 1 ? colspan - 1 : 0);
+
+                if (insertBefore == null) {
+                    if ((x1 <= x && x2 >= x)) {
+                        cols.push(keys[i]);
+                    }
+                } else {
+                    if (insertBefore) {
+                        if ((x1 < x && x2 >= x)) {
+                            cols.push(keys[i]);
+                        }
+                    } else {
+                        if ((x1 <= x && x2 > x)) {
+                            cols.push(keys[i]);
+                        }
+                    }
+                }
+            }
+        }
+
+        return cols;
+    }
+
+    /**
+     * Is rows merged
+     */
+    obj.isRowMerged = function(y, insertBefore) {
+        var rows = [];
+        // Remove any merged cells
+        if (obj.options.mergeCells) {
+            var keys = Object.keys(obj.options.mergeCells);
+            for (var i = 0; i < keys.length; i++) {
+                var info = jexcel.getIdFromColumnName(keys[i], true);
+                var rowspan = obj.options.mergeCells[keys[i]][1];
+                var y1 = info[1];
+                var y2 = info[1] + (rowspan > 1 ? rowspan - 1 : 0);
+
+                if (insertBefore == null) {
+                    if ((y1 <= y && y2 >= y)) {
+                        rows.push(keys[i]);
+                    }
+                } else {
+                    if (insertBefore) {
+                        if ((y1 < y && y2 >= y)) {
+                            rows.push(keys[i]);
+                        }
+                    } else {
+                        if ((y1 <= y && y2 > y)) {
+                            rows.push(keys[i]);
+                        }
+                    }
+                }
+            }
+        }
+
+        return rows;
+    }
+
+    /**
+     * Open the editor
+     * 
+     * @param object cell
+     * @return void
+     */
+    obj.openEditor = function(cell, empty, e) {
+        // Get cell position
+        var y = cell.getAttribute('data-y');
+        var x = cell.getAttribute('data-x');
+
+        // Overflow
+        if (x > 0) {
+            obj.records[y][x-1].style.overflow = 'hidden';
+        }
+
+        // Create editor
+        var createEditor = function(type) {
+            // Cell information
+            let info = cell.getBoundingClientRect();
+
+            // Create dropdown
+            var editor = document.createElement(type);
+            editor.style.width = (info.width) + 'px';
+            editor.style.height = (info.height - 2) + 'px';
+            editor.style.minHeight = (info.height - 2) + 'px';
+
+            // Edit cell
+            cell.classList.add('editor');
+            cell.innerHTML = '';
+            cell.appendChild(editor);
+
+            return editor;
+        }
+
+        // Readonly
+        if (cell.classList.contains('readonly') == true) {
+            // Do nothing
+        } else {
+            // Holder
+            obj.edition = [ obj.records[y][x], obj.records[y][x].innerHTML, x, y ];
+
+            // If there is a custom editor for it
+            if (obj.options.columns[x].editor) {
+                // Custom editors
+                obj.options.columns[x].editor.openEditor(cell, el);
+            } else {
+                // Native functions
+                if (obj.options.columns[x].type == 'hidden') {
+                    // Do nothing
+                } else if (obj.options.columns[x].type == 'checkbox' || obj.options.columns[x].type == 'radio') {
+                    // Get value
+                    var value = cell.children[0].checked ? false : true;
+                    // Toogle value
+                    obj.setValue(cell, value);
+                    // Do not keep edition open
+                    obj.edition = null;
+                } else if (obj.options.columns[x].type == 'dropdown' || obj.options.columns[x].type == 'autocomplete') {
+                    // Get current value
+                    var value = obj.options.data[y][x];
+
+                    // Create dropdown
+                    if (typeof(obj.options.columns[x].filter) == 'function') {
+                        var source = obj.options.columns[x].filter(el, cell, x, y, obj.options.columns[x].source);
+                    } else {
+                        var source = obj.options.columns[x].source;
+                    }
+
+                    // Create editor
+                    var editor = createEditor('div');
+                    var options = {
+                        data: source,
+                        multiple: obj.options.columns[x].multiple ? true : false,
+                        autocomplete: obj.options.columns[x].autocomplete || obj.options.columns[x].type == 'autocomplete' ? true : false,
+                        opened:true,
+                        value: obj.options.columns[x].multiple ? value.split(';') : value,
+                        width:'100%',
+                        height:editor.style.minHeight,
+                        position: (obj.options.tableOverflow == true || obj.options.fullscreen == true) ? true : false,
+                        onclose:function() {
+                            obj.closeEditor(cell, true);
+                        }
+                    };
+                    if (obj.options.columns[x].options && obj.options.columns[x].options.type) {
+                        options.type = obj.options.columns[x].options.type;
+                    }
+                    jSuites.dropdown(editor, options);
+                } else if (obj.options.columns[x].type == 'calendar' || obj.options.columns[x].type == 'color') {
+                    // Value
+                    var value = obj.options.data[y][x];
+                    // Create editor
+                    var editor = createEditor('input');
+                    editor.value = value;
+
+                    if (obj.options.tableOverflow == true || obj.options.fullscreen == true) {
+                        obj.options.columns[x].options.position = true;
+                    }
+                    obj.options.columns[x].options.value = obj.options.data[y][x];
+                    obj.options.columns[x].options.onclose = function(el, value) {
+                        obj.closeEditor(cell, true);
+                    }
+                    // Current value
+                    if (obj.options.columns[x].type == 'color') {
+                        jSuites.color(editor, obj.options.columns[x].options);
+                    } else {
+                        var calendar = jSuites.calendar(editor, obj.options.columns[x].options);
+                        calendar.setValue(value);
+                    }
+                    // Focus on editor
+                    editor.focus();
+                } else if (obj.options.columns[x].type == 'image') {
+                    // Value
+                    var img = cell.children[0];
+                    // Create editor
+                    var editor = createEditor('div');
+                    editor.style.position = 'relative';
+                    var div = document.createElement('div');
+                    div.classList.add('jclose');
+                    if (img && img.src) {
+                        div.appendChild(img);
+                    }
+                    editor.appendChild(div);
+                    jSuites.image(div);
+                    const rect = cell.getBoundingClientRect();
+                    const rectContent = div.getBoundingClientRect();
+                    if (window.innerHeight < rect.bottom + rectContent.height) {
+                        div.style.top = (rect.top - (rectContent.height + 2)) + 'px';
+                    } else {
+                        div.style.top = (rect.top) + 'px';
+                    }
+                } else {
+                    // Value
+                    var value = empty == true ? '' : obj.options.data[y][x];
+
+                    // Basic editor
+                    if (obj.options.wordWrap == true || obj.options.columns[x].wordWrap == true || value.length > 200) {
+                        var editor = createEditor('textarea');
+                    } else {
+                        var editor = createEditor('input');
+                        // Mask
+                        if (obj.options.columns[x].mask) {
+                            editor.setAttribute('data-mask', obj.options.columns[x].mask);
+                        }
+                    }
+
+                    editor.value = value;
+                    editor.onblur = function() {
+                        obj.closeEditor(cell, true);
+                    };
+                    editor.focus();
+                }
+            }
+        }
+    }
+
+    /**
+     * Close the editor and save the information
+     * 
+     * @param object cell
+     * @param boolean save
+     * @return void
+     */
+    obj.closeEditor = function(cell, save) {
+        var x = parseInt(cell.getAttribute('data-x'));
+        var y = parseInt(cell.getAttribute('data-y'));
+
+        // Get cell properties
+        if (save == true) {
+            // If custom editor
+            if (obj.options.columns[x].editor) {
+                // Custom editor
+                var value = obj.options.columns[x].editor.closeEditor(cell, save);
+            } else {
+                // Native functions
+                if (obj.options.columns[x].type == 'checkbox' || obj.options.columns[x].type == 'radio' || obj.options.columns[x].type == 'hidden') {
+                    // Do nothing
+                } else if (obj.options.columns[x].type == 'dropdown' || obj.options.columns[x].type == 'autocomplete') {
+                    var value = cell.children[0].dropdown.close(true);
+                } else if (obj.options.columns[x].type == 'calendar') {
+                    var value = cell.children[0].calendar.close(true);
+                } else if (obj.options.columns[x].type == 'color') {
+                    var value = cell.children[1].color.close(true);
+                } else if (obj.options.columns[x].type == 'image') {
+                    var img = cell.children[0].children[0].children[0];
+                    var value = img && img.tagName == 'IMG' ? img.src : '';
+                } else if (obj.options.columns[x].type == 'numeric') {
+                    var value = cell.children[0].value;
+                    if (value.substr(0,1) != '=') {
+                        if (value == '') {
+                            value = obj.options.columns[x].allowEmpty ? '' : 0;
+                        }
+                    }
+                    cell.children[0].onblur = null;
+                } else {
+                    var value = cell.children[0].value;
+                    cell.children[0].onblur = null;
+                }
+            }
+
+            // Update values
+            var ignoreEvents = obj.ignoreEvents ? true : false;
+            var ignoreHistory = obj.ignoreHistory ? true : false;
+
+            // Ignore changes if the value is the same
+            if (obj.options.data[y][x] == value) {
+                // Disabled events and history
+                obj.ignoreEvents = true;
+                obj.ignoreHistory = true;
+            }
+
+            // Save value does not affect the table
+            if (obj.edition[1] == value) {
+                cell.innerHTML = obj.edition[1];
+            } else {
+                obj.setValue(cell, value);
+            }
+
+            // Restore events and history flag
+            obj.ignoreEvents = ignoreEvents;
+            obj.ignoreHistory = ignoreHistory;
+        } else {
+            if (obj.options.columns[x].editor) {
+                // Custom editor
+                obj.options.columns[x].editor.closeEditor(cell, save);
+            } else {
+                if (obj.options.columns[x].type == 'dropdown' || obj.options.columns[x].type == 'autocomplete') {
+                    cell.children[0].dropdown.close(false);
+                } else if (obj.options.columns[x].type == 'calendar') {
+                    cell.children[0].calendar.close(false);
+                } else if (obj.options.columns[x].type == 'color') {
+                    cell.children[1].color.close(false);
+                } else {
+                    cell.children[0].onblur = null;
+                }
+            }
+
+            // Restore value
+            cell.innerHTML = obj.edition[1];
+        }
+
+        // Remove editor class
+        cell.classList.remove('editor');
+
+        // Finish edition
+        obj.edition = null;
+    },
+
+    /**
+     * Get the value from a cell
+     * 
+     * @param object cell
+     * @return string value
+     */
+    obj.getValue = function(cell) {
+        if (typeof(cell) == 'object') {
+            var x = cell.getAttribute('data-x');
+            var y = cell.getAttribute('data-y');
+        } else {
+            cell = jexcel.getIdFromColumnName(cell, true);
+            var x = cell[0];
+            var y = cell[1];
+        }
+
+        if (x != null && y != null) {
+            return obj.options.data[y][x];
+        }
+
+        return null;
+    }
+
+    /**
+     * Get the value from a coords
+     * 
+     * @param int x
+     * @param int y
+     * @return string value
+     */
+    obj.getValueFromCoords = function(x, y) {
+        if (x != null && y != null) {
+            return obj.options.data[y][x];
+        }
+    }
+
+    /**
+     * Set a cell value
+     * 
+     * @param object cell destination cell
+     * @param object value value
+     * @return void
+     */
+    obj.setValue = function(cell, value, force) {
+        var records = [];
+
+        if (typeof(cell) == 'string') {
+            var columnId = jexcel.getIdFromColumnName(cell, true);
+            var x = columnId[0];
+            var y = columnId[1];
+
+            // Update cell
+            records.push(obj.updateCell(x, y, value));
+         } else {
+            var keys = Object.keys(cell);
+            if (keys.length > 0) {
+                for (var i = 0; i < keys.length; i++) {
+                    var x = cell[i].getAttribute('data-x');
+                    var y = cell[i].getAttribute('data-y');
+
+                    // Update cell
+                    records.push(obj.updateCell(x, y, value));
+                }
+            } else {
+                var x = cell.getAttribute('data-x');
+                var y = cell.getAttribute('data-y');
+
+                // Update cell
+                records.push(obj.updateCell(x, y, value));
+            }
+        }
+
+        // Update formula chain
+        var updateFormulaChain = function(x, y) {
+            var cellId = jexcel.getColumnNameFromId([x, y]);
+            if (obj.formula[cellId] && obj.formula[cellId].length > 0) {
+                for (var i = 0; i < obj.formula[cellId].length; i++) {
+                    var cell = jexcel.getIdFromColumnName(obj.formula[cellId][i], true);
+                    // Update cell
+                    var value = ''+obj.options.data[cell[1]][cell[0]];
+                    if (value.substr(0,1) == '=') {
+                        records.push(obj.updateCell(cell[0], cell[1], value, true));
+                    } else {
+                        // No longer a formula, remove from the chain
+                        Object.keys(obj.formula)[i] = null;
+                    }
+                    updateFormulaChain(cell[0], cell[1]);
+                }
+            }
+        }
+        updateFormulaChain(x, y);
+
+        // Update history
+        obj.setHistory({
+            action:'setValue',
+            records:records,
+            selection:obj.selectedCell,
+        });
+
+        // Update table with custom configurations if applicable
+        obj.updateTable();
+    }
+
+    /**
+     * Toogle
+     */
+    obj.setCheckRadioValue = function() {
+        var records = [];
+        var keys = Object.keys(obj.highlighted);
+        for (var i = 0; i < keys.length; i++) {
+            var x = obj.highlighted[i].getAttribute('data-x');
+            var y = obj.highlighted[i].getAttribute('data-y');
+
+            if (obj.options.columns[x].type == 'checkbox' || obj.options.columns[x].type == 'radio') {
+                // Update cell
+                records.push(obj.updateCell(x, y, ! obj.options.data[y][x]));
+            }
+        }
+
+        if (records.length) {
+            // Update history
+            obj.setHistory({
+                action:'setValue',
+                records:records,
+                selection:obj.selectedCell,
+            });
+        }
+    }
+
+    /**
+     * Update cell content
+     * 
+     * @param object cell
+     * @return void
+     */
+    obj.updateCell = function(x, y, value, force) {
+        // Changing value depending on the column type
+        if (obj.records[y][x].classList.contains('readonly') == true && ! force) {
+            // Do nothing
+        } else {
+            // On change
+            if (! obj.ignoreEvents) {
+                if (typeof(obj.options.onbeforechange) == 'function') {
+                    obj.options.onbeforechange(el, obj.records[y][x], x, y, value);
+                }
+            }
+
+            // History format
+            var record = {
+                col: x,
+                row: y,
+                newValue: value,
+                oldValue: obj.options.data[y][x],
+            }
+
+            if (obj.options.columns[x].editor) {
+                // Update data and cell
+                obj.options.data[y][x] = value;
+                obj.options.columns[x].editor.setValue(obj.records[y][x], value, force);
+            } else {
+                // Native functions
+                if (obj.options.columns[x].type == 'checkbox' || obj.options.columns[x].type == 'radio') {
+                    // Unchecked all options
+                    if (obj.options.columns[x].type == 'radio') {
+                        for (var j = 0; j < obj.options.data.length; j++) {
+                            obj.options.data[j][x] = false;
+                        }
+                    }
+
+                    // Update data and cell
+                    obj.records[y][x].children[0].checked = (value == 1 || value == true || value == 'true') ? true : false;
+                    obj.options.data[y][x] = obj.records[y][x].children[0].checked;
+                } else if (obj.options.columns[x].type == 'dropdown' || obj.options.columns[x].type == 'autocomplete') {
+                    // Update data and cell
+                    obj.options.data[y][x] = value;
+                    obj.records[y][x].innerHTML = obj.getDropDownValue(x, value);
+                } else if (obj.options.columns[x].type == 'calendar') {
+                    // Update calendar
+                    var formatted = jSuites.calendar.extractDateFromString(value, obj.options.columns[x].options.format);
+                    // Update data and cell
+                    obj.options.data[y][x] = value;
+                    obj.records[y][x].innerHTML = jSuites.calendar.getDateString(formatted ? formatted : value);
+                } else if (obj.options.columns[x].type == 'color') {
+                    // Update color
+                    obj.options.data[y][x] = value;
+                    // Render
+                    if (obj.options.columns[x].render == 'square') {
+                        var color = document.createElement('div');
+                        color.className = 'color';
+                        color.style.backgroundColor = value;
+                        obj.records[y][x].innerHTML = '';
+                        obj.records[y][x].appendChild(color);
+                    } else {
+                    obj.records[y][x].style.color = value;
+                        obj.records[y][x].innerHTML = value;
+                    }
+                } else if (obj.options.columns[x].type == 'image') {
+                    value = ''+value;
+                    obj.options.data[y][x] = value;
+                    obj.records[y][x].innerHTML = '';
+                    if (value && value.substr(0, 10) == 'data:image') {
+                        var img = document.createElement('img');
+                        img.src = value;
+                        obj.records[y][x].appendChild(img);
+                    }
+                } else {
+                    // Update data and cell
+                    obj.options.data[y][x] = (value && Number(value) == value) ? Number(value) : value;
+                    // Label
+                    if (('' + value).substr(0,1) == '=') {
+                        value = obj.executeFormula(value, x, y);
+                    }
+                    if (obj.options.columns[x].mask) {
+                        var decimal = obj.options.columns[x].decimal || '.'; 
+                        value = '' + jSuites.mask.run(value, obj.options.columns[x].mask, decimal);
+                    }
+                    obj.records[y][x].innerHTML = value;
+
+                    // Handle big text inside a cell
+                    if (obj.records[y][x].innerHTML.length > 200) {
+                        obj.records[y][x].style.whiteSpace = 'pre-wrap'; 
+                    } else {
+                        if (obj.options.wordWrap == false && obj.options.columns[x].wordWrap == false) {
+                            obj.records[y][x].style.whiteSpace = ''; 
+                        }
+                    }
+                }
+            }
+
+            // Overflow
+            if (x > 0) {
+                if (obj.options.data[y][x] || (obj.options.columns[x].type != 'text' && obj.options.columns[x].type != 'number')) {
+                    obj.records[y][x-1].style.overflow = 'hidden';
+                } else {
+                    obj.records[y][x-1].style.overflow = '';
+                }
+            }
+
+            // On change
+            if (! obj.ignoreEvents) {
+                if (typeof(obj.options.onchange) == 'function') {
+                    obj.options.onchange(el, obj.records[y][x], x, y, value);
+                }
+            }
+        }
+
+        return record;
+    }
+
+    /**
+     * Helper function to copy data using the corner icon
+     */
+    obj.copyData = function(o, d) {
+        // Get data from all selected cells
+        var data = obj.getData(true);
+
+        // Selected cells
+        var t0 = obj.selectedContainer[1];
+        var t1 = obj.selectedContainer[3];
+
+        // Cells
+        var x1 = parseInt(o.getAttribute('data-x'));
+        var y1 = parseInt(o.getAttribute('data-y'));
+        var x2 = parseInt(d.getAttribute('data-x'));
+        var y2 = parseInt(d.getAttribute('data-y'));
+
+        // Records
+        var records = []; 
+        var lineNumber = 1;
+
+        // Copy data procedure
+        var posx = 0;
+        var posy = 0;
+
+        for (var j = y1; j <= y2; j++) {
+            if (obj.rows[j].style.display == 'none') {
+                continue;
+            }
+
+            // Controls
+            if (data[posy] == undefined) {
+                posy = 0;
+            }
+            posx = 0;
+
+            // Data columns
+            for (var i = x1; i <= x2; i++) {
+                // Update non-readonly
+                if (obj.records[j][i] && ! obj.records[j][i].classList.contains('readonly') && obj.records[j][i].style.display != 'none') {
+                    // Stop if contains value
+                    if (! jexcel.current.selection.length) {
+                        if (obj.options.data[j][i]) {
+                            return;
+                        }
+                    }
+
+                    // Column
+                    if (data[posy] == undefined) {
+                        posx = 0;
+                    } else if (data[posy][posx] == undefined) {
+                        posx = 0;
+                    } else {
+                        var value = data[posy][posx];
+                    }
+
+                    if (value && t0 == t1) {
+                        if (obj.options.columns[i].type == 'text' || obj.options.columns[i].type == 'number') {
+                            if ((''+value).substr(0,1) == '=') {
+                                var tokens = value.match(/([A-Z]+[0-9]+)/g);
+
+                                if (tokens) {
+                                    var affectedTokens = [];
+                                    for (var index = 0; index < tokens.length; index++) {
+                                        var position = jexcel.getIdFromColumnName(tokens[index], 1);
+                                        position[1] += lineNumber;
+                                        var token = jexcel.getColumnNameFromId([position[0], position[1]]);
+
+                                        if (token != tokens[index]) {
+                                            affectedTokens[tokens[index]] = token;
+                                        }
+                                    }
+                                    // Update formula
+                                    if (affectedTokens) {
+                                        value = obj.updateFormula(value, affectedTokens)
+                                    }
+                                }
+                            } else {
+                                if (value == Number(value)) {
+                                    value = Number(value) + lineNumber;
+                                }
+                            }
+                        } else if (obj.options.columns[i].type == 'calendar') {
+                            var date = new Date(value);
+                            date.setDate(date.getDate() + lineNumber);
+                            value = date.getFullYear() + '-' + parseInt(date.getMonth() + 1) + '-' + date.getDate() + ' ' + date.getHours() + ':' + date.getMinutes() + ':00';
+                        }
+                    }
+
+                    records.push(obj.updateCell(i, j, value));
+                }
+                posx++;
+            }
+            posy++;
+            lineNumber++;
+        }
+
+        // Update history
+        obj.setHistory({
+            action:'setValue',
+            records:records,
+            selection:obj.selectedCell,
+        });
+
+        // Update table with custom configuration if applicable
+        obj.updateTable();
+    }
+
+    /**
+     * Refresh current selection
+     */
+    obj.refreshSelection = function() {
+        if (obj.selectedCell) {
+            obj.updateSelectionFromCoords(obj.selectedCell[0], obj.selectedCell[1], obj.selectedCell[2], obj.selectedCell[3]);
+        }
+    }
+
+    /**
+     * Move coords to A1 in case ovelaps with an excluded cell
+     */
+    obj.conditionalSelectionUpdate = function(type, o, d) {
+        if (type == 1) {
+            if (obj.selectedCell && ((o >= obj.selectedCell[1] && o <= obj.selectedCell[3]) || (d >= obj.selectedCell[1] && d <= obj.selectedCell[3]))) {
+                obj.updateSelectionFromCoords(0, 0);
+                return;
+            }
+        } else {
+            if (obj.selectedCell && ((o >= obj.selectedCell[0] && o <= obj.selectedCell[2]) || (d >= obj.selectedCell[0] && d <= obj.selectedCell[2]))) {
+                obj.updateSelectionFromCoords(0, 0);
+                return;
+            }
+        }
+    }
+
+    /**
+     * Clear table selection
+     */
+    obj.resetSelection = function(blur) {
+        // Remove style
+        if (! obj.highlighted.length) {
+            var previousStatus = 0;
+        } else {
+            var previousStatus = 1;
+
+            for (var i = 0; i < obj.highlighted.length; i++) {
+                obj.highlighted[i].classList.remove('highlight');
+                obj.highlighted[i].classList.remove('highlight-left');
+                obj.highlighted[i].classList.remove('highlight-right');
+                obj.highlighted[i].classList.remove('highlight-top');
+                obj.highlighted[i].classList.remove('highlight-bottom');
+                obj.highlighted[i].classList.remove('highlight-selected');
+
+                var px = parseInt(obj.highlighted[i].getAttribute('data-x'));
+                var py = parseInt(obj.highlighted[i].getAttribute('data-y'));
+
+                // Check for merged cells
+                if (obj.highlighted[i].getAttribute('data-merged')) {
+                    var ux = parseInt(obj.highlighted[i].getAttribute('colspan'));
+                    var uy = parseInt(obj.highlighted[i].getAttribute('rowspan'));
+                } else {
+                    var ux = px;
+                    var uy = py;
+                }
+
+                // Remove selected from headers
+                for (var j = px; j <= ux; j++) {
+                    if (obj.headers[j]) {
+                        obj.headers[j].classList.remove('selected');
+                    }
+                }
+
+                // Remove selected from rows
+                for (var j = py; j <= uy; j++) {
+                    if (obj.rows[j]) {
+                        obj.rows[j].classList.remove('selected');
+                    }
+                }
+            }
+        }
+
+        // Reset highlighed cells
+        obj.highlighted = [];
+
+        // Reset
+        obj.selectedCell = null;
+
+        // Hide corner
+        obj.corner.style.top = '-2000px';
+        obj.corner.style.left = '-2000px';
+
+        if (obj.ignoreEvents != true && blur == true) {
+            if (obj.options.onblur) {
+                if (typeof(obj.options.onblur) == 'function') {
+                    if (previousStatus == 1) {
+                        obj.options.onblur(el);
+                    }
+                }
+            }
+        }
+
+        return previousStatus;
+    }
+
+    /**
+     * Update selection based on two cells
+     */
+    obj.updateSelection = function(el1, el2, origin) {
+        var x1 = el1.getAttribute('data-x');
+        var y1 = el1.getAttribute('data-y');
+        if (el2) {
+            var x2 = el2.getAttribute('data-x');
+            var y2 = el2.getAttribute('data-y');
+        } else {
+            var x2 = x1;
+            var y2 = y1;
+        }
+
+        obj.updateSelectionFromCoords(x1, y1, x2, y2, origin);
+    }
+
+    /**
+     * Update selection from coords
+     */
+    obj.updateSelectionFromCoords = function(x1, y1, x2, y2, origin) {
+        // Reset Selection
+        var updated = null;
+        var previousState = obj.resetSelection();
+
+        // Same element
+        if (x2 == null) {
+            x2 = x1;
+        }
+        if (y2 == null) {
+            y2 = y1;
+        }
+
+        // Selection must be within the existing data
+        if (x1 >= obj.headers.length) {
+            x1 = obj.headers.length - 1;
+        }
+        if (y1 >= obj.rows.length) {
+            y1 = obj.rows.length - 1;
+        }
+        if (x2 >= obj.headers.length) {
+            x2 = obj.headers.length - 1;
+        }
+        if (y2 >= obj.rows.length) {
+            y2 = obj.rows.length - 1;
+        }
+
+        // Keep selected cell
+        obj.selectedCell = [x1, y1, x2, y2];
+
+        // Select cells
+        if (x1 != null) {
+            // Add selected cell
+            obj.records[y1][x1].classList.add('highlight-selected')
+
+            // Origin & Destination
+            if (parseInt(x1) < parseInt(x2)) {
+                var px = parseInt(x1);
+                var ux = parseInt(x2);
+            } else {
+                var px = parseInt(x2);
+                var ux = parseInt(x1);
+            }
+
+            if (parseInt(y1) < parseInt(y2)) {
+                var py = parseInt(y1);
+                var uy = parseInt(y2);
+            } else {
+                var py = parseInt(y2);
+                var uy = parseInt(y1);
+            }
+
+            // Verify merged columns
+            for (var i = px; i <= ux; i++) {
+                for (var j = py; j <= uy; j++) {
+                    if (obj.records[j][i].getAttribute('data-merged')) {
+                        var x = parseInt(obj.records[j][i].getAttribute('data-x'));
+                        var y = parseInt(obj.records[j][i].getAttribute('data-y'));
+                        var colspan = parseInt(obj.records[j][i].getAttribute('colspan'));
+                        var rowspan = parseInt(obj.records[j][i].getAttribute('rowspan'));
+
+                        if (colspan > 1) {
+                            if (x < px) {
+                                px = x;
+                            }
+                            if (x + colspan > ux) {
+                                ux = x + colspan - 1;
+                            }
+                        }
+
+                        if (rowspan) {
+                            if (y < py) {
+                                py = y;
+
+                            }
+                            if (y + rowspan > uy) {
+                                uy = y + rowspan - 1;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Limits
+            var borderLeft = null;
+            var borderRight = null;
+            var borderTop = null;
+            var borderBottom = null;
+
+            // Vertical limits
+            for (var j = py; j <= uy; j++) {
+                if (obj.rows[j].style.display != 'none') {
+                    if (borderTop == null) {
+                        borderTop = j;
+                    }
+                    borderBottom = j;
+                }
+            }
+
+            // Redefining styles
+            for (var i = px; i <= ux; i++) {
+                for (var j = py; j <= uy; j++) {
+                    if (obj.rows[j].style.display != 'none' && obj.records[j][i].style.display != 'none') {
+                        obj.records[j][i].classList.add('highlight');
+                        obj.highlighted.push(obj.records[j][i]);
+                    }
+                }
+
+                // Horizontal limits
+                if (obj.options.columns[i].type != 'hidden') {
+                    if (borderLeft == null) {
+                        borderLeft = i;
+                    }
+                    borderRight = i;
+                }
+            }
+
+            // Create borders
+            for (var i = borderLeft; i <= borderRight; i++) {
+                if (obj.options.columns[i].type != 'hidden') {
+                    // Top border
+                    obj.records[borderTop][i].classList.add('highlight-top');
+                    // Bottom border
+                    obj.records[borderBottom][i].classList.add('highlight-bottom');
+                    // Add selected from headers
+                    obj.headers[i].classList.add('selected');
+                }
+            }
+
+            for (var j = borderTop; j <= borderBottom; j++) {
+                if (obj.rows[j].style.display != 'none') {
+                    // Left border
+                    obj.records[j][borderLeft].classList.add('highlight-left');
+                    // Right border
+                    obj.records[j][borderRight].classList.add('highlight-right');
+                    // Add selected from rows
+                    obj.rows[j].classList.add('selected');
+                }
+            }
+
+            obj.selectedContainer = [borderLeft, borderTop, borderRight, borderBottom];
+        }
+
+        // Handle events
+        if (obj.ignoreEvents != true) {
+            if (obj.options.onfocus) {
+                if (typeof(obj.options.onfocus) == 'function') {
+                    if (previousState == 0) {
+                        obj.options.onfocus(el);
+                    }
+                }
+            }
+
+            if (typeof(obj.options.onselection) == 'function') {
+                obj.options.onselection(el, borderLeft, borderTop, borderRight, borderBottom, origin);
+            }
+        }
+
+        // Find corner cell
+        obj.updateCornerPosition();
+    }
+
+    /**
+     * Remove copy selection
+     * 
+     * @return void
+     */
+    obj.removeCopySelection = function() {
+        // Remove current selection
+        for (var i = 0; i < obj.selection.length; i++) {
+            obj.selection[i].classList.remove('selection');
+            obj.selection[i].classList.remove('selection-left');
+            obj.selection[i].classList.remove('selection-right');
+            obj.selection[i].classList.remove('selection-top');
+            obj.selection[i].classList.remove('selection-bottom');
+        }
+
+        obj.selection = [];
+    }
+
+    /**
+     * Update copy selection
+     * 
+     * @param int x, y
+     * @return void
+     */
+    obj.updateCopySelection = function(x3, y3) {
+        // Remove selection
+        obj.removeCopySelection();
+
+        // Get elements first and last
+        var x1 = obj.selectedContainer[0];
+        var y1 = obj.selectedContainer[1];
+        var x2 = obj.selectedContainer[2];
+        var y2 = obj.selectedContainer[3];
+
+        if (x3 && y3) {
+            if (x3 - x2 > 0) {
+                var px = parseInt(x2) + 1;
+                var ux = parseInt(x3);
+            } else {
+                var px = parseInt(x3);
+                var ux = parseInt(x1) - 1;
+            }
+
+            if (y3 - y2 > 0) {
+                var py = parseInt(y2) + 1;
+                var uy = parseInt(y3);
+            } else {
+                var py = parseInt(y3);
+                var uy = parseInt(y1) - 1;
+            }
+
+            if (ux - px < uy - py) {
+                var px = parseInt(x1);
+                var ux = parseInt(x2);
+            } else {
+                var py = parseInt(y1);
+                var uy = parseInt(y2);
+            }
+
+            for (var j = py; j <= uy; j++) {
+                for (var i = px; i <= ux; i++) {
+                    if (obj.records[j][i] && obj.rows[j].style.display != 'none' && obj.records[j][i].style.display != 'none') {
+                        obj.records[j][i].classList.add('selection');
+                        obj.records[py][i].classList.add('selection-top');
+                        obj.records[uy][i].classList.add('selection-bottom');
+                        obj.records[j][px].classList.add('selection-left');
+                        obj.records[j][ux].classList.add('selection-right');
+
+                        // Persist selected elements
+                        obj.selection.push(obj.records[j][i]);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Update corner position
+     * 
+     * @return void
+     */
+    obj.updateCornerPosition = function() {
+        // If any selected cells
+        if (! obj.highlighted.length) {
+            obj.corner.style.top = '-2000px';
+            obj.corner.style.left = '-2000px';
+        } else {
+            // Get last cell
+            var last = obj.highlighted[obj.highlighted.length-1];
+            var x1 = obj.content.getBoundingClientRect().left;
+            var y1 = obj.content.getBoundingClientRect().top;
+
+            var x2 = last.getBoundingClientRect().left;
+            var y2 = last.getBoundingClientRect().top;
+            var w2 = last.getBoundingClientRect().width;
+            var h2 = last.getBoundingClientRect().height;
+
+            var x = (x2 - x1) + obj.content.scrollLeft + w2 - 4;
+            var y = (y2 - y1) + obj.content.scrollTop + h2 - 4;
+
+            // Place the corner in the correct place
+            obj.corner.style.top = y + 'px';
+            obj.corner.style.left = x + 'px';
+        }
+    }
+
+    /**
+     *  Update scroll position based on the selection
+     */
+    obj.updateScroll = function(direction) {
+        // jExcel Container information
+        var x1 = obj.content.getBoundingClientRect().left;
+        var y1 = obj.content.getBoundingClientRect().top;
+        var w1 = obj.content.getBoundingClientRect().width;
+        var h1 = obj.content.getBoundingClientRect().height;
+
+        // Direction Left or Up
+        var reference = obj.records[obj.selectedCell[3]][obj.selectedCell[2]];
+
+        var x2 = reference.getBoundingClientRect().left;
+        var y2 = reference.getBoundingClientRect().top;
+        var w2 = reference.getBoundingClientRect().width;
+        var h2 = reference.getBoundingClientRect().height;
+
+        // Direction
+        if (direction == 0 || direction == 1) {
+            var x = (x2 - x1) + obj.content.scrollLeft;
+            var y = (y2 - y1) + obj.content.scrollTop - 2;
+        } else {
+            var x = (x2 - x1) + obj.content.scrollLeft + w2;
+            var y = (y2 - y1) + obj.content.scrollTop + h2;
+        }
+
+        // Top position check
+        if (y > (obj.content.scrollTop + 30) && y < (obj.content.scrollTop + h1)) {
+            // In the viewport
+        } else {
+            // Out of viewport
+            if (y < obj.content.scrollTop + 30) {
+                obj.content.scrollTop = y - h2;
+            } else {
+                obj.content.scrollTop = y - (h1 - 2);
+            }
+        }
+
+        // Left position check - TODO: change that to the bottom border of the element
+        if (x > (obj.content.scrollLeft) && x < (obj.content.scrollLeft + w1)) {
+            // In the viewport
+        } else {
+            // Out of viewport
+            if (x < obj.content.scrollLeft + 30) {
+                obj.content.scrollLeft = x;
+                if (obj.content.scrollLeft < 50) {
+                    obj.content.scrollLeft = 0;
+                }
+            } else {
+                obj.content.scrollLeft = x - (w1 - 20);
+            }
+        }
+    }
+
+    /**
+     * Get the column width
+     * 
+     * @param int column   column number (first column is: 0)
+     * @return int current width
+     */
+    obj.getWidth = function(column) {
+        if (! column) {
+            // Get all headers
+            var data = [];
+            for (var i = 0; i < obj.headers.length; i++) {
+                data.push(obj.columns[i].width);
+            }
+        } else {
+            // In case the column is an object
+            if (typeof(column) == 'object') {
+                column = $(column).getAttribute('data-x');
+            }
+
+            data = obj.colgroup[column].getAttribute('width')
+        }
+
+        return data;
+    }
+
+    /**
+     * Set the column width
+     * 
+     * @param int column number (first column is: 0)
+     * @param int new column width
+     * @param int old column width
+     */
+    obj.setWidth = function (column, width, oldWidth) {
+        if (width > 0) {
+            // In case the column is an object
+            if (typeof(column) == 'object') {
+                column = $(column).getAttribute('data-x');
+            }
+
+            // Oldwidth
+            if (! oldWidth) {
+                obj.colgroup[column].getAttribute('width');
+            }
+
+            // Set width
+            obj.colgroup[column].setAttribute('width', width);
+            obj.options.columns[column].width = width;
+
+            // Keeping history of changes
+            obj.setHistory({
+                action:'setWidth',
+                column:column,
+                oldValue:oldWidth,
+                newValue:width,
+            });
+
+            // On resize column
+            if (obj.ignoreEvents != true) {
+                if (typeof(obj.options.onresizecolumn) == 'function') {
+                    obj.options.onresizecolumn(el, column, width, oldWidth);
+                }
+            }
+
+            // Update corner position
+            obj.updateCornerPosition();
+        }
+    }
+
+    /**
+     * Set the row height
+     * 
+     * @param row - row number (first row is: 0)
+     * @param height - new row height
+     * @param oldHeight - old row height
+     */
+    obj.setHeight = function (row, height, oldHeight) {
+        if (height > 0) {
+            // In case the column is an object
+            if (typeof(row) == 'object') {
+                column = $(row).getAttribute('data-y');
+            }
+
+            // Oldwidth
+            if (! oldHeight) {
+                obj.rows[row].getAttribute('height');
+            }
+
+            // Set width
+            obj.rows[row].setAttribute('height', height);
+
+            // Keep options updated
+            if (! obj.options.rows[row]) {
+                obj.options.rows[row] = {};
+            }
+            obj.options.rows[row].height = height;
+
+            // Keeping history of changes
+            obj.setHistory({
+                action:'setHeight',
+                row:row,
+                oldValue:oldHeight,
+                newValue:height,
+            });
+
+            // On resize column
+            if (obj.ignoreEvents != true) {
+                if (typeof(obj.options.onresizerow) == 'function') {
+                    obj.options.onresizerow(el, row, height, oldHeight);
+                }
+            }
+
+            // Update corner position
+            obj.updateCornerPosition();
+        }
+    }
+
+    /**
+     * Get the row height
+     * 
+     * @param row - row number (first column is: 0)
+     * @return height - current row height
+     */
+    obj.getHeight = function(row) {
+        if (! row) {
+        } else {
+            // In case the column is an object
+            if (typeof(row) == 'object') {
+                row = $(row).getAttribute('data-y');
+            }
+
+            data = obj.rows[row].getAttribute('height')
+        }
+
+        return data;
+    }
+
+    /**
+     * Get the column title
+     * 
+     * @param column - column number (first column is: 0)
+     * @param title - new column title
+     */
+    obj.getHeader = function(column) {
+        return obj.headers[column].innerText;
+    }
+
+    /**
+     * Set the column title
+     * 
+     * @param column - column number (first column is: 0)
+     * @param title - new column title
+     */
+    obj.setHeader = function(column, newValue) {
+        if (obj.headers[column]) {
+            var oldValue = obj.headers[column].innerText;
+
+            if (! newValue) {
+                newValue = prompt('Column name', oldValue)
+            }
+
+            if (newValue) {
+                obj.headers[column].innerHTML = newValue;
+            }
+
+            obj.setHistory({
+                action: 'setHeader',
+                column: column,
+                oldValue: oldValue,
+                newValue: newValue
+            });
+        }
+    }
+
+    /**
+     * Get the headers
+     * 
+     * @param asArray
+     * @return mixed
+     */
+    obj.getHeaders = function (asArray) {
+        var title = [];
+
+        for (var i = 0; i < obj.headers.length; i++) {
+            title.push(obj.getHeader(i));
+        }
+
+        return asArray ? title : title.join(',');
+    }
+
+    /**
+     * Get style information from cell(s)
+     * 
+     * @return integer
+     */
+    obj.getStyle = function(cell, key) {
+        // Cell
+        if (! cell) {
+            // Control vars
+            var data = {};
+
+            // Column and row length
+            var x = obj.options.data[0].length;
+            var y = obj.options.data.length;
+
+            // Go through the columns to get the data
+            for (var j = 0; j < y; j++) {
+                for (var i = 0; i < x; i++) {
+                    // Value
+                    var v = key ? obj.records[j][i].style[key] : obj.records[j][i].getAttribute('style');
+
+                    // Any meta data for this column?
+                    if (v) {
+                        // Column name
+                        var k = jexcel.getColumnNameFromId([i, j]);
+                        // Value
+                        data[k] = v;
+                    }
+                }
+            }
+
+           return data;
+        } else {
+            cell = jexcel.getIdFromColumnName(cell, true);
+
+            return key ? obj.records[cell[1]][cell[0]].style[key] : obj.records[cell[1]][cell[0]].getAttribute('style');
+        }
+    },
+
+    obj.resetStyle = function(o, ignoreHistoryAndEvents) {
+        var keys = Object.keys(o);
+        for (var i = 0; i < keys.length; i++) {
+            // Position
+            var cell = jexcel.getIdFromColumnName(keys[i], true);
+            if (obj.records[cell[1]] && obj.records[cell[1]][cell[0]]) {
+                obj.records[cell[1]][cell[0]].setAttribute('style', '');
+            }
+        }
+        obj.setStyle(o, null, null, null, ignoreHistoryAndEvents);
+    }
+
+    /**
+     * Set meta information to cell(s)
+     * 
+     * @return integer
+     */
+    obj.setStyle = function(o, k, v, force, ignoreHistoryAndEvents) {
+        var newValue = {};
+        var oldValue = {};
+
+        // Apply style
+        var applyStyle = function(cellId, key, value) {
+            // Position
+            var cell = jexcel.getIdFromColumnName(cellId, true);
+
+            if (obj.records[cell[1]] && obj.records[cell[1]][cell[0]]) {
+                // Current value
+                var currentValue = obj.records[cell[1]][cell[0]].style[key];
+
+                // Change layout
+                if (currentValue == value && ! force) {
+                    value = '';
+                    obj.records[cell[1]][cell[0]].style[key] = '';
+                } else {
+                    obj.records[cell[1]][cell[0]].style[key] = value;
+                }
+
+                // History
+                if (! oldValue[cellId]) {
+                    oldValue[cellId] = [];
+                }
+                if (! newValue[cellId]) {
+                    newValue[cellId] = [];
+                }
+
+                oldValue[cellId].push([key + ':' + currentValue]);
+                newValue[cellId].push([key + ':' + value]);
+            }
+        }
+
+        if (k && v) {
+            // Get object from string
+            if (typeof(o) == 'string') {
+                applyStyle(o, k, v);
+            } else {
+                // Avoid duplications
+                var oneApplication = [];
+                // Apply that for all cells
+                for (var i = 0; i < o.length; i++) {
+                    var x = o[i].getAttribute('data-x');
+                    var y = o[i].getAttribute('data-y');
+                    var cellName = jexcel.getColumnNameFromId([x, y]);
+                    // This happens when is a merged cell
+                    if (! oneApplication[cellName]) {
+                        applyStyle(cellName, k, v);
+                        oneApplication[cellName] = true;
+                    }
+                }
+            }
+        } else {
+            var keys = Object.keys(o);
+            for (var i = 0; i < keys.length; i++) {
+                var style = o[keys[i]];
+                if (typeof(style) == 'string') {
+                    style = style.split(';');
+                }
+                for (var j = 0; j < style.length; j++) {
+                    if (typeof(style[j]) == 'string') {
+                        style[j] = style[j].split(':');
+                    }
+                    // Apply value
+                    if (style[j][0].trim()) {
+                        applyStyle(keys[i], style[j][0].trim(), style[j][1]);
+                    }
+                }
+            }
+        }
+
+        var keys = Object.keys(oldValue);
+        for (var i = 0; i < keys.length; i++) {
+            oldValue[keys[i]] = oldValue[keys[i]].join(';');
+        }
+        var keys = Object.keys(newValue);
+        for (var i = 0; i < keys.length; i++) {
+            newValue[keys[i]] = newValue[keys[i]].join(';');
+        }
+
+        if (! ignoreHistoryAndEvents) {
+            // Keeping history of changes
+            obj.setHistory({
+                action: 'setStyle',
+                oldValue: oldValue,
+                newValue: newValue,
+            });
+        }
+    }
+
+    /**
+     * Get cell comments
+     */
+    obj.getComments = function(cell, withAuthor) {
+        if (typeof(cell) == 'string') {
+            var cell = jexcel.getIdFromColumnName(cell, true);
+        }
+
+        if (withAuthor) {
+            return [obj.records[cell[1]][cell[0]].getAttribute('title'), obj.records[cell[1]][cell[0]].getAttribute('author')];
+        } else {
+            return obj.records[cell[1]][cell[0]].getAttribute('title') || '';
+        }
+    }
+
+    /**
+     * Set cell comments
+     */
+    obj.setComments = function(cellId, comments, author) {
+        if (typeof(cellId) == 'string') {
+            var cell = jexcel.getIdFromColumnName(cellId, true);
+        } else {
+            var cell = cellId;
+        }
+        
+        // Keep old value
+        var title = obj.records[cell[1]][cell[0]].getAttribute('title');
+        var author = obj.records[cell[1]][cell[0]].getAttribute('data-author');
+        var oldValue = [ title, author ];
+
+        // Set new values
+        obj.records[cell[1]][cell[0]].setAttribute('title', comments ? comments : '');
+        obj.records[cell[1]][cell[0]].setAttribute('data-author', author ? author : '');
+
+        // Remove class if there is no comment
+        if (comments) {
+            obj.records[cell[1]][cell[0]].classList.add('jexcel_comments');
+        } else {
+            obj.records[cell[1]][cell[0]].classList.remove('jexcel_comments');
+        }
+
+        // Save history
+        obj.setHistory({
+            action:'setComments',
+            column: cellId,
+            newValue: [ comments, author ],
+            oldValue: oldValue,
+        });
+    }
+
+    /**
+     * Get table config information
+     */
+    obj.getConfig = function() {
+        var options = obj.options;
+        options.style = obj.getStyle;
+
+        return options;
+    }
+
+    /**
+     * Sort data and reload table
+     */
+    obj.orderBy = function(column, order) {
+        if (column >= 0) {
+            // Merged cells
+            if (Object.keys(obj.options.mergeCells).length > 0) {
+                if (! confirm(obj.options.text.thisActionWillDestroyAnyExistingMergedCellsAreYouSure)) {
+                    return false;
+                } else {
+                    // Remove merged cells
+                    obj.destroyMerged();
+                }
+            }
+
+            // Direction
+            if (order == null) {
+                order = obj.headers[column].classList.contains('arrow-down') ? 1 : 0;
+            } else {
+                order = order ? 1 : 0;
+            }
+
+            // Filter
+            Array.prototype.orderBy = function(p, o) {
+                return this.slice(0).sort(function(a, b) {
+                    var valueA = Number(a[p]) == a[p] ? Number(a[p]) : a[p].toLowerCase();
+                    var valueB = Number(b[p]) == b[p] ? Number(b[p]) : b[p].toLowerCase();
+
+                    if (! o) {
+                        return (valueA > valueB) ? 1 : (valueA < valueB) ? -1 : 0;
+                    } else {
+                        return (valueA > valueB) ? -1 : (valueA < valueB) ? 1 : 0;
+                    }
+                });
+            }
+
+            // Test order
+            var temp = [];
+            if (obj.options.columns[column].type == 'calendar' ||
+                obj.options.columns[column].type == 'checkbox' || 
+                obj.options.columns[column].type == 'radio') {
+                for (var j = 0; j < obj.options.data.length; j++) {
+                    temp[j] = [ j, obj.options.data[j][column] ];
+                }
+            } else {
+                for (var j = 0; j < obj.options.data.length; j++) {
+                    temp[j] = [ j, obj.records[j][column].innerHTML ];
+                }
+            }
+            temp = temp.orderBy(1, order);
+
+            // Save history
+            var newValue = [];
+            for (var j = 0; j < temp.length; j++) {
+                newValue[j] = temp[j][0];
+            }
+
+            // Save history
+            obj.setHistory({
+                action: 'orderBy',
+                rows: newValue,
+                column: column,
+                order: order,
+            });
+
+            // On sort event
+            if (obj.ignoreEvents != true) {
+                if (typeof(obj.options.onsort) == 'function') {
+                    obj.options.onsort(el, column, order);
+                }
+            }
+
+            // Update order
+            obj.updateOrderArrow(column, order);
+            obj.updateOrder(newValue);
+
+            return true;
+        }
+    }
+
+    /**
+     * Update order arrow
+     */
+    obj.updateOrderArrow = function(column, order) {
+        // Remove order
+        for (var i = 0; i < obj.headers.length; i++) {
+            obj.headers[i].classList.remove('arrow-up');
+            obj.headers[i].classList.remove('arrow-down');
+        }
+
+        // No order specified then toggle order
+        if (order) {
+            obj.headers[column].classList.add('arrow-up');
+        } else {
+            obj.headers[column].classList.add('arrow-down');
+        }
+    }
+
+    /**
+     * Update rows position
+     */
+    obj.updateOrder = function(rows) {
+        // History
+        var data = []
+        for (var j = 0; j < rows.length; j++) {
+            data[j] = obj.options.data[rows[j]];
+        }
+        obj.options.data = data;
+
+        var data = []
+        for (var j = 0; j < rows.length; j++) {
+            data[j] = obj.records[rows[j]];
+        }
+        obj.records = data;
+
+        var data = []
+        for (var j = 0; j < rows.length; j++) {
+            data[j] = obj.rows[rows[j]];
+        }
+        obj.rows = data;
+
+        // Update references
+        obj.updateTableReferences();
+
+        // Redo search
+        if (obj.searchInput.value) {
+            obj.search(obj.searchInput.value);
+        } else {
+            // Create page
+            obj.results = null;
+            obj.pageNumber = 0;
+
+            if (obj.options.pagination > 0) {
+                obj.page(0);
+            } else if (obj.options.lazyLoading == true) {
+                obj.loadPage(0);
+            } else {
+                for (var j = 0; j < obj.rows.length; j++) {
+                    obj.tbody.appendChild(obj.rows[j]);
+                }
+            }
+        }
+    }
+
+    /**
+     * Move row
+     * 
+     * @return void
+     */
+    obj.moveRow = function(o, d, ignoreDom) {
+        if (Object.keys(obj.options.mergeCells).length > 0) {
+            if (obj.isRowMerged(d).length) {
+                if (! confirm(obj.options.text.thisActionWillDestroyAnyExistingMergedCellsAreYouSure)) {
+                    return false;
+                } else {
+                    obj.destroyMerged();
+                }
+            }
+        }
+
+        if (obj.options.search == true) {
+            if (obj.results && obj.results.length != obj.rows.length) {
+                if (confirm(obj.options.text.thisActionWillClearYourSearchResultsAreYouSure)) {
+                    obj.resetSearch();
+                } else {
+                    return false;
+                }
+            }
+
+            obj.results = null;
+        }
+
+        if (! ignoreDom) {
+            if (Array.prototype.indexOf.call(obj.tbody.children, obj.rows[d]) >= 0) {
+                obj.tbody.insertBefore(obj.rows[o], obj.rows[d]);
+            } else {
+                obj.tbody.removeChild(obj.rows[o]);
+            }
+        }
+
+        // Place references in the correct position
+        obj.rows.splice(d, 0, obj.rows.splice(o, 1)[0]);
+        obj.records.splice(d, 0, obj.records.splice(o, 1)[0]);
+        obj.options.data.splice(d, 0, obj.options.data.splice(o, 1)[0]);
+
+        // Respect pagination
+        if (obj.options.pagination > 0 && obj.tbody.children.length != obj.options.pagination) {
+            obj.page(obj.pageNumber);
+        }
+
+        // Keeping history of changes
+        obj.setHistory({
+            action:'moveRow',
+            oldValue: o,
+            newValue: d,
+        });
+
+        // Events
+        if (obj.ignoreEvents != true) {
+            if (typeof(obj.options.onmoverow) == 'function') {
+                obj.options.onmoverow(el, o, d);
+            }
+        }
+
+        // Update table references
+        obj.updateTableReferences();
+    }
+
+    /**
+     * Insert a new row
+     * 
+     * @param mixed - number of blank lines to be insert or a single array with the data of the new row
+     * @param rowNumber
+     * @param insertBefore
+     * @return void
+     */
+    obj.insertRow = function(mixed, rowNumber, insertBefore) {
+        // Configuration
+        if (obj.options.allowInsertRow == true) {
+            // Records
+            var records = [];
+
+            // Data to be insert
+            var data = [];
+
+            // The insert could be lead by number of rows or the array of data
+            if (mixed > 0) {
+                var numOfRows = mixed;
+            } else {
+                var numOfRows = 1;
+
+                if (mixed) {
+                    data = mixed;
+                }
+            }
+
+            // Direction
+            var insertBefore = insertBefore ? true : false;
+
+            // Current column number
+            var lastRow = obj.options.data.length - 1;
+
+            if (rowNumber == undefined || rowNumber >= parseInt(lastRow) || rowNumber < 0) {
+                rowNumber = lastRow;
+            }
+
+            // Merged cells
+            if (Object.keys(obj.options.mergeCells).length > 0) {
+                if (obj.isRowMerged(rowNumber, insertBefore).length) {
+                    if (! confirm(obj.options.text.thisActionWillDestroyAnyExistingMergedCellsAreYouSure)) {
+                        return false;
+                    } else {
+                        obj.destroyMerged();
+                    }
+                }
+            }
+
+            // Clear any search
+            if (obj.options.search == true) {
+                if (obj.results && obj.results.length != obj.rows.length) {
+                    if (confirm(obj.options.text.thisActionWillClearYourSearchResultsAreYouSure)) {
+                        obj.resetSearch();
+                    } else {
+                        return false;
+                    }
+                }
+
+                obj.results = null;
+            }
+
+            // Insertbefore
+            var rowIndex = (! insertBefore) ? rowNumber + 1 : rowNumber;
+
+            // Keep the current data
+            var currentRecords = obj.records.splice(rowIndex);
+            var currentData = obj.options.data.splice(rowIndex);
+            var currentRows = obj.rows.splice(rowIndex);
+
+            // Adding lines
+            var rowRecords = [];
+            var rowData = [];
+            var rowNode = [];
+
+            for (var row = rowIndex; row < (numOfRows + rowIndex); row++) {
+                // Push data to the data container
+                obj.options.data[row] = [];
+                for (var col = 0; col < obj.options.columns.length; col++) {
+                    obj.options.data[row][col]  = data[col] ? data[col] : '';
+                }
+                // Create row
+                var tr = obj.createRow(row, obj.options.data[row]);
+                // Append node
+                if (! currentRows[0] || Array.prototype.indexOf.call(obj.tbody.children, currentRows[0]) >= 0) {
+                    obj.tbody.insertBefore(tr, currentRows[0]);
+                }
+                // Record History
+                rowRecords.push(obj.records[row]);
+                rowData.push(obj.options.data[row]);
+                rowNode.push(tr);
+            }
+
+            // Copy the data back to the main data
+            Array.prototype.push.apply(obj.records, currentRecords);
+            Array.prototype.push.apply(obj.options.data, currentData);
+            Array.prototype.push.apply(obj.rows, currentRows);
+
+            // Respect pagination
+            if (obj.options.pagination > 0) {
+                obj.page(obj.pageNumber);
+            }
+
+            // Keep history
+            obj.setHistory({
+                action: 'insertRow',
+                rowNumber: rowNumber,
+                numOfRows: numOfRows,
+                insertBefore: insertBefore,
+                rowRecords: rowRecords,
+                rowData: rowData,
+                rowNode: rowNode,
+            });
+
+            // Events
+            if (obj.ignoreEvents != true) {
+                if (typeof(obj.options.oninsertrow) == 'function') {
+                    obj.options.oninsertrow(el, rowNumber, numOfRows, rowRecords);
+                }
+            }
+
+            // Remove table references
+            obj.updateTableReferences();
+        }
+    }
+
+    /**
+     * Delete a row by number
+     * 
+     * @param integer rowNumber - row number to be excluded
+     * @param integer numOfRows - number of lines
+     * @return void
+     */
+    obj.deleteRow = function(rowNumber, numOfRows) {
+        // Global Configuration
+        if (obj.options.allowDeleteRow == true) {
+            if (obj.options.data.length > 1) {
+                // Delete row definitions
+                if (rowNumber == undefined) {
+                    var number = obj.getSelectedRows();
+
+                    if (! number[0]) {
+                        rowNumber = obj.options.data.length - 1;
+                        numOfRows = 1;
+                    } else {
+                        rowNumber = parseInt(number[0].getAttribute('data-y'));
+                        numOfRows = number.length;
+                    }
+                }
+
+                // Last column
+                var lastRow = obj.options.data.length - 1;
+
+                if (rowNumber == undefined || rowNumber > lastRow || rowNumber < 0) {
+                    rowNumber = lastRow;
+                }
+
+                if (! numOfRows) {
+                    numOfRows = 1;
+                }
+
+                // Do not delete more than the number of recoreds
+                if (rowNumber + numOfRows >= obj.options.data.length) {
+                    numOfRows = obj.options.data.length - rowNumber;
+                }
+
+                if (parseInt(rowNumber) > -1) {
+                    // Merged cells
+                    var mergeExists = false;
+                    if (Object.keys(obj.options.mergeCells).length > 0) {
+                        for (var row = rowNumber; row < rowNumber + numOfRows; row++) {
+                            if (obj.isRowMerged(row, false).length) {
+                                mergeExists = true;
+                            }
+                        }
+                    }
+                    if (mergeExists) {
+                        if (! confirm(obj.options.text.thisActionWillDestroyAnyExistingMergedCellsAreYouSure)) {
+                            return false;
+                        } else {
+                            obj.destroyMerged();
+                        }
+                    }
+
+                    // Clear any search
+                    if (obj.options.search == true) {
+                        if (obj.results && obj.results.length != obj.rows.length) {
+                            if (confirm(obj.options.text.thisActionWillClearYourSearchResultsAreYouSure)) {
+                                obj.resetSearch();
+                            } else {
+                                return false;
+                            }
+                        }
+
+                        obj.results = null;
+                    }
+
+                    // Remove node
+                    for (var row = rowNumber; row < rowNumber + numOfRows; row++) {
+                        if (Array.prototype.indexOf.call(obj.tbody.children, obj.rows[row]) >= 0) {
+                            obj.rows[row].className = '';
+                            obj.rows[row].remove();
+                        }
+                    }
+
+                    // Remove data
+                    var rowRecords = obj.records.splice(rowNumber, numOfRows);
+                    var rowData = obj.options.data.splice(rowNumber, numOfRows);
+                    var rowNode = obj.rows.splice(rowNumber, numOfRows);
+
+                    // Respect pagination
+                    if (obj.options.pagination > 0 && obj.tbody.children.length != obj.options.pagination) {
+                        obj.page(obj.pageNumber);
+                    }
+
+                    // Remove selection
+                    obj.conditionalSelectionUpdate(1, rowNumber, (rowNumber + numOfRows) - 1);
+
+                    // Keep history
+                    obj.setHistory({
+                        action: 'deleteRow',
+                        rowNumber: rowNumber,
+                        numOfRows: numOfRows,
+                        insertBefore: 1,
+                        rowRecords: rowRecords,
+                        rowData: rowData,
+                        rowNode: rowNode
+                    });
+
+                    // Events
+                    if (obj.ignoreEvents != true) {
+                        if (typeof(obj.options.ondeleterow) == 'function') {
+                            obj.options.ondeleterow(el, rowNumber, numOfRows, rowRecords);
+                        }
+                    }
+
+                    // Remove table references
+                    obj.updateTableReferences();
+                }
+            } else {
+                console.error('JEXCEL. It is not possible to delete the last row');
+            }
+        }
+    }
+
+
+    /**
+     * Move column
+     * 
+     * @return void
+     */
+    obj.moveColumn = function(o, d) {
+        if (Object.keys(obj.options.mergeCells).length > 0) {
+            if (obj.isColMerged(d).length) {
+                if (! confirm(obj.options.text.thisActionWillDestroyAnyExistingMergedCellsAreYouSure)) {
+                    return false;
+                } else {
+                    obj.destroyMerged();
+                }
+            }
+        }
+
+        var o = parseInt(o);
+        var d = parseInt(d);
+
+        if (o > d) {
+            obj.headerContainer.insertBefore(obj.headers[o], obj.headers[d]);
+            obj.colgroupContainer.insertBefore(obj.colgroup[o], obj.colgroup[d]);
+
+            for (var j = 0; j < obj.rows.length; j++) {
+                obj.rows[j].insertBefore(obj.records[j][o], obj.records[j][d]);
+            }
+        } else {
+            obj.headerContainer.insertBefore(obj.headers[o], obj.headers[d].nextSibling);
+            obj.colgroupContainer.insertBefore(obj.colgroup[o], obj.colgroup[d].nextSibling);
+
+            for (var j = 0; j < obj.rows.length; j++) {
+                obj.rows[j].insertBefore(obj.records[j][o], obj.records[j][d].nextSibling);
+            }
+        }
+
+        obj.options.columns.splice(d, 0, obj.options.columns.splice(o, 1)[0]);
+        obj.headers.splice(d, 0, obj.headers.splice(o, 1)[0]);
+        obj.colgroup.splice(d, 0, obj.colgroup.splice(o, 1)[0]);
+
+        for (var j = 0; j < obj.rows.length; j++) {
+            obj.options.data[j].splice(d, 0, obj.options.data[j].splice(o, 1)[0]);
+            obj.records[j].splice(d, 0, obj.records[j].splice(o, 1)[0]);
+        }
+
+        // Keeping history of changes
+        obj.setHistory({
+            action:'moveColumn',
+            oldValue: o,
+            newValue: d,
+        });
+
+        // Events
+        if (obj.ignoreEvents != true) {
+            if (typeof(obj.options.onmovecolumn) == 'function') {
+                obj.options.onmovecolumn(el, o, d);
+            }
+        }
+
+        // Update table references
+        obj.updateTableReferences();
+    }
+
+
+    /**
+     * Insert a new column
+     * 
+     * @param mixed - num of columns to be added or data to be added in one single column
+     * @param int columnNumber - number of columns to be created
+     * @param bool insertBefore
+     * @param object properties - column properties
+     * @return void
+     */
+    obj.insertColumn = function(mixed, columnNumber, insertBefore, properties) {
+        // Configuration
+        if (obj.options.allowInsertColumn == true) {
+            // Records
+            var records = [];
+
+            // Data to be insert
+            var data = [];
+
+            // The insert could be lead by number of rows or the array of data
+            if (mixed > 0) {
+                var numOfColumns = mixed;
+            } else {
+                var numOfColumns = 1;
+
+                if (mixed) {
+                    data = mixed;
+                }
+            }
+
+            // Direction
+            var insertBefore = insertBefore ? true : false;
+
+            // Current column number
+            var lastColumn = obj.options.columns.length - 1;
+
+            // Confirm position
+            if (columnNumber == undefined || columnNumber >= parseInt(lastColumn) || columnNumber < 0) {
+                columnNumber = lastColumn;
+            }
+
+            // Merged cells
+            if (Object.keys(obj.options.mergeCells).length > 0) {
+                if (obj.isColMerged(columnNumber, insertBefore).length) {
+                    if (! confirm(obj.options.text.thisActionWillDestroyAnyExistingMergedCellsAreYouSure)) {
+                        return false;
+                    } else {
+                        obj.destroyMerged();
+                    }
+                }
+            }
+
+            // Create default properties
+            if (! properties) {
+                properties = [];
+            }
+            if (! properties.columns) {
+                properties.columns = [];
+            }
+            for (var i = 0; i < numOfColumns; i++) {
+                if (! properties.columns[i]) {
+                    properties.columns[i] = { type:'text', source:[], options:[], width:'50', align:'center' };
+                }
+            }
+
+            // Insert before
+            var columnIndex = (! insertBefore) ? columnNumber + 1 : columnNumber;
+            obj.options.columns = obj.options.columns.injectArray(columnIndex, properties.columns);
+
+            // Open space in the containers
+            var currentHeaders = obj.headers.splice(columnIndex);
+            var currentColgroup = obj.colgroup.splice(columnIndex);
+
+            // History
+            var historyHeaders = [];
+            var historyColgroup = [];
+            var historyRecords = [];
+            var historyData = [];
+
+            // Add new headers
+            for (var col = columnIndex; col < (numOfColumns + columnIndex); col++) {
+                obj.createCellHeader(col);
+                obj.headerContainer.insertBefore(obj.headers[col], obj.headerContainer.children[col+1]);
+                obj.colgroupContainer.insertBefore(obj.colgroup[col], obj.colgroupContainer.children[col+1]);
+
+                historyHeaders.push(obj.headers[col]);
+                historyColgroup.push(obj.colgroup[col]);
+            }
+
+            // Adding visual columns
+            for (var row = 0; row < obj.options.data.length; row++) {
+                // Keep the current data
+                var currentData = obj.options.data[row].splice(columnIndex);
+                var currentRecord = obj.records[row].splice(columnIndex);
+
+                // History
+                historyData[row] = [];
+                historyRecords[row] = [];
+
+                for (var col = columnIndex; col < (numOfColumns + columnIndex); col++) {
+                    // New value
+                    var value = data[row] ? data[row] : '';
+                    obj.options.data[row][col] = value;
+                    // New cell
+                    var td = obj.createCell(col, row, obj.options.data[row][col]);
+                    obj.records[row][col] = td;
+                    // Add cell to the row
+                    if (obj.rows[row]) {
+                        obj.rows[row].insertBefore(td, obj.rows[row].children[col+1]);
+                    }
+
+                    // Record History
+                    historyData[row].push(value);
+                    historyRecords[row].push(td);
+                }
+
+                // Copy the data back to the main data
+                Array.prototype.push.apply(obj.options.data[row], currentData);
+                Array.prototype.push.apply(obj.records[row], currentRecord);
+            }
+
+            Array.prototype.push.apply(obj.headers, currentHeaders);
+            Array.prototype.push.apply(obj.colgroup, currentColgroup);
+
+            // Adjust nested headers
+            if (obj.options.nestedHeaders && obj.options.nestedHeaders.length > 0) {
+                // Flexible way to handle nestedheaders
+                if (obj.options.nestedHeaders[0] && obj.options.nestedHeaders[0][0]) {
+                    for (var j = 0; j < obj.options.nestedHeaders.length; j++) {
+                        var colspan = parseInt(obj.options.nestedHeaders[j][obj.options.nestedHeaders[j].length-1].colspan) + numOfColumns;
+                        obj.options.nestedHeaders[j][obj.options.nestedHeaders[j].length-1].colspan = colspan;
+                        obj.thead.children[j].children[obj.thead.children[j].children.length-1].setAttribute('colspan', colspan);
+                    }
+                } else {
+                    var colspan = parseInt(obj.options.nestedHeaders[0].colspan) + numOfColumns;
+                    obj.options.nestedHeaders[0].colspan = colspan;
+                    obj.thead.children[0].children[obj.thead.children[0].children.length-1].setAttribute('colspan', colspan);
+                }
+            }
+
+            // Keep history
+            obj.setHistory({
+                action: 'insertColumn',
+                columnNumber:columnNumber,
+                numOfColumns:numOfColumns,
+                insertBefore:insertBefore,
+                columns:properties.columns,
+                headers:historyHeaders,
+                colgroup:historyColgroup,
+                records:historyRecords,
+                data:historyData,
+            });
+
+            // Events
+            if (obj.ignoreEvents != true) {
+                if (typeof(obj.options.oninsertcolumn) == 'function') {
+                    obj.options.oninsertcolumn(el, columnNumber, numOfColumns);
+                }
+            }
+
+            // Remove table references
+            obj.updateTableReferences();
+        }
+    }
+
+    /**
+     * Delete a column by number
+     * 
+     * @param integer columnNumber - reference column to be excluded
+     * @param integer numOfColumns - number of columns to be excluded from the reference column
+     * @return void
+     */
+    obj.deleteColumn = function(columnNumber, numOfColumns) {
+        // Global Configuration
+        if (obj.options.allowDeleteColumn == true) {
+            if (obj.headers.length > 1) {
+                // Delete column definitions
+                if (columnNumber == undefined) {
+                    var number = obj.getSelectedColumns(true);
+
+                    if (! number.length) {
+                        // Remove last column
+                        columnNumber = obj.headers.length - 1;
+                        numOfColumns = 1;
+                    } else {
+                        // Remove selected
+                        columnNumber = parseInt(number[0]);
+                        numOfColumns = parseInt(number.length);
+                    }
+                }
+
+                // Lasat column
+                var lastColumn = obj.options.data[0].length - 1;
+
+                if (columnNumber == undefined || columnNumber > lastColumn || columnNumber < 0) {
+                    columnNumber = lastColumn;
+                }
+
+                // Minimum of columns to be delete is 1
+                if (! numOfColumns) {
+                    numOfColumns = 1;
+                }
+
+                // Can't delete more than the limit of the table
+                if (numOfColumns > obj.options.data[0].length - columnNumber) {
+                    numOfColumns = obj.options.data[0].length - columnNumber;
+                }
+
+                // Can't remove the last column
+                if (parseInt(columnNumber) > -1) {
+                    // Merged cells
+                    var mergeExists = false;
+                    if (Object.keys(obj.options.mergeCells).length > 0) {
+                        for (var col = columnNumber; col < columnNumber + numOfColumns; col++) {
+                            if (obj.isColMerged(col, false).length) {
+                                mergeExists = true;
+                            }
+                        }
+                    }
+                    if (mergeExists) {
+                        if (! confirm(obj.options.text.thisActionWillDestroyAnyExistingMergedCellsAreYouSure)) {
+                            return false;
+                        } else {
+                            obj.destroyMerged();
+                        }
+                    }
+
+                    // Delete the column properties
+                    var columns = obj.options.columns.splice(columnNumber, numOfColumns);
+
+                    for (var col = columnNumber; col < columnNumber + numOfColumns; col++) {
+                        obj.colgroup[col].className = '';
+                        obj.headers[col].className = '';
+                        obj.colgroup[col].remove();
+                        obj.headers[col].remove();
+                    }
+
+                    var historyHeaders = obj.headers.splice(columnNumber, numOfColumns);
+                    var historyColgroup = obj.colgroup.splice(columnNumber, numOfColumns);
+                    var historyRecords = [];
+                    var historyData = [];
+
+                    for (var row = 0; row < obj.options.data.length; row++) {
+                        for (var col = columnNumber; col < columnNumber + numOfColumns; col++) {
+                            obj.records[row][col].className = '';
+                            obj.records[row][col].remove();
+                        }
+                    }
+
+                    // Delete headers
+                    for (var row = 0; row < obj.options.data.length; row++) {
+                        // History
+                        historyData[row] = obj.options.data[row].splice(columnNumber, numOfColumns);
+                        historyRecords[row] = obj.records[row].splice(columnNumber, numOfColumns);
+                    }
+
+                    // Remove selection
+                    obj.conditionalSelectionUpdate(0, columnNumber, (columnNumber + numOfColumns) - 1);
+
+                    // Adjust nested headers
+                    if (obj.options.nestedHeaders && obj.options.nestedHeaders.length > 0) {
+                        // Flexible way to handle nestedheaders
+                        if (obj.options.nestedHeaders[0] && obj.options.nestedHeaders[0][0]) {
+                            for (var j = 0; j < obj.options.nestedHeaders.length; j++) {
+                                var colspan = parseInt(obj.options.nestedHeaders[j][obj.options.nestedHeaders[j].length-1].colspan) - numOfColumns;
+                                obj.options.nestedHeaders[j][obj.options.nestedHeaders[j].length-1].colspan = colspan;
+                                obj.thead.children[j].children[obj.thead.children[j].children.length-1].setAttribute('colspan', colspan);
+                            }
+                        } else {
+                            var colspan = parseInt(obj.options.nestedHeaders[0].colspan) - numOfColumns;
+                            obj.options.nestedHeaders[0].colspan = colspan;
+                            obj.thead.children[0].children[obj.thead.children[0].children.length-1].setAttribute('colspan', colspan);
+                        }
+                    }
+
+                    // Keeping history of changes
+                    obj.setHistory({
+                        action:'deleteColumn',
+                        columnNumber:columnNumber,
+                        numOfColumns:numOfColumns,
+                        insertBefore: 1,
+                        columns:columns,
+                        headers:historyHeaders,
+                        colgroup:historyColgroup,
+                        records:historyRecords,
+                        data:historyData,
+                    });
+
+                    // Delete
+                    if (obj.ignoreEvents != true) {
+                        if (typeof(obj.options.ondeletecolumn) == 'function') {
+                            obj.options.ondeletecolumn(el, columnNumber, numOfColumns, records);
+                        }
+                    }
+
+                    // Update table references
+                    obj.updateTableReferences();
+                }
+            } else {
+                console.error('JEXCEL. It is not possible to delete the last column');
+            }
+        }
+    }
+
+    /**
+     * Get seleted rows numbers
+     * 
+     * @return array
+     */
+    obj.getSelectedRows = function(asIds) {
+        var rows = [];
+        // Get all selected rows
+        for (var j = 0; j < obj.rows.length; j++) {
+            if (obj.rows[j].classList.contains('selected')) {
+                if (asIds) {
+                    rows.push(j);
+                } else {
+                    rows.push(obj.rows[j]);
+                }
+            }
+        }
+
+        return rows;
+    },
+
+    /**
+     * Get seleted rows numbers
+     * 
+     * @return array
+     */
+    obj.getSelectedColumns = function(asIds) {
+        var cols = [];
+        // Get all selected cols
+        for (var i = 0; i < obj.headers.length; i++) {
+            if (obj.headers[i].classList.contains('selected')) {
+                if (asIds) {
+                    cols.push(i);
+                } else {
+                    cols.push(obj.cols[j]);
+                }
+            }
+        }
+
+        return cols;
+    }
+
+    /**
+     * Update cell references
+     * 
+     * @return void
+     */
+    obj.updateTableReferences = function() {
+        // Update headers
+        for (var i = 0; i < obj.headers.length; i++) {
+            var x = obj.headers[i].getAttribute('data-x');
+
+            if (x != i) {
+                // Update coords
+                obj.headers[i].setAttribute('data-x', i);
+                // Title
+                if (! obj.headers[i].getAttribute('title')) {
+                    obj.headers[i].innerHTML = jexcel.getColumnName(i);
+                }
+            }
+        }
+
+        // Update all rows
+        for (var j = 0; j < obj.rows.length; j++) {
+            var y = obj.rows[j].getAttribute('data-y');
+
+            if (y != j) {
+                // Update coords
+                obj.rows[j].setAttribute('data-y', j);
+                obj.rows[j].children[0].setAttribute('data-y', j);
+                // Row number
+                obj.rows[j].children[0].innerHTML = j + 1;
+            }
+        }
+
+        // Regular cells affected by this change
+        var affectedTokens = [];
+        var mergeCellUpdates = [];
+
+        // Update cell
+        var updatePosition = function(x,y,i,j) {
+            if (x != i) {
+                obj.records[j][i].setAttribute('data-x', i);
+            }
+            if (y != j) {
+                obj.records[j][i].setAttribute('data-y', j);
+            }
+
+            // Other updates
+            if (x != i || y != j) {
+                var columnIdFrom = jexcel.getColumnNameFromId([x, y]);
+                var columnIdTo = jexcel.getColumnNameFromId([i, j]);
+                affectedTokens[columnIdFrom] = columnIdTo;
+            }
+        }
+
+        for (var j = 0; j < obj.records.length; j++) {
+            for (var i = 0; i < obj.records[0].length; i++) {
+                // Current values
+                var x = obj.records[j][i].getAttribute('data-x');
+                var y = obj.records[j][i].getAttribute('data-y');
+
+                // Update column
+                if (obj.records[j][i].getAttribute('data-merged')) {
+                    var columnIdFrom = jexcel.getColumnNameFromId([x, y]);
+                    var columnIdTo = jexcel.getColumnNameFromId([i, j]);
+                    if (mergeCellUpdates[columnIdFrom] == null) {
+                        if (columnIdFrom == columnIdTo) {
+                            mergeCellUpdates[columnIdFrom] = false;
+                        } else {
+                            var totalX = parseInt(i - x);
+                            var totalY = parseInt(j - y);
+                            mergeCellUpdates[columnIdFrom] = [ columnIdTo, totalX, totalY ];
+                        }
+                    }
+                } else {
+                    updatePosition(x,y,i,j);
+                }
+            }
+        }
+
+        // Update merged if applicable
+        var keys = Object.keys(mergeCellUpdates);
+        if (keys.length) {
+            for (var i = 0; i < keys.length; i++) {
+                if (mergeCellUpdates[keys[i]]) {
+                    var info = jexcel.getIdFromColumnName(keys[i], true)
+                    var x = info[0];
+                    var y = info[1];
+                    updatePosition(x,y,x + mergeCellUpdates[keys[i]][1],y + mergeCellUpdates[keys[i]][2]);
+
+                    var columnIdFrom = keys[i];
+                    var columnIdTo = mergeCellUpdates[keys[i]][0];
+                    for (var j = 0; j < obj.options.mergeCells[columnIdFrom][2].length; j++) {
+                        var x = parseInt(obj.options.mergeCells[columnIdFrom][2][j].getAttribute('data-x'));
+                        var y = parseInt(obj.options.mergeCells[columnIdFrom][2][j].getAttribute('data-y'));
+                        obj.options.mergeCells[columnIdFrom][2][j].setAttribute('data-x', x + mergeCellUpdates[keys[i]][1]);
+                        obj.options.mergeCells[columnIdFrom][2][j].setAttribute('data-y', y + mergeCellUpdates[keys[i]][2]);
+                    }
+    
+                    obj.options.mergeCells[columnIdTo] = obj.options.mergeCells[columnIdFrom];
+                    delete(obj.options.mergeCells[columnIdFrom]);
+                }
+            }
+        }
+
+        // Update formulas
+        obj.updateFormulas(affectedTokens);
+
+        // Refresh selection
+        obj.refreshSelection();
+
+        // Update table with custom configuration if applicable
+        obj.updateTable();
+    }
+
+    
+    /**
+     * Custom settings for the cells
+     */
+    obj.updateTable = function() {
+        // Check for spare
+        if (obj.options.minSpareRows > 0) {
+            var numBlankRows = 0;
+            for (var j = obj.rows.length - 1; j >= 0; j--) {
+                var test = false;
+                for (var i = 0; i < obj.headers.length; i++) {
+                    if (obj.options.data[j][i]) {
+                        test = true;
+                    } 
+                }
+                if (test) {
+                    break;
+                } else {
+                    numBlankRows++;
+                }
+            }
+
+            if (obj.options.minSpareRows - numBlankRows > 0) {
+                obj.insertRow(obj.options.minSpareRows - numBlankRows)
+            }
+        }
+
+        if (obj.options.minSpareCols > 0) {
+            var numBlankCols = 0;
+            for (var i = obj.headers.length - 1; i >= 0 ; i--) {
+                var test = false;
+                for (var j = 0; j < obj.rows.length; j++) {
+                    if (obj.options.data[j][i]) {
+                        test = true;
+                    } 
+                }
+                if (test) {
+                    break;
+                } else {
+                    numBlankCols++;
+                }
+            }
+
+            if (obj.options.minSpareCols - numBlankCols > 0) {
+                obj.insertColumn(obj.options.minSpareCols - numBlankCols)
+            }
+        }
+
+        // Customizations by the developer
+        if (typeof(obj.options.updateTable) == 'function') {
+            for (var j = 0; j < obj.rows.length; j++) {
+                for (var i = 0; i < obj.headers.length; i++) {
+                    obj.options.updateTable(el, obj.records[j][i], i, j, obj.options.data[j][i], obj.records[j][i].innerText, jexcel.getColumnNameFromId([i, j]));
+                }
+            }
+        }
+
+        // Update corner position
+        setTimeout(function() {
+            obj.updateCornerPosition();
+        },0);
+    }
+
+    /**
+     * Show index column
+     */
+    obj.showIndex = function() {
+        obj.colgroupContainer.children[0].width = 40;
+    }
+
+    /**
+     * Hide index column
+     */
+    obj.hideIndex = function() {
+        obj.colgroupContainer.children[0].width = 0;
+    }
+
+    /**
+     * Update formulas
+     */
+    obj.updateFormulas = function(referencesToUpdate) {
+        // Update formulas
+        for (var j = 0; j < obj.options.data.length; j++) {
+            for (var i = 0; i < obj.options.data[0].length; i++) {
+                var value = '' + obj.options.data[j][i];
+                // Is formula
+                if (value.substr(0,1) == '=') {
+                    // Replace tokens
+                    var newFormula = obj.updateFormula(value, referencesToUpdate);
+                    if (newFormula != value) {
+                        obj.options.data[j][i] = newFormula;
+                    }
+                }
+            }
+        }
+
+        // Update formula chain
+        var formula = [];
+        var keys = Object.keys(obj.formula);
+        for (var j = 0; j < keys.length; j++) {
+            // Current key and values
+            var key = keys[j];
+            var value = obj.formula[key];
+            // Update key
+            if (referencesToUpdate[key]) {
+                key = referencesToUpdate[key];
+            }
+            // Update values
+            formula[key] = [];
+            for (var i = 0; i < value.length; i++) {
+                var letter = value[i];
+                if (referencesToUpdate[letter]) {
+                    letter = referencesToUpdate[letter];
+                }
+                formula[key].push(letter);
+            }
+        }
+        obj.formula = formula;
+    }
+
+    /**
+     * Update formula
+     */
+    obj.updateFormula = function(formula, referencesToUpdate) {
+        var testLetter = /[A-Z]/;
+        var testNumber = /[0-9]/;
+
+        var newFormula = '';
+        var letter = null;
+        var number = null;
+        var token = '';
+
+        for (var index = 0; index < formula.length; index++) {
+            if (testLetter.exec(formula[index])) {
+                letter = 1;
+                number = 0;
+                token += formula[index];
+            } else if (testNumber.exec(formula[index])) {
+                number = letter ? 1 : 0;
+                token += formula[index];
+            } else {
+                if (letter && number) {
+                    token = referencesToUpdate[token] ? referencesToUpdate[token] : token;
+                }
+                newFormula += token;
+                newFormula += formula[index];
+                letter = 0;
+                number = 0;
+                token = '';
+            }
+        }
+
+        if (token) {
+            if (letter && number) {
+                token = referencesToUpdate[token] ? referencesToUpdate[token] : token;
+            }
+            newFormula += token;
+        }
+
+        return newFormula;
+    }
+
+    /**
+     * Parse formulas
+     */
+    obj.executeFormula = function(expression, x, y) {
+        // Code protection
+        obj.formulaStack++;
+        if (obj.formulaStack > 5) {
+            console.error('Too many executions...');
+            return 0;
+        }
+        // Parent column identification
+        var parentId = jexcel.getColumnNameFromId([x, y]);
+        // Convert range tokens
+        var tokensUpdate = function(tokens) {
+            for (var index = 0; index < tokens.length; index++) {
+                var f = [];
+                var token = tokens[index].split(':');
+                var e1 = jexcel.getIdFromColumnName(token[0], true);
+                var e2 = jexcel.getIdFromColumnName(token[1], true);
+
+                if (e1[0] <= e2[0]) {
+                    var x1 = e1[0];
+                    var x2 = e2[0];
+                } else {
+                    var x1 = e2[0];
+                    var x2 = e1[0];
+                }
+
+                if (e1[1] <= e2[1]) {
+                    var y1 = e1[1];
+                    var y2 = e2[1];
+                } else {
+                    var y1 = e2[1];
+                    var y2 = e1[1];
+                }
+
+                for (var j = y1; j <= y2; j++) {
+                    for (var i = x1; i <= x2; i++) {
+                        f.push(jexcel.getColumnNameFromId([i, j]));
+                    }
+                }
+
+                expression = expression.replace(tokens[index], f.join(','));
+            };
+        }
+
+        var tokens = expression.match(/([A-Z]+[0-9]+)\:([A-Z]+[0-9]+)/g);
+        if (tokens && tokens.length) {
+            tokensUpdate(tokens);
+        }
+
+        // Get tokens
+        var tokens = expression.match(/([A-Z]+[0-9]+)/g);
+
+        if (tokens) {
+            var evalstring = "";
+            for (var i = 0; i < tokens.length; i++) {
+                // Keep chain
+                if (! obj.formula[tokens[i]]) {
+                    obj.formula[tokens[i]] = [];
+                }
+                // Is already in the register
+                if (obj.formula[tokens[i]].indexOf(parentId) < 0) {
+                    obj.formula[tokens[i]].push(parentId);
+                }
+
+                // Do not calculate again
+                if (eval('typeof(' + tokens[i] + ') == "undefined"')) {
+                    // Declaretion
+                    evalstring += "var " + tokens[i] + " = null;";
+                    // Coords
+                    var position = jexcel.getIdFromColumnName(tokens[i], 1);
+                    // Get value
+                    if (obj.records[position[1]] && obj.records[position[1]][position[0]]) {
+                        var value = obj.records[position[1]][position[0]].innerHTML;
+                    } else if (obj.options.data[position[1]] && obj.options.data[position[1]][position[0]]) {
+                        var value = obj.options.data[position[1]][position[0]];
+                    } else {
+                        var value = '';
+                    }
+                    // Get column data
+                    if ((''+value).substr(0,1) == '=') {
+                        value = obj.executeFormula(value, position[1], position[0]);
+                    }
+                    // Type!
+                    if ((''+value).trim() == '' || value != Number(value)) {
+                        // Trying any formatted number
+                        var number = ('' + value);
+                        var decimal = obj.options.columns[position[0]].decimal || '.';
+                        number = number.split(decimal);
+                        number[0] = number[0].match(/[0-9]*/g).join('');
+                        if (number[1]) {
+                            number[1] = number[1].match(/[0-9]*/g).join('');
+                        }
+                        // Got a valid number
+                        if (number[0] != '' && Number(number[0]) >= 0) {
+                            if (! number[1]) {
+                                evalstring += "var " + tokens[i] + " = " + number[0] + ".00;";
+                            } else {
+                                evalstring += "var " + tokens[i] + " = " + number[0] + '.' + number[1] + ";";
+                            }
+                        } else {
+                            // Render as string
+                            evalstring += "var " + tokens[i] + " = '" + value + "';";
+                        }
+                    } else {
+                        // Number
+                        evalstring += "var " + tokens[i] + " = " + value + ";";
+                    }
+                }
+            }
+        }
+
+        obj.formulaStack = 0;
+
+        // Convert formula to javascript
+        try {
+            var res = eval(evalstring + expression.substr(1));
+        } catch (e) {
+            var res = '#ERROR';
+        }
+
+        return res;
+    }
+
+    /**
+     * Get row number
+     */
+    obj.row = function(cell) {
+    }
+
+    /**
+     * Get col number
+     */
+    obj.col = function(cell) {
+    }
+
+    obj.up = function(shiftKey, ctrlKey) {
+        if (shiftKey) {
+            if (obj.selectedCell[3] > 0) {
+                obj.up.visible(1, ctrlKey ? 0 : 1)
+            }
+        } else {
+            if (obj.selectedCell[1] > 0) {
+                obj.up.visible(0, ctrlKey ? 0 : 1)
+            }
+            obj.selectedCell[2] = obj.selectedCell[0];
+            obj.selectedCell[3] = obj.selectedCell[1];
+        }
+
+        // Update selection
+        obj.updateSelectionFromCoords(obj.selectedCell[0], obj.selectedCell[1], obj.selectedCell[2], obj.selectedCell[3]);
+
+        // Change page
+        if (obj.options.lazyLoading == true) {
+            if (obj.selectedCell[1] == 0 || obj.selectedCell[3] == 0) {
+                obj.loadPage(0);
+                obj.updateSelectionFromCoords(obj.selectedCell[0], obj.selectedCell[1], obj.selectedCell[2], obj.selectedCell[3]);
+            } else {
+                if (obj.loadValidation()) {
+                    obj.updateSelectionFromCoords(obj.selectedCell[0], obj.selectedCell[1], obj.selectedCell[2], obj.selectedCell[3]);
+                } else {
+                    var item = parseInt(obj.tbody.firstChild.getAttribute('data-y'));
+                    if (obj.selectedCell[1] - item < 30) {
+                        obj.loadUp();
+                        obj.updateSelectionFromCoords(obj.selectedCell[0], obj.selectedCell[1], obj.selectedCell[2], obj.selectedCell[3]);
+                    }
+                }
+            }
+        } else if (obj.options.pagination > 0) {
+            var pageNumber = obj.whichPage(obj.selectedCell[3]);
+            if (pageNumber != obj.pageNumber) {
+                obj.page(pageNumber);
+            }
+        }
+
+        obj.updateScroll(1);
+    }
+
+    obj.up.visible = function(group, direction) {
+        if (group == 0) {
+            var x = parseInt(obj.selectedCell[0]);
+            var y = parseInt(obj.selectedCell[1]);
+        } else {
+            var x = parseInt(obj.selectedCell[2]);
+            var y = parseInt(obj.selectedCell[3]);
+        }
+
+        if (direction == 0) {
+            for (var j = 0; j < y; j++) {
+                if (obj.records[j][x].style.display != 'none' && obj.rows[j].style.display != 'none') {
+                    y = j;
+                    break;
+                }
+            }
+        } else {
+            y = obj.up.get(x, y);
+        }
+
+        if (group == 0) {
+            obj.selectedCell[0] = x;
+            obj.selectedCell[1] = y;
+        } else {
+            obj.selectedCell[2] = x;
+            obj.selectedCell[3] = y;
+        }
+    }
+
+    obj.up.get = function(x, y) {
+        var x = parseInt(x);
+        var y = parseInt(y);
+        for (var j = (y - 1); j >= 0; j--) {
+            if (obj.records[j][x].style.display != 'none' && obj.rows[j].style.display != 'none') {
+                if (obj.records[j][x].getAttribute('data-merged')) {
+                    if (obj.records[j][x] == obj.records[y][x]) {
+                        continue;
+                    }
+                }
+                y = j;
+                break;
+            }
+        }
+
+        return y;
+    }
+
+    obj.down = function(shiftKey, ctrlKey) {
+        if (shiftKey) {
+            if (obj.selectedCell[3] < obj.records.length - 1) {
+                obj.down.visible(1, ctrlKey ? 0 : 1)
+            }
+        } else {
+            if (obj.selectedCell[1] < obj.records.length - 1) {
+                obj.down.visible(0, ctrlKey ? 0 : 1)
+            }
+            obj.selectedCell[2] = obj.selectedCell[0];
+            obj.selectedCell[3] = obj.selectedCell[1];
+        }
+
+        obj.updateSelectionFromCoords(obj.selectedCell[0], obj.selectedCell[1], obj.selectedCell[2], obj.selectedCell[3]);
+
+        // Change page
+        if (obj.options.lazyLoading == true) {
+            if ((obj.selectedCell[1] == obj.records.length - 1 || obj.selectedCell[3] == obj.records.length - 1)) {
+                obj.loadPage(-1);
+                obj.updateSelectionFromCoords(obj.selectedCell[0], obj.selectedCell[1], obj.selectedCell[2], obj.selectedCell[3]);
+            } else {
+                if (obj.loadValidation()) {
+                    obj.updateSelectionFromCoords(obj.selectedCell[0], obj.selectedCell[1], obj.selectedCell[2], obj.selectedCell[3]);
+                } else {
+                    var item = parseInt(obj.tbody.lastChild.getAttribute('data-y'));
+                    if (item - obj.selectedCell[3] < 30) {
+                        obj.loadDown();
+                        obj.updateSelectionFromCoords(obj.selectedCell[0], obj.selectedCell[1], obj.selectedCell[2], obj.selectedCell[3]);
+                    }
+                }
+            }
+        } else if (obj.options.pagination > 0) {
+            var pageNumber = obj.whichPage(obj.selectedCell[3]);
+            if (pageNumber != obj.pageNumber) {
+                obj.page(pageNumber);
+            }
+        }
+
+        obj.updateScroll(3);
+    }
+
+    obj.down.visible = function(group, direction) {
+        if (group == 0) {
+            var x = parseInt(obj.selectedCell[0]);
+            var y = parseInt(obj.selectedCell[1]);
+        } else {
+            var x = parseInt(obj.selectedCell[2]);
+            var y = parseInt(obj.selectedCell[3]);
+        }
+
+        if (direction == 0) {
+            for (var j = obj.rows.length - 1; j > y; j--) {
+                if (obj.records[j][x].style.display != 'none' && obj.rows[j].style.display != 'none') {
+                    y = j;
+                    break;
+                }
+            }
+        } else {
+            y = obj.down.get(x, y);
+        }
+
+        if (group == 0) {
+            obj.selectedCell[0] = x;
+            obj.selectedCell[1] = y;
+        } else {
+            obj.selectedCell[2] = x;
+            obj.selectedCell[3] = y;
+        }
+    }
+
+    obj.down.get = function(x, y) {
+        var x = parseInt(x);
+        var y = parseInt(y);
+        for (var j = (y + 1); j < obj.rows.length; j++) {
+            if (obj.records[j][x].style.display != 'none' && obj.rows[j].style.display != 'none') {
+                if (obj.records[j][x].getAttribute('data-merged')) {
+                    if (obj.records[j][x] == obj.records[y][x]) {
+                        continue;
+                    }
+                }
+                y = j;
+                break;
+            }
+        }
+
+        return y;
+    }
+
+    obj.right = function(shiftKey, ctrlKey) {
+        if (shiftKey) {
+            if (obj.selectedCell[2] < obj.headers.length - 1) {
+                obj.right.visible(1, ctrlKey ? 0 : 1)
+            }
+        } else {
+            if (obj.selectedCell[0] < obj.headers.length - 1) {
+                obj.right.visible(0, ctrlKey ? 0 : 1)
+            }
+            obj.selectedCell[2] = obj.selectedCell[0];
+            obj.selectedCell[3] = obj.selectedCell[1];
+        }
+
+        obj.updateSelectionFromCoords(obj.selectedCell[0], obj.selectedCell[1], obj.selectedCell[2], obj.selectedCell[3]);
+        obj.updateScroll(2);
+    }
+
+    obj.right.visible = function(group, direction) {
+        if (group == 0) {
+            var x = parseInt(obj.selectedCell[0]);
+            var y = parseInt(obj.selectedCell[1]);
+        } else {
+            var x = parseInt(obj.selectedCell[2]);
+            var y = parseInt(obj.selectedCell[3]);
+        }
+
+        if (direction == 0) {
+            for (var i = obj.headers.length - 1; i > x; i--) {
+                if (obj.records[y][i].style.display != 'none') {
+                    x = i;
+                    break;
+                }
+            }
+        } else {
+            x = obj.right.get(x, y);
+        }
+
+        if (group == 0) {
+            obj.selectedCell[0] = x;
+            obj.selectedCell[1] = y;
+        } else {
+            obj.selectedCell[2] = x;
+            obj.selectedCell[3] = y;
+        }
+    }
+
+    obj.right.get = function(x, y) {
+        var x = parseInt(x);
+        var y = parseInt(y);
+
+        for (var i = (x + 1); i < obj.headers.length; i++) {
+            if (obj.records[y][i].style.display != 'none') {
+                if (obj.records[y][i].getAttribute('data-merged')) {
+                    if (obj.records[y][i] == obj.records[y][x]) {
+                        continue;
+                    }
+                }
+                x = i;
+                break;
+            }
+        }
+
+        return x;
+    }
+
+    obj.left = function(shiftKey, ctrlKey) {
+        if (shiftKey) {
+            if (obj.selectedCell[2] > 0) {
+                obj.left.visible(1, ctrlKey ? 0 : 1)
+            }
+        } else {
+            if (obj.selectedCell[0] > 0) {
+                obj.left.visible(0, ctrlKey ? 0 : 1)
+            }
+            obj.selectedCell[2] = obj.selectedCell[0];
+            obj.selectedCell[3] = obj.selectedCell[1];
+        }
+
+        obj.updateSelectionFromCoords(obj.selectedCell[0], obj.selectedCell[1], obj.selectedCell[2], obj.selectedCell[3]);
+        obj.updateScroll(0);
+    }
+
+    obj.left.visible = function(group, direction) {
+        if (group == 0) {
+            var x = parseInt(obj.selectedCell[0]);
+            var y = parseInt(obj.selectedCell[1]);
+        } else {
+            var x = parseInt(obj.selectedCell[2]);
+            var y = parseInt(obj.selectedCell[3]);
+        }
+
+        if (direction == 0) {
+            for (var i = 0; i < x; i++) {
+                if (obj.records[y][i].style.display != 'none') {
+                    x = i;
+                    break;
+                }
+            }
+        } else {
+            x = obj.left.get(x, y);
+        }
+
+        if (group == 0) {
+            obj.selectedCell[0] = x;
+            obj.selectedCell[1] = y;
+        } else {
+            obj.selectedCell[2] = x;
+            obj.selectedCell[3] = y;
+        }
+    }
+
+    obj.left.get = function(x, y) {
+        var x = parseInt(x);
+        var y = parseInt(y);
+        for (var i = (x - 1); i >= 0; i--) {
+            if (obj.records[y][i].style.display != 'none') {
+                if (obj.records[y][i].getAttribute('data-merged')) {
+                    if (obj.records[y][i] == obj.records[y][x]) {
+                        continue;
+                    }
+                }
+                x = i;
+                break;
+            }
+        }
+
+        return x;
+    }
+
+    obj.first = function(shiftKey, ctrlKey) {
+        if (shiftKey) {
+            if (ctrlKey) {
+                obj.selectedCell[3] = 0;
+            } else {
+                obj.left.visible(1, 0);
+            }
+        } else {
+            if (ctrlKey) {
+                obj.selectedCell[1] = 0;
+            } else {
+                obj.left.visible(0, 0);
+            }
+            obj.selectedCell[2] = obj.selectedCell[0];
+            obj.selectedCell[3] = obj.selectedCell[1];
+        }
+
+        // Change page
+        if (obj.options.lazyLoading == true && (obj.selectedCell[1] == 0 || obj.selectedCell[3] == 0)) {
+            obj.loadPage(0);
+        } else if (obj.options.pagination > 0) {
+            var pageNumber = obj.whichPage(obj.selectedCell[3]);
+            if (pageNumber != obj.pageNumber) {
+                obj.page(pageNumber);
+            }
+        }
+
+        obj.updateSelectionFromCoords(obj.selectedCell[0], obj.selectedCell[1], obj.selectedCell[2], obj.selectedCell[3]);
+        obj.updateScroll(1);
+    }
+
+    obj.last = function(shiftKey, ctrlKey) {
+        if (shiftKey) {
+            if (ctrlKey) {
+                obj.selectedCell[3] = obj.records.length - 1;
+            } else {
+                obj.right.visible(1, 0);
+            }
+        } else {
+            if (ctrlKey) {
+                obj.selectedCell[1] = obj.records.length - 1;
+            } else {
+                obj.right.visible(0, 0);
+            }
+            obj.selectedCell[2] = obj.selectedCell[0];
+            obj.selectedCell[3] = obj.selectedCell[1];
+        }
+
+        // Change page
+        if (obj.options.lazyLoading == true && (obj.selectedCell[1] == obj.records.length - 1 || obj.selectedCell[3] == obj.records.length - 1)) {
+            obj.loadPage(-1);
+        } else if (obj.options.pagination > 0) {
+            var pageNumber = obj.whichPage(obj.selectedCell[3]);
+            if (pageNumber != obj.pageNumber) {
+                obj.page(pageNumber);
+            }
+        }
+
+        obj.updateSelectionFromCoords(obj.selectedCell[0], obj.selectedCell[1], obj.selectedCell[2], obj.selectedCell[3]);
+        obj.updateScroll(3);
+    }
+
+    obj.selectAll = function() {
+        obj.selectedCell[0] = 0;
+        obj.selectedCell[1] = 0;
+        obj.selectedCell[2] = obj.headers.length - 1;
+        obj.selectedCell[3] = obj.records.length - 1;
+
+        obj.updateSelectionFromCoords(obj.selectedCell[0], obj.selectedCell[1], obj.selectedCell[2], obj.selectedCell[3]);
+    }
+
+    /**
+     * Go to a page in a lazyLoading
+     */
+    obj.loadPage = function(pageNumber) {
+        // Search
+        if (obj.options.search == true && obj.results) {
+            var results = obj.results;
+        } else {
+            var results = obj.rows;
+        }
+
+        // Per page
+        var quantityPerPage = 100;
+
+        // pageNumber
+        if (pageNumber == null || pageNumber == -1) {
+            // Last page
+            pageNumber = Math.ceil(results.length / quantityPerPage); 
+        }
+
+        var startRow = (pageNumber * quantityPerPage);
+        var finalRow = (pageNumber * quantityPerPage) + quantityPerPage;
+        if (finalRow > results.length) {
+            finalRow = results.length;
+        }
+        startRow = finalRow - 100;
+        if (startRow < 0) {
+            startRow = 0;
+        }
+
+        // Appeding items
+        for (var j = startRow; j < finalRow; j++) {
+            if (obj.options.search == true && obj.results) {
+                obj.tbody.appendChild(obj.rows[results[j]]);
+            } else {
+                obj.tbody.appendChild(obj.rows[j]);
+            }
+
+            if (obj.tbody.children.length > quantityPerPage) {
+                obj.tbody.removeChild(obj.tbody.firstChild);
+            }
+        }
+    }
+
+    obj.loadUp = function() {
+        // Search
+        if (obj.options.search == true && obj.results) {
+            var results = obj.results;
+        } else {
+            var results = obj.rows;
+        }
+        var test = 0;
+        if (results.length > 100) {
+            // Get the first element in the page
+            var item = parseInt(obj.tbody.firstChild.getAttribute('data-y'));
+            if (obj.options.search == true && obj.results) {
+                item = results.indexOf(item);
+            }
+            if (item > 0) {
+                for (var j = 0; j < 30; j++) {
+                    item = item - 1;
+                    if (item > -1) {
+                        if (obj.options.search == true && obj.results) {
+                            obj.tbody.insertBefore(obj.rows[results[item]], obj.tbody.firstChild);
+                        } else {
+                            obj.tbody.insertBefore(obj.rows[item], obj.tbody.firstChild);
+                        }
+                        if (obj.tbody.children.length > 100) {
+                            obj.tbody.removeChild(obj.tbody.lastChild);
+                            test = 1;
+                        }
+                    }
+                }
+            }
+        }
+        return test;
+    }
+
+    obj.loadDown = function() {
+        // Search
+        if (obj.options.search == true && obj.results) {
+            var results = obj.results;
+        } else {
+            var results = obj.rows;
+        }
+        var test = 0;
+        if (results.length > 100) {
+            // Get the last element in the page
+            var item = parseInt(obj.tbody.lastChild.getAttribute('data-y'));
+            if (obj.options.search == true && obj.results) {
+                item = results.indexOf(item);
+            }
+            if (item < obj.rows.length - 1) {
+                for (var j = 0; j <= 30; j++) {
+                    if (item < results.length) {
+                        if (obj.options.search == true && obj.results) {
+                            obj.tbody.appendChild(obj.rows[results[item]]);
+                        } else {
+                            obj.tbody.appendChild(obj.rows[item]);
+                        }
+                        if (obj.tbody.children.length > 100) {
+                            obj.tbody.removeChild(obj.tbody.firstChild);
+                            test = 1;
+                        }
+                    }
+                    item = item + 1;
+                }
+            }
+        }
+
+        return test;
+    }
+
+    obj.loadValidation = function() {
+        if (obj.selectedCell) {
+            var currentPage = parseInt(obj.tbody.firstChild.getAttribute('data-y')) / 100;
+            var selectedPage = parseInt(obj.selectedCell[3] / 100);
+            var totalPages = parseInt(obj.rows.length / 100);
+
+            if (currentPage != selectedPage && selectedPage <= totalPages) {
+                if (! Array.prototype.indexOf.call(obj.tbody.children, obj.rows[obj.selectedCell[3]])) {
+                    obj.loadPage(selectedPage);
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Reset search
+     */
+    obj.resetSearch = function() {
+        obj.searchInput.value = '';
+        obj.search('');
+        obj.results = null;
+    }
+
+    /**
+     * Search
+     */
+    obj.search = function(query) {
+        // Query
+        if (query) {
+            var query = query.toLowerCase();
+        }
+
+        // Reset selection
+        obj.resetSelection();
+
+        // Total of results
+        obj.pageNumber = 0;
+        obj.results = [];
+
+        if (query) {
+            // Search filter
+            var search = function(item, query) {
+                for (var i = 0; i < item.length; i++) {
+                    if ((''+item[i]).toLowerCase().search(query) >= 0) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            // Result
+            var addToResult = function(k) {
+                if (obj.results.indexOf(k) == -1) {
+                    obj.results.push(k);
+                }
+            }
+
+            // Filter
+            var data = obj.options.data.filter(function(v, k) {
+                if (search(v, query)) {
+                    // Merged rows found
+                    var rows = obj.isRowMerged(k);
+                    if (rows.length) {
+                        for (var i = 0; i < rows.length; i++) {
+                            var row = jexcel.getIdFromColumnName(rows[i], true);
+                            for (var j = 0; j < obj.options.mergeCells[rows[i]][1]; j++) {
+                                addToResult(row[1]+j);
+                            }
+                        }
+                    } else {
+                        // Normal row found
+                        addToResult(k);
+                    }
+                    return true;
+                } else {
+                    return false;
+                }
+            });
+        } else {
+            obj.results = null;
+        }
+
+        var total = 0;
+        var index = 0;
+
+        // Page 1
+        if (obj.options.lazyLoading == true) {
+            total = 100;
+        } else if (obj.options.pagination > 0) {
+            total = obj.options.pagination;
+        } else {
+            if (obj.results) {
+                total = obj.results.length;
+            } else {
+                total = obj.rows.length;
+            }
+        }
+
+        // Hide all records from the table
+        obj.tbody.innerHTML = '';
+        for (var j = 0; j < obj.rows.length; j++) {
+            if (! obj.results || obj.results.indexOf(j) > -1) {
+                if (index < total) {
+                    obj.tbody.appendChild(obj.rows[j]);
+                    index++;
+                }
+                obj.rows[j].style.display = '';
+            } else {
+                obj.rows[j].style.display = 'none';
+            }
+        }
+
+        if (obj.options.pagination > 0) {
+            obj.updatePagination();
+        }
+
+        return total;
+    }
+
+    /**
+     * Which page the cell is
+     */
+    obj.whichPage = function(cell) {
+        return (Math.ceil((parseInt(cell) + 1) / parseInt(obj.options.pagination))) - 1;
+    }
+
+    /**
+     * Go to page
+     */
+    obj.page = function(pageNumber) {
+        // Search
+        if (obj.options.search == true && obj.results) {
+            var results = obj.results;
+        } else {
+            var results = obj.rows;
+        }
+
+        // Per page
+        var quantityPerPage = parseInt(obj.options.pagination);
+
+        // pageNumber
+        if (pageNumber == null || pageNumber == -1) {
+            // Last page
+            pageNumber = Math.ceil(results.length / quantityPerPage); 
+        }
+
+        // Page number
+        obj.pageNumber = pageNumber;
+
+        var startRow = (pageNumber * quantityPerPage);
+        var finalRow = (pageNumber * quantityPerPage) + quantityPerPage;
+        if (finalRow > results.length) {
+            finalRow = results.length;
+        }
+        if (startRow < 0) {
+            startRow = 0;
+        }
+
+        // Reset container
+        obj.tbody.innerHTML = '';
+
+        // Appeding items
+        for (var j = startRow; j < finalRow; j++) {
+            if (obj.options.search == true && obj.results) {
+                obj.tbody.appendChild(obj.rows[results[j]]);
+            } else {
+                obj.tbody.appendChild(obj.rows[j]);
+            }
+        }
+
+        if (obj.options.pagination > 0) {
+            obj.updatePagination();
+        }
+
+        // Update corner position
+        obj.updateCornerPosition();
+    }
+
+    /**
+     * Update the pagination
+     */
+    obj.updatePagination = function() {
+        // Reset container
+        obj.pagination.children[0].innerHTML = '';
+        obj.pagination.children[1].innerHTML = '';
+
+        // Start pagination
+        if (obj.options.pagination) {
+            // Searchable
+            if (obj.options.search == true && obj.results) {
+                var results = obj.results.length;
+            } else {
+                var results = obj.rows.length;
+            }
+
+            if (! results) {
+                // No records found
+                obj.pagination.children[0].innerHTML = obj.options.text.noRecordsFound;
+            } else {
+                // Pagination container
+                var quantyOfPages = Math.ceil(results / obj.options.pagination);
+
+                if (obj.pageNumber < 6) {
+                    var startNumber = 1;
+                    var finalNumber = quantyOfPages < 10 ? quantyOfPages : 10;
+                } else if (quantyOfPages - obj.pageNumber < 5) {
+                    var startNumber = quantyOfPages - 9;
+                    var finalNumber = quantyOfPages;
+                } else {
+                    var startNumber = obj.pageNumber - 4;
+                    var finalNumber = obj.pageNumber + 5;
+                }
+
+                // First
+                if (startNumber > 1) {
+                    var paginationItem = document.createElement('div');
+                    paginationItem.className = 'jexcel_page';
+                    paginationItem.innerHTML = '<';
+                    paginationItem.title = 1;
+                    obj.pagination.children[1].appendChild(paginationItem);
+                }
+
+                // Get page links
+                for (var i = startNumber; i <= finalNumber; i++) {
+                    var paginationItem = document.createElement('div');
+                    paginationItem.className = 'jexcel_page';
+                    paginationItem.innerHTML = i;
+                    obj.pagination.children[1].appendChild(paginationItem);
+
+                    if (obj.pageNumber == (i-1)) {
+                        paginationItem.classList.add('jexcel_page_selected');
+                    }
+                }
+
+                // Last
+                if (finalNumber < quantyOfPages) {
+                    var paginationItem = document.createElement('div');
+                    paginationItem.className = 'jexcel_page';
+                    paginationItem.innerHTML = '>';
+                    paginationItem.title = quantyOfPages;
+                    obj.pagination.children[1].appendChild(paginationItem);
+                }
+
+                // Text
+                var format = function(format) {
+                    var args = Array.prototype.slice.call(arguments, 1);
+                    return format.replace(/{(\d+)}/g, function(match, number) { 
+                      return typeof args[number] != 'undefined'
+                        ? args[number] 
+                        : match
+                      ;
+                    });
+                };
+
+                obj.pagination.children[0].innerHTML = format(obj.options.text.showingPage, obj.pageNumber + 1, quantyOfPages)
+            }
+        }
+    }
+
+    /**
+     * Download CSV table
+     * 
+     * @return null
+     */
+    obj.download = function() {
+        if (obj.options.allowExport == false) {
+            console.error('Export not allowed');
+        } else {
+            // Data
+            var data = '';
+            // Get data
+            data += obj.copy(false, ',', true);
+            // Download element
+            var pom = document.createElement('a');
+            var blob = new Blob([data], {type: 'text/csv;charset=utf-8;'});
+            var url = URL.createObjectURL(blob);
+            pom.href = url;
+            pom.setAttribute('download', obj.options.csvFileName + '.csv');
+            document.body.appendChild(pom);
+            pom.click();
+            pom.remove();
+        }
+    }
+
+    /**
+     * Initializes a new history record for undo/redo
+     * 
+     * @return null
+     */
+    obj.setHistory = function(changes) {
+        if (obj.ignoreHistory != true) {
+            // Increment and get the current history index
+            var index = ++obj.historyIndex;
+
+            // Slice the array to discard undone changes
+            obj.history = (obj.history = obj.history.slice(0, index + 1));
+
+            // Keep history
+            obj.history[index] = changes;
+        }
+    }
+
+    /**
+     * Copy method
+     * 
+     * @param bool highlighted - Get only highlighted cells
+     * @param delimiter - \t default to keep compatibility with excel
+     * @return string value
+     */
+    obj.copy = function(highlighted, delimiter, returnData) {
+        if (! delimiter) {
+            delimiter = "\t";
+        }
+
+        // Controls
+        var col = [];
+        var colLabel = [];
+        var row = [];
+        var rowLabel = [];
+        var x = obj.options.data[0].length
+        var y = obj.options.data.length
+        var tmp = '';
+
+        // Reset container
+        obj.style = [];
+
+        // Go through the columns to get the data
+        for (var j = 0; j < y; j++) {
+            col = [];
+            colLabel = [];
+
+            for (var i = 0; i < x; i++) {
+                // If cell is highlighted
+                if (! highlighted || obj.records[j][i].classList.contains('highlight')) {
+                    // Values
+                    var value = obj.options.data[j][i];
+                    if (value.match && (value.match(/,/g) || value.match(/\n/) || value.match(/\"/))) {
+                        value = value.replace(new RegExp('"', 'g'), '""');
+                        value = '"' + value + '"'; 
+                    }
+                    col.push(value);
+
+                    // Labels
+                    var label = obj.records[j][i].innerHTML;
+                    if (label.match && (label.match(/,/g) || label.match(/\n/) || label.match(/\"/))) {
+                        // Scape double quotes
+                        label = label.replace(new RegExp('"', 'g'), '""');
+                        label = '"' + label + '"'; 
+                    }
+                    colLabel.push(label);
+
+                    // Get style
+                    tmp = obj.records[j][i].getAttribute('style');
+                    obj.style.push(tmp ? tmp : '');
+                }
+            }
+
+            if (col.length) {
+                row.push(col.join(delimiter));
+            }
+            if (colLabel.length) {
+                rowLabel.push(colLabel.join(delimiter));
+            }
+        }
+
+        // Final string
+        var str = row.join("\n");
+        var strLabel = rowLabel.join("\n");
+
+        // Create a hidden textarea to copy the values
+        if (! returnData) {
+            if (obj.options.copyCompatibility == true) {
+                obj.textarea.value = strLabel;
+            } else {
+                obj.textarea.value = str;
+            }
+            obj.textarea.select();
+            jexcel.copyControls.enabled = false;
+            document.execCommand("copy");
+            jexcel.copyControls.enabled = true;
+        }
+
+        // Keep data
+        obj.data = str; 
+        // Keep non visible information
+        obj.hashString = obj.hash(obj.textarea.value); 
+
+        return str;
+    }
+
+    /**
+     * jExcel paste method
+     * 
+     * @param integer row number
+     * @return string value
+     */
+    obj.paste = function(x, y, data) {
+        // Paste filter
+        if (typeof(obj.options.onbeforepaste) == 'function') {
+            var data = obj.options.onbeforepaste(data);
+        }
+
+        // Controls
+        var hash = obj.hash(data);
+        var style = (hash == obj.hashString) ? obj.style : null;
+
+        // Depending on the behavior
+        if (obj.options.copyCompatibility == true && hash == obj.hashString) {
+            var data = obj.data;
+        }
+
+        // Split new line
+        var data = obj.parseCSV(data, "\t");
+
+        if (x != null && y != null && data) {
+            // Records
+            var i = 0;
+            var j = 0;
+            var records = []; 
+            var newStyle = {};
+            var oldStyle = {};
+            var styleIndex = 0;
+
+            // Index
+            var colIndex = parseInt(x);
+            var rowIndex = parseInt(y);
+            var row = null;
+
+            // Go through the columns to get the data
+            while (row = data[j]) {
+                i = 0;
+                var colIndex = parseInt(x);
+
+                while (row[i] != null) {
+                    // Update and keep history
+                    var record = obj.updateCell(colIndex, rowIndex, row[i]);
+                    // Keep history
+                    records.push(record);
+                    // Style
+                    if (style) {
+                        var columnName = jexcel.getColumnNameFromId([colIndex, rowIndex]);
+                        newStyle[columnName] = style[styleIndex];
+                        oldStyle[columnName] = obj.getStyle(columnName);
+                        obj.records[rowIndex][colIndex].style = style[styleIndex];
+                        styleIndex++
+                    }
+                    i++;
+                    if (row[i] != null) {
+                        if (colIndex >= obj.headers.length - 1) {
+                            obj.insertColumn();
+                        }
+                        colIndex = obj.right.get(colIndex, rowIndex);
+                    }
+                }
+
+                j++;
+                if (data[j]) {
+                    if (rowIndex >= obj.rows.length-1) {
+                        obj.insertRow();
+                    }
+                    var rowIndex = obj.down.get(x, rowIndex);
+                }
+            }
+
+            // Select the new cells
+            obj.updateSelectionFromCoords(x, y, colIndex, rowIndex);
+
+            // Update history
+            obj.setHistory({
+                action:'setValue',
+                records:records,
+                selection:obj.selectedCell,
+                newStyle:newStyle,
+                oldStyle:oldStyle,
+            });
+
+            // Paste event
+            if (typeof(obj.options.onpaste) == 'function') {
+                obj.options.onpaste(el, records);
+            }
+
+            // Update table
+            obj.updateTable();
+        }
+    }
+
+    /**
+     * Process row
+     */
+    obj.historyProcessRow = function(type, historyRecord) {
+        var rowIndex = (! historyRecord.insertBefore) ? historyRecord.rowNumber + 1 : historyRecord.rowNumber;
+
+        if (obj.options.search == true) {
+            if (obj.results && obj.results.length != obj.rows.length) {
+                obj.resetSearch();
+            }
+        }
+
+        // Remove row
+        if (type == 1) {
+            var numOfRows = historyRecord.numOfRows;
+            // Remove nodes
+            for (var j = rowIndex; j < (numOfRows + rowIndex); j++) {
+                obj.rows[j].remove();
+            }
+            // Remove references
+            obj.records.splice(rowIndex, numOfRows);
+            obj.options.data.splice(rowIndex, numOfRows);
+            obj.rows.splice(rowIndex, numOfRows);
+
+            obj.conditionalSelectionUpdate(1, rowIndex, (numOfRows + rowIndex) - 1);
+        } else {
+            // Insert data
+            obj.records = obj.records.injectArray(rowIndex, historyRecord.rowRecords);
+            obj.options.data = obj.options.data.injectArray(rowIndex, historyRecord.rowData);
+            obj.rows = obj.rows.injectArray(rowIndex, historyRecord.rowNode);
+            // Insert nodes
+            var index = 0
+            for (var j = rowIndex; j < (historyRecord.numOfRows + rowIndex); j++) {
+                obj.tbody.insertBefore(historyRecord.rowNode[index], obj.tbody.children[j]);
+                index++;
+            }
+        }
+
+        // Respect pagination
+        if (obj.options.pagination > 0) {
+            obj.page(obj.pageNumber);
+        }
+
+        obj.updateTableReferences();
+    }
+
+    /**
+     * Process column
+     */
+    obj.historyProcessColumn = function(type, historyRecord) {
+        var columnIndex = (! historyRecord.insertBefore) ? historyRecord.columnNumber + 1 : historyRecord.columnNumber;
+
+        // Remove column
+        if (type == 1) {
+            var numOfColumns = historyRecord.numOfColumns;
+
+            obj.options.columns.splice(columnIndex, numOfColumns);
+            for (var i = columnIndex; i < (numOfColumns + columnIndex); i++) {
+                obj.headers[i].remove();
+                obj.colgroup[i].remove();
+            }
+            obj.headers.splice(columnIndex, numOfColumns);
+            obj.colgroup.splice(columnIndex, numOfColumns);
+            for (var j = 0; j < historyRecord.data.length; j++) {
+                for (var i = columnIndex; i < (numOfColumns + columnIndex); i++) {
+                    obj.records[j][i].remove();
+                }
+                obj.records[j].splice(columnIndex, numOfColumns);
+                obj.options.data[j].splice(columnIndex, numOfColumns);
+            }
+
+            obj.conditionalSelectionUpdate(0, columnIndex, (numOfColumns + columnIndex) - 1);
+        } else {
+            // Insert data
+            obj.options.columns = obj.options.columns.injectArray(columnIndex, historyRecord.columns);
+            obj.headers = obj.headers.injectArray(columnIndex, historyRecord.headers);
+            obj.colgroup = obj.colgroup.injectArray(columnIndex, historyRecord.colgroup);
+
+            var index = 0
+            for (var i = columnIndex; i < (historyRecord.numOfColumns + columnIndex); i++) {
+                obj.headerContainer.insertBefore(historyRecord.headers[index], obj.headerContainer.children[i+1]);
+                obj.colgroupContainer.insertBefore(historyRecord.colgroup[index], obj.colgroupContainer.children[i+1]);
+                index++;
+            }
+
+            for (var j = 0; j < historyRecord.data.length; j++) {
+                obj.options.data[j] = obj.options.data[j].injectArray(columnIndex, historyRecord.data[j]);
+                obj.records[j] = obj.records[j].injectArray(columnIndex, historyRecord.records[j]);
+                var index = 0
+                for (var i = columnIndex; i < (historyRecord.numOfColumns + columnIndex); i++) {
+                    obj.rows[j].insertBefore(historyRecord.records[j][index], obj.rows[j].children[i+1]);
+                    index++;
+                }
+            }
+        }
+
+        // Adjust nested headers
+        if (obj.options.nestedHeaders && obj.options.nestedHeaders.length > 0) {
+            // Flexible way to handle nestedheaders
+            if (obj.options.nestedHeaders[0] && obj.options.nestedHeaders[0][0]) {
+                for (var j = 0; j < obj.options.nestedHeaders.length; j++) {
+                    if (type == 1) {
+                        var colspan = parseInt(obj.options.nestedHeaders[j][obj.options.nestedHeaders[j].length-1].colspan) - historyRecord.numOfColumns;
+                    } else {
+                        var colspan = parseInt(obj.options.nestedHeaders[j][obj.options.nestedHeaders[j].length-1].colspan) + historyRecord.numOfColumns;
+                    }
+                    obj.options.nestedHeaders[j][obj.options.nestedHeaders[j].length-1].colspan = colspan;
+                    obj.thead.children[j].children[obj.thead.children[j].children.length-1].setAttribute('colspan', colspan);
+                }
+            } else {
+                if (type == 1) {
+                    var colspan = parseInt(obj.options.nestedHeaders[0].colspan) - historyRecord.numOfColumns;
+                } else {
+                    var colspan = parseInt(obj.options.nestedHeaders[0].colspan) + historyRecord.numOfColumns;
+                }
+                obj.options.nestedHeaders[0].colspan = colspan;
+                obj.thead.children[0].children[obj.thead.children[0].children.length-1].setAttribute('colspan', colspan);
+            }
+        }
+
+        obj.updateTableReferences();
+    }
+
+    /**
+     * Undo last action
+     */
+    obj.undo = function() {
+        // Ignore events and history
+        var ignoreEvents = obj.ignoreEvents ? true : false;
+        var ignoreHistory = obj.ignoreHistory ? true : false;
+
+        obj.ignoreEvents = true;
+        obj.ignoreHistory = true;
+
+        // Records
+        var records = [];
+
+        // Update cells
+        if (obj.historyIndex >= 0) {
+            // History
+            var historyRecord = obj.history[obj.historyIndex--];
+
+            if (historyRecord.action == 'insertRow') {
+                obj.historyProcessRow(1, historyRecord);
+            } else if (historyRecord.action == 'deleteRow') {
+                obj.historyProcessRow(0, historyRecord);
+            } else if (historyRecord.action == 'insertColumn') {
+                obj.historyProcessColumn(1, historyRecord);
+            } else if (historyRecord.action == 'deleteColumn') {
+                obj.historyProcessColumn(0, historyRecord);
+            } else if (historyRecord.action == 'moveRow') {
+                obj.moveRow(historyRecord.newValue, historyRecord.oldValue);
+            } else if (historyRecord.action == 'moveColumn') {
+                obj.moveColumn(historyRecord.newValue, historyRecord.oldValue);
+            } else if (historyRecord.action == 'setMerge') {
+                obj.removeMerge(historyRecord.column, historyRecord.data);
+            } else if (historyRecord.action == 'setStyle') {
+                obj.setStyle(historyRecord.oldValue, null, null, 1);
+            } else if (historyRecord.action == 'setWidth') {
+                obj.setWidth(historyRecord.column, historyRecord.oldValue);
+            } else if (historyRecord.action == 'setHeight') {
+                obj.setHeight(historyRecord.row, historyRecord.oldValue);
+            } else if (historyRecord.action == 'setHeader') {
+                obj.setHeader(historyRecord.column, historyRecord.oldValue);
+            } else if (historyRecord.action == 'setComments') {
+                obj.setComments(historyRecord.column, historyRecord.oldValue[0], historyRecord.oldValue[1]);
+            } else if (historyRecord.action == 'orderBy') {
+                var rows = [];
+                for (var j = 0; j < historyRecord.rows.length; j++) {
+                    rows[historyRecord.rows[j]] = j;
+                }
+                obj.updateOrderArrow(historyRecord.column, historyRecord.order ? 0 : 1);
+                obj.updateOrder(rows);
+            } else if (historyRecord.action == 'setValue') {
+                // Redo for changes in cells
+                for (var i = 0; i < historyRecord.records.length; i++) {
+                    obj.updateCell(historyRecord.records[i].col, historyRecord.records[i].row, historyRecord.records[i].oldValue);
+                    if (historyRecord.oldStyle) {
+                        obj.resetStyle(historyRecord.oldStyle, true);
+                    }
+                }
+                // Update selection
+                if (! historyRecord.selection) {
+                    historyRecord.selection = [historyRecord.records[0].col, historyRecord.records[0].row];
+                }
+                obj.updateSelectionFromCoords(historyRecord.selection[0], historyRecord.selection[1], historyRecord.selection[2], historyRecord.selection[3]);
+                // Update table
+                obj.updateTable();
+            }
+        }
+        obj.ignoreEvents = ignoreEvents;
+        obj.ignoreHistory = ignoreHistory;
+    }
+
+    /**
+     * Redo previously undone action
+     */
+    obj.redo = function() {
+        // Ignore events and history
+        var ignoreEvents = obj.ignoreEvents ? true : false;
+        var ignoreHistory = obj.ignoreHistory ? true : false;
+
+        obj.ignoreEvents = true;
+        obj.ignoreHistory = true;
+
+        // Records
+        var records = [];
+
+        // Update cells
+        if (obj.historyIndex < obj.history.length - 1) {
+            // History
+            var historyRecord = obj.history[++obj.historyIndex];
+
+            if (historyRecord.action == 'insertRow') {
+                obj.historyProcessRow(0, historyRecord);
+            } else if (historyRecord.action == 'deleteRow') {
+                obj.historyProcessRow(1, historyRecord);
+            } else if (historyRecord.action == 'insertColumn') {
+                obj.historyProcessColumn(0, historyRecord);
+            } else if (historyRecord.action == 'deleteColumn') {
+                obj.historyProcessColumn(1, historyRecord);
+            } else if (historyRecord.action == 'moveRow') {
+                obj.moveRow(historyRecord.oldValue, historyRecord.newValue);
+            } else if (historyRecord.action == 'moveColumn') {
+                obj.moveColumn(historyRecord.oldValue, historyRecord.newValue);
+            } else if (historyRecord.action == 'setMerge') {
+                obj.setMerge(historyRecord.column, historyRecord.colspan, historyRecord.rowspan, 1);
+            } else if (historyRecord.action == 'setStyle') {
+                obj.setStyle(historyRecord.newValue, null, null, 1);
+            } else if (historyRecord.action == 'setWidth') {
+                obj.setWidth(historyRecord.column, historyRecord.newValue);
+            } else if (historyRecord.action == 'setHeight') {
+                obj.setHeight(historyRecord.row, historyRecord.newValue);
+            } else if (historyRecord.action == 'setHeader') {
+                obj.setHeader(historyRecord.column, historyRecord.newValue);
+            } else if (historyRecord.action == 'setComments') {
+                obj.setComments(historyRecord.column, historyRecord.newValue[0], historyRecord.newValue[1]);
+            } else if (historyRecord.action == 'orderBy') {
+                obj.updateOrderArrow(historyRecord.column, historyRecord.order);
+                obj.updateOrder(historyRecord.rows);
+            } else if (historyRecord.action == 'setValue') {
+                // Redo for changes in cells
+                for (var i = 0; i < historyRecord.records.length; i++) {
+                    obj.updateCell(historyRecord.records[i].col, historyRecord.records[i].row, historyRecord.records[i].newValue);
+                    if (historyRecord.newStyle) {
+                        obj.resetStyle(historyRecord.newStyle, true);
+                    }
+                }
+
+                // Update selection
+                if (! historyRecord.selection) {
+                    historyRecord.selection = [historyRecord.records[0].col, historyRecord.records[0].row];
+                }
+                obj.updateSelectionFromCoords(historyRecord.selection[0], historyRecord.selection[1], historyRecord.selection[2], historyRecord.selection[3]);
+                // Update table
+                obj.updateTable();
+            }
+        }
+        obj.ignoreEvents = ignoreEvents;
+        obj.ignoreHistory = ignoreHistory;
+    }
+
+    /**
+     * Get dropdown value from key
+     */
+    obj.getDropDownValue = function(column, key) {
+        var value = [];
+
+        if (obj.options.columns[column] && obj.options.columns[column].source) {
+            // Create array from source
+            var combo = [];
+            var source = obj.options.columns[column].source;
+
+            for (var i = 0; i < source.length; i++) {
+                if (typeof(source[i]) == 'object') {
+                    combo[source[i].id] = source[i].name;
+                } else {
+                    combo[source[i]] = source[i];
+                }
+            }
+
+            // Garante single multiple compatibily
+            var keys = ('' + key).split(';')
+
+            for (var i = 0; i < keys.length; i++) {
+                if (combo[keys[i]]) {
+                    value.push(combo[keys[i]]);
+                }
+            }
+        } else {
+            console.error('Invalid column');
+        }
+
+        return (value.length > 0) ? value.join('; ') : '';
+    }
+
+    /**
+     * From starckoverflow contributions
+     */
+    obj.parseCSV = function(str, delimiter) {
+        // Remove last line break
+        str = str.replace(/\r?\n$|\r$|\n$/g, "");
+        // Last caracter is the delimiter
+        if (str.charCodeAt(str.length-1) == 9) {
+            str += "\0";
+        }
+        // user-supplied delimeter or default comma
+        delimiter = (delimiter || ",");
+
+        var arr = [];
+        var quote = false;  // true means we're inside a quoted field
+        // iterate over each character, keep track of current row and column (of the returned array)
+        for (var row = 0, col = 0, c = 0; c < str.length; c++) {
+            var cc = str[c], nc = str[c+1];
+            arr[row] = arr[row] || [];
+            arr[row][col] = arr[row][col] || '';
+
+            // If the current character is a quotation mark, and we're inside a quoted field, and the next character is also a quotation mark, add a quotation mark to the current column and skip the next character
+            if (cc == '"' && quote && nc == '"') { arr[row][col] += cc; ++c; continue; }  
+
+            // If it's just one quotation mark, begin/end quoted field
+            if (cc == '"') { quote = !quote; continue; }
+
+            // If it's a comma and we're not in a quoted field, move on to the next column
+            if (cc == delimiter && !quote) { ++col; continue; }
+
+            // If it's a newline (CRLF) and we're not in a quoted field, skip the next character and move on to the next row and move to column 0 of that new row
+            if (cc == '\r' && nc == '\n' && !quote) { ++row; col = 0; ++c; continue; }
+
+            // If it's a newline (LF or CR) and we're not in a quoted field, move on to the next row and move to column 0 of that new row
+            if (cc == '\n' && !quote) { ++row; col = 0; continue; }
+            if (cc == '\r' && !quote) { ++row; col = 0; continue; }
+
+            // Otherwise, append the current character to the current column
+            arr[row][col] += cc;
+        }
+        return arr;
+    }
+
+    obj.hash = function(str) {
+        var output = '';
+        for (var i = 0; i < str.length; i++) {
+            if (str.charCodeAt(i) > 30 && str.charCodeAt(i) <= 127) {
+                output += str.charAt(i);
+            }
+        }
+        return output.split('').reduce((prevHash, currVal) => ((prevHash << 5) - prevHash) + currVal.charCodeAt(0), 0);
+    }
+
+    /**
+     * Initialization method
+     */
+    obj.init = function() {
+        jexcel.current = obj;
+
+        // Build handlers
+        if (typeof(jexcel.build) == 'function') {
+            jexcel.build();
+            jexcel.build = null;
+        }
+
+        // Loading
+        if (obj.options.loadingSpin == true) {
+            jSuites.loading.show();
+        }
+
+        // Load the table data based on an CSV file
+        if (obj.options.csv) {
+            // Load CSV file
+            fetch(obj.options.csv)
+                .then(function(data) {
+                    data.text().then(function(data) {
+                        // Convert data
+                        var data = obj.parseCSV(data, obj.options.csvDelimiter)
+
+                        // Headers
+                        if (obj.options.csvHeaders == true) {
+                            var headers = data.shift();
+                            for(var i = 0; i < headers.length; i++) {
+                                if (! obj.options.columns[i]) {
+                                    obj.options.columns[i] = { type:'text', align:'center', width:obj.options.defaultColWidth };
+                                }
+                                obj.options.columns[i].title = headers[i];
+                            }
+                        }
+
+                        // Data
+                        obj.options.data = data;
+                        // Prepare table
+                        obj.prepareTable();
+                        // Hide spin
+                        if (obj.options.loadingSpin == true) {
+                            jSuites.loading.hide();
+                        }
+                    });
+                });
+        } else if (obj.options.url) {
+            fetch(obj.options.url, { headers: new Headers({ 'content-type': 'text/json' }) })
+                .then(function(data) {
+                    data.json().then(function(result) {
+                        // Data
+                        obj.options.data = (result.data) ? result.data : result;
+                        // Prepare table
+                        obj.prepareTable();
+                        // Hide spin
+                        if (obj.options.loadingSpin == true) {
+                            jSuites.loading.hide();
+                        }
+                    });
+                });
+        } else {
+            // Prepare table
+            obj.prepareTable();
+        }
+    }
+
+    // Helpers
+    Array.prototype.injectArray = function(idx, arr) {
+        return this.slice(0, idx).concat(arr).concat(this.slice(idx));
+    }
+
+    // Context menu
+    if (options && options.contextMenu != null) {
+        obj.options.contextMenu = options.contextMenu;
+    } else {
+        obj.options.contextMenu = function(el, x, y, e) {
+            var items = [];
+
+            if (y == null) {
+                // Insert a new column
+                if (obj.options.allowInsertColumn == true) {
+                    items.push({
+                        title:obj.options.text.insertANewColumnBefore,
+                        onclick:function() {
+                            obj.insertColumn(1, parseInt(x), 1);
+                        }
+                    });
+                }
+
+                if (obj.options.allowInsertColumn == true) {
+                    items.push({
+                        title:obj.options.text.insertANewColumnAfter,
+                        onclick:function() {
+                            obj.insertColumn(1, parseInt(x), 0);
+                        }
+                    });
+                }
+
+                // Delete a column
+                if (obj.options.allowDeleteColumn == true) {
+                    items.push({
+                        title:obj.options.text.deleteSelectedColumns,
+                        onclick:function() {
+                            obj.deleteColumn();
+                        }
+                    });
+                }
+
+                // Rename column
+                if (obj.options.allowRenameColumn == true) {
+                    items.push({
+                        title:obj.options.text.renameThisColumn,
+                        onclick:function() {
+                            obj.setHeader(x);
+                        }
+                    });
+                }
+
+                // Line
+                items.push({ type:'line' });
+
+                // Sorting
+                if (obj.options.allowDeleteColumn == true) {
+                    items.push({
+                        title:obj.options.text.orderAscending,
+                        onclick:function() {
+                            obj.orderBy(x, 0);
+                        }
+                    });
+                    items.push({
+                        title:obj.options.text.orderDescending,
+                        onclick:function() {
+                            obj.orderBy(x, 1);
+                        }
+                    });
+                }
+            } else {
+                // Insert new row
+                if (obj.options.allowInsertRow == true) {
+                    items.push({
+                        title:obj.options.text.insertANewRowBefore,
+                        onclick:function() {
+                            obj.insertRow(1, parseInt(y), 1);
+                        }
+                    });
+                    
+                    items.push({
+                        title:obj.options.text.insertANewRowAfter,
+                        onclick:function() {
+                            obj.insertRow(1, parseInt(y));
+                        }
+                    });
+                }
+
+                if (obj.options.allowDeleteRow == true) {
+                    items.push({
+                        title:obj.options.text.deleteSelectedRows,
+                        onclick:function() {
+                            obj.deleteRow();
+                        }
+                    });
+                }
+
+                if (x) {
+                    if (obj.options.allowComments == true) {
+                        items.push({ type:'line' });
+
+                        var title = obj.records[y][x].getAttribute('title') || '';
+
+                        items.push({
+                            title: title ? obj.options.text.editComments : obj.options.text.addComments,
+                            onclick:function() {
+                                obj.setComments([ x, y ], prompt(obj.options.text.comments, title));
+                            }
+                        });
+
+                        if (title) {
+                            items.push({
+                                title:obj.options.text.clearComments,
+                                onclick:function() {
+                                    obj.setComments([ x, y ], '');
+                                }
+                            });
+                        }
+                    }
+                }
+            }
+
+            // Line
+            items.push({ type:'line' });
+
+            // Copy
+            items.push({
+                title:obj.options.text.copy,
+                shortcut:'Ctrl + C',
+                onclick:function() {
+                    obj.copy(true);
+                }
+            });
+
+            // Paste
+            if (navigator && navigator.clipboard) {
+                items.push({
+                    title:obj.options.text.paste,
+                    shortcut:'Ctrl + V',
+                    onclick:function() {
+                        if (obj.selectedCell) {
+                            navigator.clipboard.readText().then(function(text) {
+                                if (text) {
+                                    jexcel.current.paste(obj.selectedCell[0], obj.selectedCell[1], text);
+                                }
+                            });
+                        }
+                    }
+                });
+            }
+
+            // Save
+            items.push({
+                title:obj.options.text.saveAs,
+                shortcut:'Ctrl + S',
+                onclick:function() {
+                    obj.download(true);
+                }
+            });
+
+            // About
+            if (obj.options.about) {
+                items.push({
+                    title:obj.options.text.about,
+                    onclick:function() {
+                        alert(obj.options.about);
+                    }
+                });
+            }
+
+            return items;
+        }
+    }
+
+    obj.scrollControls = function(e) {
+        if (obj.options.lazyLoading == true) {
+            if (jexcel.timeControlLoading == null) {
+                jexcel.timeControlLoading = setTimeout(function() {
+                    if (obj.content.scrollTop + obj.content.clientHeight >= obj.content.scrollHeight) {
+                        if (obj.loadDown()) {
+                            if (obj.content.scrollTop + obj.content.clientHeight > obj.content.scrollHeight - 10) {
+                                obj.content.scrollTop = obj.content.scrollTop - obj.content.clientHeight;
+                            }
+                            obj.updateCornerPosition();
+                        }
+                    } else if (obj.content.scrollTop <= obj.content.clientHeight) {
+                        if (obj.loadUp()) {
+                            if (obj.content.scrollTop < 10) {
+                                obj.content.scrollTop = obj.content.scrollTop + obj.content.clientHeight;
+                            }
+                            obj.updateCornerPosition();
+                        }
+                    }
+
+                    jexcel.timeControlLoading = null;
+                }, 100);
+            }
+        }
+
+        // Close editor
+        if (obj.options.lazyLoading == true || obj.options.tableOverflow == true) {
+            if (obj.edition && e.target.className.substr(0,9) != 'jdropdown') {
+                obj.closeEditor(obj.edition[0], true);
+            }
+        }
+    }
+
+    el.addEventListener("scroll", obj.scrollControls);
+    el.addEventListener("mousewheel", obj.scrollControls);
+
+    obj.init();
+
+    el.jexcel = obj;
+
+    return obj;
+});
+
+jexcel.current = null;
+jexcel.timeControl = null;
+jexcel.timeControlLoading= null;
+
+jexcel.destroy = function(element, destroyEventHandlers) {
+    if (element.jexcel) {
+        element.jexcel = null;
+        element.innerHTML = '';
+
+        if (destroyEventHandlers) {
+            document.removeEventListener("keydown", jexcel.keyDownControls);
+            document.removeEventListener("mouseup", jexcel.mouseUpControls);
+            document.removeEventListener("mousedown", jexcel.mouseDownControls);
+            document.removeEventListener("mousemove", jexcel.mouseMoveControls);
+            document.removeEventListener("mouseover", jexcel.mouseOverControls);
+            document.removeEventListener("dblclick", jexcel.doubleClickControls);
+            document.removeEventListener("copy", jexcel.copyControls);
+            document.removeEventListener("cut", jexcel.cutControls);
+            document.removeEventListener("paste", jexcel.pasteControls);
+            document.removeEventListener("contextmenu", jexcel.contextMenuControls);
+            document.removeEventListener("touchstart", jexcel.touchStartControls);
+            document.removeEventListener("touchend", jexcel.touchEndControls);
+            document.removeEventListener("touchcancel", jexcel.touchEndControls);
+            jexcel = null;
+        }
+    }
+}
+
+jexcel.build = function() {
+    document.addEventListener("keydown", jexcel.keyDownControls);
+    document.addEventListener("mouseup", jexcel.mouseUpControls);
+    document.addEventListener("mousedown", jexcel.mouseDownControls);
+    document.addEventListener("mousemove", jexcel.mouseMoveControls);
+    document.addEventListener("mouseover", jexcel.mouseOverControls);
+    document.addEventListener("dblclick", jexcel.doubleClickControls);
+    document.addEventListener("copy", jexcel.copyControls);
+    document.addEventListener("cut", jexcel.cutControls);
+    document.addEventListener("paste", jexcel.pasteControls);
+    document.addEventListener("contextmenu", jexcel.contextMenuControls);
+    document.addEventListener("touchstart", jexcel.touchStartControls);
+    document.addEventListener("touchend", jexcel.touchEndControls);
+    document.addEventListener("touchcancel", jexcel.touchEndControls);
+    document.addEventListener("touchmove", jexcel.touchEndControls);
+}
+
+/**
+ * Get letter based on a number
+ * 
+ * @param integer i
+ * @return string letter
+ */
+jexcel.getColumnName = function(i) {
+    var letter = '';
+    if (i > 701) {
+        letter += String.fromCharCode(64 + parseInt(i / 676));
+        letter += String.fromCharCode(64 + parseInt((i % 676) / 26));
+    } else if (i > 25) {
+        letter += String.fromCharCode(64 + parseInt(i / 26));
+    }
+    letter += String.fromCharCode(65 + (i % 26));
+
+    return letter;
+}
+
+/**
+ * Convert excel like column to jexcel id
+ * 
+ * @param string id
+ * @return string id
+ */
+jexcel.getIdFromColumnName = function (id, arr) {
+    // Get the letters
+    var t = /^[a-zA-Z]+/.exec(id);
+
+    if (t) {
+        // Base 26 calculation
+        var code = 0;
+        for (var i = 0; i < t[0].length; i++) {
+            code += parseInt(t[0].charCodeAt(i) - 64) * Math.pow(26, (t[0].length - 1 - i));
+        }
+        code--;
+        // Make sure jexcel starts on zero
+        if (code < 0) {
+            code = 0;
+        }
+
+        // Number
+        var number = parseInt(/[0-9]+$/.exec(id));
+        if (number > 0) {
+            number--;
+        }
+
+        if (arr == true) {
+            id = [ code, number ];
+        } else {
+            id = code + '-' + number;
+        }
+    }
+
+    return id;
+}
+
+/**
+ * Convert jexcel id to excel like column name
+ * 
+ * @param string id
+ * @return string id
+ */
+jexcel.getColumnNameFromId = function (cellId) {
+    if (! Array.isArray(cellId)) {
+        cellId = cellId.split('-');
+    }
+
+    return jexcel.getColumnName(parseInt(cellId[0])) + (parseInt(cellId[1]) + 1);
+}
+
+/**
+ * Inside jexcel table
+ * 
+ * @param string id
+ * @return string id
+ */
+jexcel.getElement = function(element) {
+    var jexcelSection = 0;
+    var jexcelElement = 0;
+
+    function path (element) {
+        if (element.className) {
+            if (element.classList.contains('jexcel_container')) {
+                jexcelElement = element;
+            }
+        }
+
+        if (element.tagName == 'THEAD') {
+            jexcelSection = 1;
+        } else if (element.tagName == 'TBODY') {
+            jexcelSection = 2;
+        }
+
+        if (element.parentNode) {
+            path(element.parentNode);
+        }
+    }
+
+    path(element);
+
+    return [ jexcelElement, jexcelSection ];
+}
+
+/**
+ * Events
+ */
+jexcel.keyDownControls = function(e) {
+    if (jexcel.current) {
+        if (jexcel.current.edition) {
+            if (e.which == 27) {
+                // Escape
+                if (jexcel.current.edition) {
+                    // Exit without saving
+                    jexcel.current.closeEditor(jexcel.current.edition[0], false);
+                }
+                e.preventDefault();
+            } else if (e.which == 13) {
+                // Enter
+                if (jexcel.current.options.columns[jexcel.current.edition[2]].type == 'calendar') {
+                    jexcel.current.editor[0].children[0].calendar.close(1);
+                } else if (jexcel.current.options.columns[jexcel.current.edition[2]].type == 'dropdown' ||
+                           jexcel.current.options.columns[jexcel.current.edition[2]].type == 'autocomplete') {
+                    // Do nothing
+                } else {
+                    // Alt enter -> do not close editor
+                    if ((jexcel.current.options.wordWrap == true ||
+                         jexcel.current.options.columns[jexcel.current.edition[2]].wordWrap == true ||
+                         jexcel.current.options.data[jexcel.current.edition[3]][jexcel.current.edition[2]].length > 200) && e.altKey) {
+                        // Add new line to the editor
+                        var editorTextarea = jexcel.current.edition[0].children[0];
+                        var editorValue = jexcel.current.edition[0].children[0].value;
+                        var editorIndexOf = editorTextarea.selectionStart;
+                        editorValue = editorValue.slice(0, editorIndexOf) + "\n" + editorValue.slice(editorIndexOf);
+                        editorTextarea.value = editorValue;
+                        editorTextarea.focus();
+                        editorTextarea.selectionStart = editorIndexOf + 1;
+                        editorTextarea.selectionEnd = editorIndexOf + 1;
+                    } else {
+                        jexcel.current.edition[0].children[0].blur();
+                    }
+                }
+            } else if (e.which == 9) {
+                // Tab
+                if (jexcel.current.options.columns[jexcel.current.edition[2]].type == 'calendar') {
+                    jexcel.current.edition[0].children[0].calendar.close(1);
+                } else {
+                    jexcel.current.edition[0].children[0].blur();
+                }
+            }
+        }
+
+        if (! jexcel.current.edition && jexcel.current.selectedCell) {
+            // Which key
+            if (e.which == 37) {
+                jexcel.current.left(e.shiftKey, e.ctrlKey);
+                e.preventDefault();
+            } else if (e.which == 39) {
+                jexcel.current.right(e.shiftKey, e.ctrlKey);
+                e.preventDefault();
+            } else if (e.which == 38) {
+                jexcel.current.up(e.shiftKey, e.ctrlKey);
+                e.preventDefault();
+            } else if (e.which == 40) {
+                jexcel.current.down(e.shiftKey, e.ctrlKey);
+                e.preventDefault();
+            } else if (e.which == 36) {
+                jexcel.current.first(e.shiftKey, e.ctrlKey);
+                e.preventDefault();
+            } else if (e.which == 35) {
+                jexcel.current.last(e.shiftKey, e.ctrlKey);
+                e.preventDefault();
+            } else if (e.which == 32) {
+                if (jexcel.current.options.editable == true) {
+                    jexcel.current.setCheckRadioValue();
+                }
+                e.preventDefault();
+            } else if (e.which == 46) {
+                // Delete
+                if (jexcel.current.options.editable == true) {
+                    if (jexcel.current.selectedRow) {
+                        if (jexcel.current.options.allowDeleteRow == true) {
+                            if (confirm(jexcel.current.options.text.areYouSureToDeleteTheSelectedRows)) {
+                                jexcel.current.deleteRow();
+                            }
+                        }
+                    } else if (jexcel.current.selectedHeader) {
+                        if (jexcel.current.options.allowDeleteColumn == true) {
+                            if (confirm(jexcel.current.options.text.areYouSureToDeleteTheSelectedColumns)) {
+                                jexcel.current.deleteColumn();
+                            }
+                        }
+                    } else {
+                        // Change value
+                        jexcel.current.setValue(jexcel.current.highlighted, '');
+                    }
+                }
+            } else if (e.which == 13) {
+                // Move cursor
+                if (e.shiftKey) {
+                    jexcel.current.up();
+                } else {
+                    if (jexcel.current.options.allowInsertRow == true) {
+                        if (jexcel.current.options.allowManualInsertRow == true) {
+                            if (jexcel.current.selectedCell[1] == jexcel.current.options.data.length - 1) {
+                                // New record in case selectedCell in the last row
+                                jexcel.current.insertRow();
+                            }
+                        }
+                    }
+
+                    jexcel.current.down();
+                }
+                e.preventDefault();
+            } else if (e.which == 9) {
+                // Tab
+                if (e.shiftKey) {
+                    jexcel.current.left();
+                } else {
+                    if (jexcel.current.options.allowInsertColumn == true) {
+                        if (jexcel.current.options.allowManualInsertColumn == true) {
+                            if (jexcel.current.selectedCell[0] == jexcel.current.options.data[0].length - 1) {
+                                // New record in case selectedCell in the last column
+                                jexcel.current.insertColumn();
+                            }
+                        }
+                    }
+
+                    jexcel.current.right();
+                }
+                e.preventDefault();
+            } else {
+                if (! e.shiftKey) {
+                    if (e.ctrlKey || e.metaKey) {
+                        if (e.which == 65) {
+                            // Ctrl + A
+                            jexcel.current.selectAll();
+                            e.preventDefault();
+                        } else if (e.which == 83) {
+                            // Ctrl + S
+                            jexcel.current.download();
+                            e.preventDefault();
+                        } else if (e.which == 89) {
+                            // Ctrl + Y
+                            jexcel.current.redo();
+                            e.preventDefault();
+                        } else if (e.which == 90) {
+                            // Ctrl + Z
+                            jexcel.current.undo();
+                            e.preventDefault();
+                        }
+                    } else {
+                        if (jexcel.current.selectedCell) {
+                            if (jexcel.current.options.editable == true) {
+                                var rowId = jexcel.current.selectedCell[1];
+                                var columnId = jexcel.current.selectedCell[0];
+
+                                // If is not readonly
+                                if (jexcel.current.options.columns[columnId].type != 'readonly') {
+                                    // Characters able to start a edition
+                                    if (e.keyCode == 32) {
+                                        // Space
+                                        if (jexcel.current.options.columns[columnId].type == 'checkbox' ||
+                                            jexcel.current.options.columns[columnId].type == 'radio') {
+                                            e.preventDefault();
+                                        } else {
+                                            // Start edition
+                                            jexcel.current.openEditor(jexcel.current.records[rowId][columnId], true);
+                                        }
+                                    } else if ((e.keyCode == 113) ||
+                                               (e.keyCode == 110) ||
+                                               (e.keyCode >= 48 && e.keyCode <= 57) ||
+                                               (e.keyCode >= 65 && e.keyCode <= 90) ||
+                                               (e.keyCode >= 96 && e.keyCode <= 105) ||
+                                               (e.keyCode >= 186 && e.keyCode <= 190)) {
+                                        // Start edition
+                                        jexcel.current.openEditor(jexcel.current.records[rowId][columnId], true);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            if (e.target.classList.contains('jexcel_search')) {
+                if (jexcel.timeControl) {
+                    clearTimeout(jexcel.timeControl);
+                }
+
+                jexcel.timeControl = setTimeout(function() {
+                    jexcel.current.search(e.target.value);
+                }, 200);
+            }
+        }
+    }
+}
+
+jexcel.isMouseAction = false;
+
+jexcel.mouseDownControls = function(e) {
+    e = e || window.event;
+    if ("buttons" in e) {
+        var mouseButton = e.buttons;
+    } else {
+        var mouseButton = e.which || e.button;
+    }
+
+    // Get elements
+    var jexcelTable = jexcel.getElement(e.target);
+
+    if (jexcelTable[0]) {
+        if (jexcel.current != jexcelTable[0].jexcel) {
+            if (jexcel.current) {
+                jexcel.current.resetSelection();
+            }
+            jexcel.current = jexcelTable[0].jexcel;
+        }
+    } else {
+        if (jexcel.current) {
+            jexcel.current.resetSelection(true);
+            jexcel.current = null;
+        }
+    }
+
+    if (jexcel.current && mouseButton == 1) {
+        if (e.target.classList.contains('jexcel_corner')) {
+            if (jexcel.current.options.editable == true) {
+                jexcel.current.selectedCorner = true;
+            }
+        } else {
+            // Header found
+            if (jexcelTable[1] == 1) {
+                var columnId = e.target.getAttribute('data-x');
+                if (columnId) {
+                    // Update cursor
+                    var info = e.target.getBoundingClientRect();
+                    if (jexcel.current.options.columnResize == true && info.width - e.offsetX < 6) {
+                        // Resize helper
+                        jexcel.current.resizing = {
+                            mousePosition: e.pageX,
+                            column: columnId,
+                            width: info.width,
+                        };
+
+                        // Border indication
+                        jexcel.current.headers[columnId].classList.add('resizing');
+                        for (var j = 0; j < jexcel.current.records.length; j++) {
+                            jexcel.current.records[j][columnId].classList.add('resizing');
+                        }
+                    } else if (jexcel.current.options.columnDrag == true && info.height - e.offsetY < 6) {
+                        if (jexcel.current.isColMerged(columnId).length) {
+                            console.error('JEXCEL: This column is part of a merged cell.');
+                        } else {
+                            // Reset selection
+                            jexcel.current.resetSelection();
+                            // Drag helper
+                            jexcel.current.dragging = {
+                                element: e.target,
+                                column:columnId,
+                                destination:columnId,
+                            };
+                            // Border indication
+                            jexcel.current.headers[columnId].classList.add('dragging');
+                            for (var j = 0; j < jexcel.current.records.length; j++) {
+                                jexcel.current.records[j][columnId].classList.add('dragging');
+                            }
+                        }
+                    } else {
+                        if (jexcel.current.selectedHeader && (e.shiftKey || e.ctrlKey)) {
+                            var o = jexcel.current.selectedHeader;
+                            var d = columnId;
+                        } else {
+                            // Press to rename
+                            if (jexcel.current.selectedHeader == columnId && jexcel.current.options.allowRenameColumn == true) {
+                                jexcel.timeControl = setTimeout(function() {
+                                    jexcel.current.setHeader(columnId);
+                                }, 800);
+                            }
+
+                            // Keep track of which header was selected first
+                            jexcel.current.selectedHeader = columnId;
+
+                            // Update selection single column
+                            var o = columnId;
+                            var d = columnId;
+                        }
+
+                        // Update selection
+                        jexcel.current.updateSelectionFromCoords(o, 0, d, jexcel.current.options.data.length - 1);
+                    }
+                } else {
+                    if (e.target.parentNode.classList.contains('jexcel_nested')) {
+                        var column = e.target.getAttribute('data-column').split(',');
+                        var c1 = parseInt(column[0]);
+                        var c2 = parseInt(column[column.length-1]);
+                        jexcel.current.updateSelectionFromCoords(c1, 0, c2, jexcel.current.options.data.length - 1);
+                    }
+                }
+            } else {
+                jexcel.current.selectedHeader = false;
+            }
+
+            // Body found
+            if (jexcelTable[1] == 2) {
+                var rowId = e.target.getAttribute('data-y');
+
+                if (e.target.classList.contains('jexcel_row')) {
+                    var info = e.target.getBoundingClientRect();
+                    if (jexcel.current.options.rowResize == true && info.height - e.offsetY < 6) {
+                        // Resize helper
+                        jexcel.current.resizing = {
+                            element: e.target.parentNode,
+                            mousePosition: e.pageY,
+                            row: rowId,
+                            height: info.height,
+                        };
+                        // Border indication
+                        e.target.parentNode.classList.add('resizing');
+                    } else if (jexcel.current.options.rowDrag == true && info.width - e.offsetX < 6) {
+                        if (jexcel.current.isRowMerged(rowId).length) {
+                            console.error('JEXCEL: This row is part of a merged cell');
+                        } else if (jexcel.current.options.search == true && jexcel.current.results) {
+                            console.error('JEXCEL: Please clear your search before perform this action');
+                        } else {
+                            // Reset selection
+                            jexcel.current.resetSelection();
+                            // Drag helper
+                            jexcel.current.dragging = {
+                                element: e.target.parentNode,
+                                row:rowId,
+                                destination:rowId,
+                            };
+                            // Border indication
+                            e.target.parentNode.classList.add('dragging');
+                        }
+                    } else {
+                        if (jexcel.current.selectedRow && (e.shiftKey || e.ctrlKey)) {
+                            var o = jexcel.current.selectedRow;
+                            var d = rowId;
+                        } else {
+                            // Keep track of which header was selected first
+                            jexcel.current.selectedRow = rowId;
+
+                            // Update selection single column
+                            var o = rowId;
+                            var d = rowId;
+                        }
+
+                        // Update selection
+                        jexcel.current.updateSelectionFromCoords(0, o, jexcel.current.options.data[0].length - 1, d);
+                    }
+                } else {
+                    // Jclose
+                    if (e.target.classList.contains('jclose') && e.target.clientWidth - e.offsetX < 50 && e.offsetY < 50) {
+                        jexcel.current.closeEditor(jexcel.current.edition[0], true);
+                    } else {
+                        var getCellCoords = function(element) {
+                            var x = element.getAttribute('data-x');
+                            var y = element.getAttribute('data-y');
+                            if (x && y) {
+                                return [x, y];
+                            } else {
+                                if (element.parentNode) {
+                                    return getCellCoords(element.parentNode);
+                                }
+                            }
+                        };
+
+                        var position = getCellCoords(e.target);
+                        if (position) {
+                            var columnId = position[0];
+                            var rowId = position[1];
+                            // Close edition
+                            if (jexcel.current.edition) {
+                                if (jexcel.current.edition[2] != columnId || jexcel.current.edition[3] != rowId) {
+                                    jexcel.current.closeEditor(jexcel.current.edition[0], true);
+                                }
+                            }
+
+                            if (! jexcel.current.edition) {
+                                // Update cell selection
+                                if (e.shiftKey) {
+                                    jexcel.current.updateSelectionFromCoords(jexcel.current.selectedCell[0], jexcel.current.selectedCell[1], columnId, rowId);
+                                } else {
+                                    jexcel.current.updateSelectionFromCoords(columnId, rowId);
+                                }
+                            }
+
+                            // No full row selected
+                            jexcel.current.selectedHeader = null;
+                            jexcel.current.selectedRow = null;
+                        }
+                    }
+                }
+            } else {
+                jexcel.current.selectedRow = false;
+            }
+
+            // Pagination
+            if (e.target.classList.contains('jexcel_page')) {
+                if (e.target.innerText == '<') {
+                    jexcel.current.page(0);
+                } else if (e.target.innerText == '>') {
+                    jexcel.current.page(e.target.getAttribute('title') - 1);
+                } else {
+                    jexcel.current.page(e.target.innerText - 1);
+                }
+            }
+        }
+
+        if (jexcel.current.edition) {
+            jexcel.isMouseAction = false;
+        } else {
+            jexcel.isMouseAction = true;
+        }
+    } else {
+        jexcel.isMouseAction = false;
+    }
+}
+
+jexcel.mouseUpControls = function(e) {
+    if (jexcel.current) {
+        // Update cell size
+        if (jexcel.current.resizing) {
+            // Columns to be updated
+            if (jexcel.current.resizing.column) {
+                // Remove Class
+                jexcel.current.headers[jexcel.current.resizing.column].classList.remove('resizing');
+                var newWidth = jexcel.current.colgroup[jexcel.current.resizing.column].getAttribute('width');
+                jexcel.current.setWidth(jexcel.current.resizing.column, newWidth, jexcel.current.resizing.width);
+                // Remove border
+                jexcel.current.headers[jexcel.current.resizing.column].classList.remove('resizing');
+                for (var j = 0; j < jexcel.current.records.length; j++) {
+                    jexcel.current.records[j][jexcel.current.resizing.column].classList.remove('resizing');
+                }
+            } else {
+                // Remove Class
+                jexcel.current.rows[jexcel.current.resizing.row].children[0].classList.remove('resizing');
+                var newHeight = jexcel.current.rows[jexcel.current.resizing.row].getAttribute('height');
+                jexcel.current.setHeight(jexcel.current.resizing.row, newHeight, jexcel.current.resizing.height);
+                // Remove border
+                jexcel.current.resizing.element.classList.remove('resizing');
+            }
+            // Reset resizing helper
+            jexcel.current.resizing = null;
+        } else if (jexcel.current.dragging) {
+            // Reset dragging helper
+            if (jexcel.current.dragging) {
+                if (jexcel.current.dragging.column) {
+                    // Target
+                    var columnId = e.target.getAttribute('data-x');
+                    // Remove move style
+                    jexcel.current.headers[jexcel.current.dragging.column].classList.remove('dragging');
+                    for (var j = 0; j < jexcel.current.rows.length; j++) {
+                        jexcel.current.records[j][jexcel.current.dragging.column].classList.remove('dragging');
+                    }
+                    for (var i = 0; i < jexcel.current.headers.length; i++) {
+                        jexcel.current.headers[i].classList.remove('dragging-left');
+                        jexcel.current.headers[i].classList.remove('dragging-right');
+                    }
+                    // Update position
+                    if (columnId) {
+                        if (jexcel.current.dragging.column != jexcel.current.dragging.destination) {
+                            jexcel.current.moveColumn(jexcel.current.dragging.column, jexcel.current.dragging.destination);
+                        }
+                    }
+                } else {
+                    var position = Array.prototype.indexOf.call(jexcel.current.dragging.element.parentNode.children, jexcel.current.dragging.element);
+                    if (jexcel.current.dragging.row != position) {
+                        jexcel.current.moveRow(jexcel.current.dragging.row, position, true);
+                    }
+                    jexcel.current.dragging.element.classList.remove('dragging');
+                }
+                jexcel.current.dragging = null;
+            }
+        } else {
+            // Close any corner selection
+            if (jexcel.current.selectedCorner) {
+                jexcel.current.selectedCorner = false;
+
+                // Data to be copied
+                if (jexcel.current.selection.length > 0) {
+                    // Copy data
+                    jexcel.current.copyData(jexcel.current.selection[0], jexcel.current.selection[jexcel.current.selection.length - 1]);
+
+                    // Remove selection
+                    jexcel.current.removeCopySelection();
+                }
+            }
+        }
+    }
+
+    // Clear any time control
+    if (jexcel.timeControl) {
+        clearTimeout(jexcel.timeControl);
+        jexcel.timeControl = null;
+    }
+
+    // Mouse up
+    jexcel.isMouseAction = false;
+}
+
+// Mouse move controls
+jexcel.mouseMoveControls = function(e) {
+    e = e || window.event;
+    if ("buttons" in e) {
+        var mouseButton = e.buttons;
+    } else {
+        var mouseButton = e.which || e.button;
+    }
+
+    if (! mouseButton) {
+        jexcel.isMouseAction = false;
+    }
+
+    if (jexcel.current && jexcel.isMouseAction == true) {
+        // Resizing is ongoing
+        if (jexcel.current.resizing) {
+            if (jexcel.current.resizing.column) {
+                var width = e.pageX - jexcel.current.resizing.mousePosition;
+
+                if (jexcel.current.resizing.width + width > 0) {
+                    var tempWidth = jexcel.current.resizing.width + width;
+                    jexcel.current.colgroup[jexcel.current.resizing.column].setAttribute('width', tempWidth);
+
+                    jexcel.current.updateCornerPosition();
+                }
+            } else {
+                var height = e.pageY - jexcel.current.resizing.mousePosition;
+
+                if (jexcel.current.resizing.height + height > 0) {
+                    var tempHeight = jexcel.current.resizing.height + height;
+                    jexcel.current.rows[jexcel.current.resizing.row].setAttribute('height', tempHeight);
+
+                    jexcel.current.updateCornerPosition();
+                }
+            }
+        }
+    }
+}
+
+jexcel.mouseOverControls = function(e) {
+    e = e || window.event;
+    if ("buttons" in e) {
+        var mouseButton = e.buttons;
+    } else {
+        var mouseButton = e.which || e.button;
+    }
+
+    if (! mouseButton) {
+        jexcel.isMouseAction = false;
+    }
+
+    if (jexcel.current && jexcel.isMouseAction == true) {
+        // Get elements
+        var jexcelTable = jexcel.getElement(e.target);
+
+        if (jexcelTable[0]) {
+            // Avoid cross reference
+            if (jexcel.current != jexcelTable[0].jexcel) {
+                if (jexcel.current) {
+                    return false;
+                }
+            }
+
+            var columnId = e.target.getAttribute('data-x');
+            var rowId = e.target.getAttribute('data-y');
+
+            if (jexcel.current.dragging) {
+                if (jexcel.current.dragging.column) {
+                    if (columnId) {
+                        if (jexcel.current.isColMerged(columnId).length) {
+                            console.error('JEXCEL: This column is part of a merged cell.');
+                        } else {
+                            for (var i = 0; i < jexcel.current.headers.length; i++) {
+                                jexcel.current.headers[i].classList.remove('dragging-left');
+                                jexcel.current.headers[i].classList.remove('dragging-right');
+                            }
+
+                            if (jexcel.current.dragging.column == columnId) {
+                                jexcel.current.dragging.destination = parseInt(columnId);
+                            } else {
+                                if (e.target.clientWidth / 2 > e.offsetX) {
+                                    if (jexcel.current.dragging.column < columnId) {
+                                        jexcel.current.dragging.destination = parseInt(columnId) - 1;
+                                    } else {
+                                        jexcel.current.dragging.destination = parseInt(columnId);
+                                    }
+                                    jexcel.current.headers[columnId].classList.add('dragging-left');
+                                } else {
+                                    if (jexcel.current.dragging.column < columnId) {
+                                        jexcel.current.dragging.destination = parseInt(columnId);
+                                    } else {
+                                        jexcel.current.dragging.destination = parseInt(columnId) + 1;
+                                    }
+                                    jexcel.current.headers[columnId].classList.add('dragging-right');
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    if (rowId) {
+                        if (jexcel.current.isRowMerged(rowId).length) {
+                            console.error('JEXCEL: This row is part of a merged cell.');
+                        } else {
+                            var target = (e.target.clientHeight / 2 > e.offsetY) ? e.target.parentNode.nextSibling : e.target.parentNode;
+                            e.target.parentNode.parentNode.insertBefore(jexcel.current.dragging.element, target);
+                        }
+                    }
+                }
+            } else if (jexcel.current.resizing) {
+            } else {
+                // Header found
+                if (jexcelTable[1] == 1) {
+                    if (jexcel.current.selectedHeader) {
+                        var columnId = e.target.getAttribute('data-x');
+                        var o = jexcel.current.selectedHeader;
+                        var d = columnId;
+                        // Update selection
+                        jexcel.current.updateSelectionFromCoords(o, 0, d, jexcel.current.options.data.length - 1);
+                    }
+                }
+
+                // Body found
+                if (jexcelTable[1] == 2) {
+                    if (e.target.classList.contains('jexcel_row')) {
+                        if (jexcel.current.selectedRow) {
+                            var o = jexcel.current.selectedRow;
+                            var d = rowId;
+                            // Update selection
+                            jexcel.current.updateSelectionFromCoords(0, o, jexcel.current.options.data[0].length - 1, d);
+                        }
+                    } else {
+                        // Do not select edtion is in progress
+                        if (! jexcel.current.edition) {
+                            if (columnId && rowId) {
+                                if (jexcel.current.selectedCorner) {
+                                    jexcel.current.updateCopySelection(columnId, rowId);
+                                } else {
+                                    if (jexcel.current.selectedCell) {
+                                        jexcel.current.updateSelectionFromCoords(jexcel.current.selectedCell[0], jexcel.current.selectedCell[1], columnId, rowId);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Clear any time control
+    if (jexcel.timeControl) {
+        clearTimeout(jexcel.timeControl);
+        jexcel.timeControl = null;
+    }
+}
+
+/**
+ * Double click event handler: controls the double click in the corner, cell edition or column re-ordering.
+ */
+jexcel.doubleClickControls = function(e) {
+    // Jexcel is selected
+    if (jexcel.current) {
+        // Corner action
+        if (e.target.classList.contains('jexcel_corner')) {
+            // Any selected cells
+            if (jexcel.current.highlighted.length > 0) {
+                // Copy from this
+                var x1 = jexcel.current.highlighted[0].getAttribute('data-x');
+                var y1 = parseInt(jexcel.current.highlighted[jexcel.current.highlighted.length - 1].getAttribute('data-y')) + 1;
+                // Until this
+                var x2 = jexcel.current.highlighted[jexcel.current.highlighted.length - 1].getAttribute('data-x');
+                var y2 = jexcel.current.records.length - 1
+                // Execute copy
+                jexcel.current.copyData(jexcel.current.records[y1][x1], jexcel.current.records[y2][x2]);
+            }
+        } else {
+            // Get table
+            var jexcelTable = jexcel.getElement(e.target);
+
+            // Double click over header
+            if (jexcelTable[1] == 1 && jexcel.current.options.columnSorting == true) {
+                // Check valid column header coords
+                var columnId = e.target.getAttribute('data-x');
+                if (columnId) {
+                    jexcel.current.orderBy(columnId);
+                }
+            }
+
+            // Double click over body
+            if (jexcelTable[1] == 2 && jexcel.current.options.editable == true) {
+                if (! jexcel.current.edition) {
+                    var getCellCoords = function(element) {
+                        if (element.parentNode) {
+                            var x = element.getAttribute('data-x');
+                            var y = element.getAttribute('data-y');
+                            if (x && y) {
+                                return element;
+                            } else {
+                                return getCellCoords(element.parentNode);
+                            }
+                        }
+                    }
+                    var cell = getCellCoords(e.target);
+                    if (cell && cell.classList.contains('highlight')) {
+                        jexcel.current.openEditor(cell);
+                    }
+                }
+            }
+        }
+    }
+}
+
+jexcel.copyControls = function(e) {
+    if (jexcel.current && jexcel.copyControls.enabled) {
+        if (! jexcel.current.edition) {
+            jexcel.current.copy(true);
+        }
+    }
+}
+
+jexcel.cutControls = function(e) {
+    if (jexcel.current) {
+        if (! jexcel.current.edition) {
+            jexcel.current.copy(true);
+            if (jexcel.current.options.editable == true) {
+                jexcel.current.setValue(jexcel.current.highlighted, '');
+            }
+        }
+    }
+}
+
+jexcel.pasteControls = function(e) {
+    if (jexcel.current && jexcel.current.selectedCell) {
+        if (! jexcel.current.edition) {
+            if (e.clipboardData) {
+                if (jexcel.current.options.editable == true) {
+                    jexcel.current.paste(jexcel.current.selectedCell[0], jexcel.current.selectedCell[1], e.clipboardData.getData('text'));
+                }
+                e.preventDefault();
+            }
+        }
+    }
+}
+
+jexcel.contextMenuControls = function(e) {
+    e = e || window.event;
+    if ("buttons" in e) {
+        var mouseButton = e.buttons;
+    } else {
+        var mouseButton = e.which || e.button;
+    }
+
+    if (jexcel.current) {
+        if (jexcel.current.edition) {
+            e.preventDefault();
+        } else if (jexcel.current.options.contextMenu) {
+            jexcel.current.contextMenu.contextmenu.close();
+
+            if (jexcel.current) {
+                var x = e.target.getAttribute('data-x');
+                var y = e.target.getAttribute('data-y');
+
+                if (x || y) {
+                    // Table found
+                    var items = jexcel.current.options.contextMenu(jexcel.current, x, y, e);
+                    // The id is depending on header and body
+                    jexcel.current.contextMenu.contextmenu.open(e, items);
+                    // Avoid the real one
+                    e.preventDefault();
+                }
+            }
+        }
+    }
+}
+
+jexcel.touchStartControls = function(e) {
+    var jexcelTable = jexcel.getElement(e.target);
+
+    if (jexcelTable[0]) {
+        if (jexcel.current != jexcelTable[0].jexcel) {
+            if (jexcel.current) {
+                jexcel.current.resetSelection();
+            }
+            jexcel.current = jexcelTable[0].jexcel;
+        }
+    } else {
+        if (jexcel.current) {
+            jexcel.current.resetSelection();
+            jexcel.current = null;
+        }
+    }
+
+    if (jexcel.current) {
+        if (! jexcel.current.edition) {
+            var columnId = e.target.getAttribute('data-x');
+            var rowId = e.target.getAttribute('data-y');
+
+            if (columnId && rowId) {
+                jexcel.current.updateSelectionFromCoords(columnId, rowId);
+
+                jexcel.timeControl = setTimeout(function() {
+                    jexcel.current.openEditor(e.target, false, e);
+                }, 500);
+            }
+        }
+    }
+}
+
+jexcel.touchEndControls = function(e) {
+    // Clear any time control
+    if (jexcel.timeControl) {
+        clearTimeout(jexcel.timeControl);
+        jexcel.timeControl = null;
+    }
+}
+
+jexcel.copyControls.enabled = true;
+
+/**
+ * Jquery Support
+ */
+
+if (typeof(jQuery) != 'undefined') {
+    (function($){
+        var methods = {
+            init: function(init) {
+                methods = jexcel($(this).get(0), init)
+            }
+        };
+
+        $.fn.jexcel = function(method) {
+            if (methods[method]) {
+                return methods[ method ].apply( this, Array.prototype.slice.call( arguments, 1 ));
+            } else if ( typeof method === 'object' || ! method ) {
+                return methods.init.apply( this, arguments );
+            } else {
+                $.error( 'Method ' +  method + ' does not exist on jQuery.tooltip' );
+            }
+        };
+
+    })(jQuery);
+}
+
+/**
+ * Jexcel extensions
+ */
+
+jexcel.createTabs = function(tabs, result) {
+    // Create tab container
+    tabs.innerHTML = '';
+    tabs.classList.add('jexcel_tabs');
+    var spreadsheet = []
+    var link = [];
+    for (var i = 0; i < result.length; i++) {
+        // Spreadsheet container
+        spreadsheet[i] = document.createElement('div');
+        spreadsheet[i].classList.add('jexcel_tab');
+        // Tab link
+        link[i] = document.createElement('div');
+        link[i].classList.add('jexcel_tab_link');
+        link[i].setAttribute('data-spreadsheet', i);
+        link[i].innerHTML = result[i].sheetName;
+        link[i].onclick = function() {
+            for (var j = 0; j < spreadsheet.length; j++) {
+                spreadsheet[j].style.display = 'none';
+                link[j].classList.remove('selected');
+            }
+            var i = this.getAttribute('data-spreadsheet');
+            spreadsheet[i].style.display = 'block';
+            link[i].classList.add('selected')
+        }
+        tabs.appendChild(link[i]);
+    }
+
+    // Append spreadsheet
+    for (var i = 0; i < spreadsheet.length - 1; i++) {
+        tabs.appendChild(spreadsheet[i]);
+        jexcel(spreadsheet[i], result[i]);
+    }
+
+    // First tab
+    spreadsheet[0].style.display = 'block';
+    link[0].classList.add('selected')
+}
+
+jexcel.fromSpreadsheet = function(file, __callback) {
+    var convert = function(workbook) {
+        var spreadsheets = [];
+        workbook.SheetNames.forEach(function(sheetName) {
+            var spreadsheet = {};
+            spreadsheet.rows = [];
+            spreadsheet.columns = [];
+            spreadsheet.data = [];
+            spreadsheet.style = {};
+            spreadsheet.sheetName = sheetName;
+
+            // Column widths
+            var temp = workbook.Sheets[sheetName]['!cols'];
+            if (temp && temp.length) {
+                for (var i = 0; i < temp.length; i++) {
+                    spreadsheet.columns[i] = {};
+                    spreadsheet.columns[i].width = temp[i].wpx + 'px';
+                }
+            }
+            // Rows heights
+            var temp = workbook.Sheets[sheetName]['!rows'];
+            if (temp && temp.length) {
+                for (var i = 0; i < temp.length; i++) {
+                    if (temp[i] && temp[i].hpx) {
+                        spreadsheet.rows[i] = {};
+                        spreadsheet.rows[i].height = temp[i].hpx + 'px';
+                    }
+                }
+            }
+            // Merge cells
+            var temp = workbook.Sheets[sheetName]['!merges'];
+            if (temp && temp.length > 0) {
+                spreadsheet.mergeCells = [];
+                for (var i = 0; i < temp.length; i++) {
+                    var x1 = temp[i].s.c;
+                    var y1 = temp[i].s.r;
+                    var x2 = temp[i].e.c;
+                    var y2 = temp[i].e.r;
+                    var key = jexcel.getColumnNameFromId([x1,y1]);
+                    spreadsheet.mergeCells[key] = [ x2-x1+1, y2-y1+1 ];
+                }
+            }
+            // Data container
+            var max_x = 0;
+            var max_y = 0;
+            var temp = Object.keys(workbook.Sheets[sheetName]);
+            for (var i = 0; i < temp.length; i++) {
+                if (temp[i].substr(0,1) != '!') {
+                    var cell = workbook.Sheets[sheetName][temp[i]];
+                    var info = jexcel.getIdFromColumnName(temp[i], true);
+                    if (! spreadsheet.data[info[1]]) {
+                        spreadsheet.data[info[1]] = [];
+                    }
+                    spreadsheet.data[info[1]][info[0]] = cell.f ? '=' + cell.f : cell.w;
+                    if (max_x < info[0]) {
+                        max_x = info[0];
+                    }
+                    if (max_y < info[1]) {
+                        max_y = info[1];
+                    }
+                    // Style
+                    if (cell.style && Object.keys(cell.style).length > 0) {
+                        spreadsheet.style[temp[i]] = cell.style;
+                    }
+                    if (cell.s && cell.s.fgColor) {
+                        if (spreadsheet.style[temp[i]]) {
+                            spreadsheet.style[temp[i]] += ';';
+                        }
+                        spreadsheet.style[temp[i]] += 'background-color:#' + cell.s.fgColor.rgb;
+                    }
+                }
+            }
+            var numColumns = spreadsheet.columns;
+            for (var j = 0; j <= max_y; j++) {
+                for (var i = 0; i <= max_x; i++) {
+                    if (! spreadsheet.data[j]) {
+                        spreadsheet.data[j] = [];
+                    }
+                    if (! spreadsheet.data[j][i]) {
+                        if (numColumns < i) {
+                            spreadsheet.data[j][i] = '';
+                        }
+                    }
+                }
+            }
+            spreadsheets.push(spreadsheet);
+        });
+
+        return spreadsheets;
+    }
+
+    var oReq;
+    oReq = new XMLHttpRequest();
+    oReq.open("GET", file, true);
+
+    if(typeof Uint8Array !== 'undefined') {
+        oReq.responseType = "arraybuffer";
+        oReq.onload = function(e) {
+            var arraybuffer = oReq.response;
+            var data = new Uint8Array(arraybuffer);
+            var wb = XLSX.read(data, {type:"array", cellFormula:true, cellStyles:true });
+            __callback(convert(wb))
+        };
+    } else {
+        oReq.setRequestHeader("Accept-Charset", "x-user-defined");  
+        oReq.onreadystatechange = function() { if(oReq.readyState == 4 && oReq.status == 200) {
+            var ff = convertResponseBodyToText(oReq.responseBody);
+            var wb = XLSX.read(ff, {type:"binary", cellFormula:true, cellStyles:true });
+            __callback(convert(wb))
+        }};
+    }
+
+    oReq.send();
+}
+
+// Based on sutoiku work (https://github.com/sutoiku)
+
+var error = (function() {
+    var exports = {};
+
+    exports.nil = new Error('#NULL!');
+    exports.div0 = new Error('#DIV/0!');
+    exports.value = new Error('#VALUE!');
+    exports.ref = new Error('#REF!');
+    exports.name = new Error('#NAME?');
+    exports.num = new Error('#NUM!');
+    exports.na = new Error('#N/A');
+    exports.error = new Error('#ERROR!');
+    exports.data = new Error('#GETTING_DATA');
+
+    return exports;
+})();
+
+var utils = (function() {
+    var exports = {};
+
+    exports.flattenShallow = function(array) {
+        if (!array || !array.reduce) {
+            return array;
+        }
+
+        return array.reduce(function(a, b) {
+            var aIsArray = Array.isArray(a);
+            var bIsArray = Array.isArray(b);
+
+            if (aIsArray && bIsArray) {
+                return a.concat(b);
+            }
+            if (aIsArray) {
+                a.push(b);
+
+                return a;
+            }
+            if (bIsArray) {
+                return [ a ].concat(b);
+            }
+
+            return [ a, b ];
+        });
+    };
+
+    exports.isFlat = function(array) {
+        if (!array) {
+            return false;
+        }
+
+        for (var i = 0; i < array.length; ++i) {
+            if (Array.isArray(array[i])) {
+                return false;
+            }
+        }
+
+        return true;
+    };
+
+    exports.flatten = function() {
+        var result = exports.argsToArray.apply(null, arguments);
+
+        while (!exports.isFlat(result)) {
+            result = exports.flattenShallow(result);
+        }
+
+        return result;
+    };
+
+    exports.argsToArray = function(args) {
+        var result = [];
+
+        exports.arrayEach(args, function(value) {
+            result.push(value);
+        });
+
+        return result;
+    };
+
+    exports.numbers = function() {
+        var possibleNumbers = this.flatten.apply(null, arguments);
+        return possibleNumbers.filter(function(el) {
+            return typeof el === 'number';
+        });
+    };
+
+    exports.cleanFloat = function(number) {
+        var power = 1e14;
+        return Math.round(number * power) / power;
+    };
+
+    exports.parseBool = function(bool) {
+        if (typeof bool === 'boolean') {
+            return bool;
+        }
+
+        if (bool instanceof Error) {
+            return bool;
+        }
+
+        if (typeof bool === 'number') {
+            return bool !== 0;
+        }
+
+        if (typeof bool === 'string') {
+            var up = bool.toUpperCase();
+            if (up === 'TRUE') {
+                return true;
+            }
+
+            if (up === 'FALSE') {
+                return false;
+            }
+        }
+
+        if (bool instanceof Date && !isNaN(bool)) {
+            return true;
+        }
+
+        return error.value;
+    };
+
+    exports.parseNumber = function(string) {
+        if (string === undefined || string === '') {
+            return error.value;
+        }
+        if (!isNaN(string)) {
+            return parseFloat(string);
+        }
+
+        return error.value;
+    };
+
+    exports.parseNumberArray = function(arr) {
+        var len;
+
+        if (!arr || (len = arr.length) === 0) {
+            return error.value;
+        }
+
+        var parsed;
+
+        while (len--) {
+            parsed = exports.parseNumber(arr[len]);
+            if (parsed === error.value) {
+                return parsed;
+            }
+            arr[len] = parsed;
+        }
+
+        return arr;
+    };
+
+    exports.parseMatrix = function(matrix) {
+        var n;
+
+        if (!matrix || (n = matrix.length) === 0) {
+            return error.value;
+        }
+        var pnarr;
+
+        for (var i = 0; i < matrix.length; i++) {
+            pnarr = exports.parseNumberArray(matrix[i]);
+            matrix[i] = pnarr;
+
+            if (pnarr instanceof Error) {
+                return pnarr;
+            }
+        }
+
+        return matrix;
+    };
+
+    var d1900 = new Date(Date.UTC(1900, 0, 1));
+    exports.parseDate = function(date) {
+        if (!isNaN(date)) {
+            if (date instanceof Date) {
+                return new Date(date);
+            }
+            var d = parseInt(date, 10);
+            if (d < 0) {
+                return error.num;
+            }
+            if (d <= 60) {
+                return new Date(d1900.getTime() + (d - 1) * 86400000);
+            }
+            return new Date(d1900.getTime() + (d - 2) * 86400000);
+        }
+        if (typeof date === 'string') {
+            date = new Date(date);
+            if (!isNaN(date)) {
+                return date;
+            }
+        }
+        return error.value;
+    };
+
+    exports.parseDateArray = function(arr) {
+        var len = arr.length;
+        var parsed;
+        while (len--) {
+            parsed = this.parseDate(arr[len]);
+            if (parsed === error.value) {
+                return parsed;
+            }
+            arr[len] = parsed;
+        }
+        return arr;
+    };
+
+    exports.anyIsError = function() {
+        var n = arguments.length;
+        while (n--) {
+            if (arguments[n] instanceof Error) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    exports.arrayValuesToNumbers = function(arr) {
+        var n = arr.length;
+        var el;
+        while (n--) {
+            el = arr[n];
+            if (typeof el === 'number') {
+                continue;
+            }
+            if (el === true) {
+                arr[n] = 1;
+                continue;
+            }
+            if (el === false) {
+                arr[n] = 0;
+                continue;
+            }
+            if (typeof el === 'string') {
+                var number = this.parseNumber(el);
+                if (number instanceof Error) {
+                    arr[n] = 0;
+                } else {
+                    arr[n] = number;
+                }
+            }
+        }
+        return arr;
+    };
+
+    exports.rest = function(array, idx) {
+        idx = idx || 1;
+        if (!array || typeof array.slice !== 'function') {
+            return array;
+        }
+        return array.slice(idx);
+    };
+
+    exports.initial = function(array, idx) {
+        idx = idx || 1;
+        if (!array || typeof array.slice !== 'function') {
+            return array;
+        }
+        return array.slice(0, array.length - idx);
+    };
+
+    exports.arrayEach = function(array, iteratee) {
+        var index = -1, length = array.length;
+
+        while (++index < length) {
+            if (iteratee(array[index], index, array) === false) {
+                break;
+            }
+        }
+
+        return array;
+    };
+
+    exports.transpose = function(matrix) {
+        if (!matrix) {
+            return error.value;
+        }
+
+        return matrix[0].map(function(col, i) {
+            return matrix.map(function(row) {
+                return row[i];
+            });
+        });
+    };
+
+    return exports;
+})();
+
+jexcel.methods = {};
+
+jexcel.methods.datetime = (function() {
+    var exports = {};
+
+    var d1900 = new Date(1900, 0, 1);
+    var WEEK_STARTS = [
+        undefined,
+        0,
+        1,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        0
+    ];
+    var WEEK_TYPES = [
+        [],
+        [1, 2, 3, 4, 5, 6, 7],
+        [7, 1, 2, 3, 4, 5, 6],
+        [6, 0, 1, 2, 3, 4, 5],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [7, 1, 2, 3, 4, 5, 6],
+        [6, 7, 1, 2, 3, 4, 5],
+        [5, 6, 7, 1, 2, 3, 4],
+        [4, 5, 6, 7, 1, 2, 3],
+        [3, 4, 5, 6, 7, 1, 2],
+        [2, 3, 4, 5, 6, 7, 1],
+        [1, 2, 3, 4, 5, 6, 7]
+    ];
+    var WEEKEND_TYPES = [
+        [],
+        [6, 0],
+        [0, 1],
+        [1, 2],
+        [2, 3],
+        [3, 4],
+        [4, 5],
+        [5, 6],
+        undefined,
+        undefined,
+        undefined, [0, 0],
+        [1, 1],
+        [2, 2],
+        [3, 3],
+        [4, 4],
+        [5, 5],
+        [6, 6]
+    ];
+
+    exports.DATE = function(year, month, day) {
+        year = utils.parseNumber(year);
+        month = utils.parseNumber(month);
+        day = utils.parseNumber(day);
+        if (utils.anyIsError(year, month, day)) {
+            return error.value;
+        }
+        if (year < 0 || month < 0 || day < 0) {
+            return error.num;
+        }
+        var date = new Date(year, month - 1, day);
+        return date;
+    };
+
+    exports.DATEVALUE = function(date_text) {
+        if (typeof date_text !== 'string') {
+            return error.value;
+        }
+        var date = Date.parse(date_text);
+        if (isNaN(date)) {
+            return error.value;
+        }
+        if (date <= -2203891200000) {
+            return (date - d1900) / 86400000 + 1;
+        }
+        return (date - d1900) / 86400000 + 2;
+    };
+
+    exports.DAY = function(serial_number) {
+        var date = utils.parseDate(serial_number);
+        if (date instanceof Error) {
+            return date;
+        }
+        return date.getDate();
+    };
+
+    exports.DAYS = function(end_date, start_date) {
+        end_date = utils.parseDate(end_date);
+        start_date = utils.parseDate(start_date);
+        if (end_date instanceof Error) {
+            return end_date;
+        }
+        if (start_date instanceof Error) {
+            return start_date;
+        }
+        return serial(end_date) - serial(start_date);
+    };
+
+    exports.DAYS360 = function(start_date, end_date, method) {
+    };
+
+    exports.EDATE = function(start_date, months) {
+        start_date = utils.parseDate(start_date);
+        if (start_date instanceof Error) {
+            return start_date;
+        }
+        if (isNaN(months)) {
+            return error.value;
+        }
+        months = parseInt(months, 10);
+        start_date.setMonth(start_date.getMonth() + months);
+        return serial(start_date);
+    };
+
+    exports.EOMONTH = function(start_date, months) {
+        start_date = utils.parseDate(start_date);
+        if (start_date instanceof Error) {
+            return start_date;
+        }
+        if (isNaN(months)) {
+            return error.value;
+        }
+        months = parseInt(months, 10);
+        return serial(new Date(start_date.getFullYear(), start_date.getMonth() + months + 1, 0));
+    };
+
+    exports.HOUR = function(serial_number) {
+        serial_number = utils.parseDate(serial_number);
+        if (serial_number instanceof Error) {
+            return serial_number;
+        }
+        return serial_number.getHours();
+    };
+
+    exports.INTERVAL = function(second) {
+        if (typeof second !== 'number' && typeof second !== 'string') {
+            return error.value;
+        } else {
+            second = parseInt(second, 10);
+        }
+
+        var year  = Math.floor(second/946080000);
+        second    = second%946080000;
+        var month = Math.floor(second/2592000);
+        second    = second%2592000;
+        var day   = Math.floor(second/86400);
+        second    = second%86400;
+
+        var hour  = Math.floor(second/3600);
+        second    = second%3600;
+        var min   = Math.floor(second/60);
+        second    = second%60;
+        var sec   = second;
+
+        year  = (year  > 0) ? year  + 'Y' : '';
+        month = (month > 0) ? month + 'M' : '';
+        day   = (day   > 0) ? day   + 'D' : '';
+        hour  = (hour  > 0) ? hour  + 'H' : '';
+        min   = (min   > 0) ? min   + 'M' : '';
+        sec   = (sec   > 0) ? sec   + 'S' : '';
+
+        return 'P' + year + month + day + 'T' + hour + min + sec;
+    };
+
+    exports.ISOWEEKNUM = function(date) {
+        date = utils.parseDate(date);
+        if (date instanceof Error) {
+            return date;
+        }
+
+        date.setHours(0, 0, 0);
+        date.setDate(date.getDate() + 4 - (date.getDay() || 7));
+        var yearStart = new Date(date.getFullYear(), 0, 1);
+        return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+    };
+
+    exports.MINUTE = function(serial_number) {
+        serial_number = utils.parseDate(serial_number);
+        if (serial_number instanceof Error) {
+            return serial_number;
+        }
+        return serial_number.getMinutes();
+    };
+
+    exports.MONTH = function(serial_number) {
+        serial_number = utils.parseDate(serial_number);
+        if (serial_number instanceof Error) {
+            return serial_number;
+        }
+        return serial_number.getMonth() + 1;
+    };
+
+    exports.NETWORKDAYS = function(start_date, end_date, holidays) {
+    };
+
+    exports.NETWORKDAYS.INTL = function(start_date, end_date, weekend, holidays) {
+    };
+
+    exports.NOW = function() {
+        return new Date();
+    };
+
+    exports.SECOND = function(serial_number) {
+        serial_number = utils.parseDate(serial_number);
+        if (serial_number instanceof Error) {
+            return serial_number;
+        }
+        return serial_number.getSeconds();
+    };
+
+    exports.TIME = function(hour, minute, second) {
+        hour = utils.parseNumber(hour);
+        minute = utils.parseNumber(minute);
+        second = utils.parseNumber(second);
+        if (utils.anyIsError(hour, minute, second)) {
+            return error.value;
+        }
+        if (hour < 0 || minute < 0 || second < 0) {
+            return error.num;
+        }
+        return (3600 * hour + 60 * minute + second) / 86400;
+    };
+
+    exports.TIMEVALUE = function(time_text) {
+        time_text = utils.parseDate(time_text);
+        if (time_text instanceof Error) {
+            return time_text;
+        }
+        return (3600 * time_text.getHours() + 60 * time_text.getMinutes() + time_text.getSeconds()) / 86400;
+    };
+
+    exports.TODAY = function() {
+        return new Date();
+    };
+
+    exports.WEEKDAY = function(serial_number, return_type) {
+        serial_number = utils.parseDate(serial_number);
+        if (serial_number instanceof Error) {
+            return serial_number;
+        }
+        if (return_type === undefined) {
+            return_type = 1;
+        }
+        var day = serial_number.getDay();
+        return WEEK_TYPES[return_type][day];
+    };
+
+    exports.WEEKNUM = function(serial_number, return_type) {
+    };
+
+    exports.WORKDAY = function(start_date, days, holidays) {
+    };
+
+    exports.WORKDAY.INTL = function(start_date, days, weekend, holidays) {
+    };
+
+    exports.YEAR = function(serial_number) {
+        serial_number = utils.parseDate(serial_number);
+        if (serial_number instanceof Error) {
+            return serial_number;
+        }
+        return serial_number.getFullYear();
+    };
+
+    function isLeapYear(year) {
+        return new Date(year, 1, 29).getMonth() === 1;
+    }
+
+    exports.YEARFRAC = function(start_date, end_date, basis) {
+    };
+
+    function serial(date) {
+        var addOn = (date > -2203891200000)?2:1;
+        return (date - d1900) / 86400000 + addOn;
+    }
+
+    return exports;
+})();
+
+jexcel.methods.database = (function() {
+    var exports = {};
+
+    function compact(array) {
+        if (!array) {
+            return array;
+        }
+        var result = [];
+        for (var i = 0; i < array.length; ++i) {
+            if (!array[i]) {
+                continue;
+            }
+            result.push(array[i]);
+        }
+        return result;
+    }
+
+    exports.FINDFIELD = function(database, title) {
+        var index = null;
+        for (var i = 0; i < database.length; i++) {
+            if (database[i][0] === title) {
+                index = i;
+                break;
+            }
+        }
+
+        // Return error if the input field title is incorrect
+        if (index == null) {
+            return error.value;
+        }
+        return index;
+    };
+
+    function findResultIndex(database, criterias) {
+        var matches = {};
+        for (var i = 1; i < database[0].length; ++i) {
+            matches[i] = true;
+        }
+        var maxCriteriaLength = criterias[0].length;
+        for (i = 1; i < criterias.length; ++i) {
+            if (criterias[i].length > maxCriteriaLength) {
+                maxCriteriaLength = criterias[i].length;
+            }
+        }
+
+        for (var k = 1; k < database.length; ++k) {
+            for (var l = 1; l < database[k].length; ++l) {
+                var currentCriteriaResult = false;
+                var hasMatchingCriteria = false;
+                for (var j = 0; j < criterias.length; ++j) {
+                    var criteria = criterias[j];
+                    if (criteria.length < maxCriteriaLength) {
+                        continue;
+                    }
+
+                    var criteriaField = criteria[0];
+                    if (database[k][0] !== criteriaField) {
+                        continue;
+                    }
+                    hasMatchingCriteria = true;
+                    for (var p = 1; p < criteria.length; ++p) {
+                        currentCriteriaResult = currentCriteriaResult
+                                || eval(database[k][l] + criteria[p]); // jshint
+                                                                        // ignore:line
+                    }
+                }
+                if (hasMatchingCriteria) {
+                    matches[l] = matches[l] && currentCriteriaResult;
+                }
+            }
+        }
+
+        var result = [];
+        for (var n = 0; n < database[0].length; ++n) {
+            if (matches[n]) {
+                result.push(n - 1);
+            }
+        }
+        return result;
+    }
+
+    // Database functions
+    exports.DAVERAGE = function(database, field, criteria) {
+        // Return error if field is not a number and not a string
+        if (isNaN(field) && (typeof field !== "string")) {
+            return error.value;
+        }
+        var resultIndexes = findResultIndex(database, criteria);
+        var targetFields = [];
+        if (typeof field === "string") {
+            var index = exports.FINDFIELD(database, field);
+            targetFields = utils.rest(database[index]);
+        } else {
+            targetFields = utils.rest(database[field]);
+        }
+        var sum = 0;
+        for (var i = 0; i < resultIndexes.length; i++) {
+            sum += targetFields[resultIndexes[i]];
+        }
+        return resultIndexes.length === 0 ? error.div0 : sum / resultIndexes.length;
+    };
+
+    exports.DCOUNT = function(database, field, criteria) {
+    };
+
+    exports.DCOUNTA = function(database, field, criteria) {
+    };
+
+    exports.DGET = function(database, field, criteria) {
+        // Return error if field is not a number and not a string
+        if (isNaN(field) && (typeof field !== "string")) {
+            return error.value;
+        }
+        var resultIndexes = findResultIndex(database, criteria);
+        var targetFields = [];
+        if (typeof field === "string") {
+            var index = exports.FINDFIELD(database, field);
+            targetFields = utils.rest(database[index]);
+        } else {
+            targetFields = utils.rest(database[field]);
+        }
+        // Return error if no record meets the criteria
+        if (resultIndexes.length === 0) {
+            return error.value;
+        }
+        // Returns the #NUM! error value because more than one record meets the
+        // criteria
+        if (resultIndexes.length > 1) {
+            return error.num;
+        }
+
+        return targetFields[resultIndexes[0]];
+    };
+
+    exports.DMAX = function(database, field, criteria) {
+        // Return error if field is not a number and not a string
+        if (isNaN(field) && (typeof field !== "string")) {
+            return error.value;
+        }
+        var resultIndexes = findResultIndex(database, criteria);
+        var targetFields = [];
+        if (typeof field === "string") {
+            var index = exports.FINDFIELD(database, field);
+            targetFields = utils.rest(database[index]);
+        } else {
+            targetFields = utils.rest(database[field]);
+        }
+        var maxValue = targetFields[resultIndexes[0]];
+        for (var i = 1; i < resultIndexes.length; i++) {
+            if (maxValue < targetFields[resultIndexes[i]]) {
+                maxValue = targetFields[resultIndexes[i]];
+            }
+        }
+        return maxValue;
+    };
+
+    exports.DMIN = function(database, field, criteria) {
+        // Return error if field is not a number and not a string
+        if (isNaN(field) && (typeof field !== "string")) {
+            return error.value;
+        }
+        var resultIndexes = findResultIndex(database, criteria);
+        var targetFields = [];
+        if (typeof field === "string") {
+            var index = exports.FINDFIELD(database, field);
+            targetFields = utils.rest(database[index]);
+        } else {
+            targetFields = utils.rest(database[field]);
+        }
+        var minValue = targetFields[resultIndexes[0]];
+        for (var i = 1; i < resultIndexes.length; i++) {
+            if (minValue > targetFields[resultIndexes[i]]) {
+                minValue = targetFields[resultIndexes[i]];
+            }
+        }
+        return minValue;
+    };
+
+    exports.DPRODUCT = function(database, field, criteria) {
+        // Return error if field is not a number and not a string
+        if (isNaN(field) && (typeof field !== "string")) {
+            return error.value;
+        }
+        var resultIndexes = findResultIndex(database, criteria);
+        var targetFields = [];
+        if (typeof field === "string") {
+            var index = exports.FINDFIELD(database, field);
+            targetFields = utils.rest(database[index]);
+        } else {
+            targetFields = utils.rest(database[field]);
+        }
+        var targetValues = [];
+        for (var i = 0; i < resultIndexes.length; i++) {
+            targetValues[i] = targetFields[resultIndexes[i]];
+        }
+        targetValues = compact(targetValues);
+        var result = 1;
+        for (i = 0; i < targetValues.length; i++) {
+            result *= targetValues[i];
+        }
+        return result;
+    };
+
+    exports.DSTDEV = function(database, field, criteria) {
+    };
+
+    exports.DSTDEVP = function(database, field, criteria) {
+    };
+
+    exports.DSUM = function(database, field, criteria) {
+    };
+
+    exports.DVAR = function(database, field, criteria) {
+    };
+
+    exports.DVARP = function(database, field, criteria) {
+    };
+
+    exports.MATCH = function(lookupValue, lookupArray, matchType) {
+        if (!lookupValue && !lookupArray) {
+            return error.na;
+        }
+        if (arguments.length === 2) {
+            matchType = 1;
+        }
+        if (!(lookupArray instanceof Array)) {
+            return error.na;
+        }
+        if (matchType !== -1 && matchType !== 0 && matchType !== 1) {
+            return error.na;
+        }
+
+        var index;
+        var indexValue;
+
+        for (var idx = 0; idx < lookupArray.length; idx++) {
+            if (matchType === 1) {
+                if (lookupArray[idx] === lookupValue) {
+                    return idx + 1;
+                } else if (lookupArray[idx] < lookupValue) {
+                    if (!indexValue) {
+                        index = idx + 1;
+                        indexValue = lookupArray[idx];
+                    } else if (lookupArray[idx] > indexValue) {
+                        index = idx + 1;
+                        indexValue = lookupArray[idx];
+                    }
+                }
+            } else if (matchType === 0) {
+                if (typeof lookupValue === 'string') {
+                    lookupValue = lookupValue.replace(/\?/g, '.');
+                    if (lookupArray[idx].toLowerCase().match(lookupValue.toLowerCase())) {
+                        return idx + 1;
+                    }
+                } else {
+                    if (lookupArray[idx] === lookupValue) {
+                        return idx + 1;
+                    }
+                }
+            } else if (matchType === -1) {
+                if (lookupArray[idx] === lookupValue) {
+                    return idx + 1;
+                } else if (lookupArray[idx] > lookupValue) {
+                    if (!indexValue) {
+                        index = idx + 1;
+                        indexValue = lookupArray[idx];
+                    } else if (lookupArray[idx] < indexValue) {
+                        index = idx + 1;
+                        indexValue = lookupArray[idx];
+                    }
+                }
+            }
+        }
+
+        return index ? index : error.na;
+    };
+
+    return exports;
+})();
+
+jexcel.methods.engineering = (function() {
+    var exports = {};
+
+    function isValidBinaryNumber(number) {
+        return (/^[01]{1,10}$/).test(number);
+    }
+
+    exports.BESSELI = function(x, n) {
+    };
+
+    exports.BESSELJ = function(x, n) {
+    };
+
+    exports.BESSELK = function(x, n) {
+    };
+
+    exports.BESSELY = function(x, n) {
+    };
+
+    exports.BIN2DEC = function(number) {
+        // Return error if number is not binary or contains more than 10
+        // characters (10 digits)
+        if (!isValidBinaryNumber(number)) {
+            return error.num;
+        }
+
+        // Convert binary number to decimal
+        var result = parseInt(number, 2);
+
+        // Handle negative numbers
+        var stringified = number.toString();
+        if (stringified.length === 10 && stringified.substring(0, 1) === '1') {
+            return parseInt(stringified.substring(1), 2) - 512;
+        } else {
+            return result;
+        }
+    };
+
+    exports.BIN2HEX = function(number, places) {
+        // Return error if number is not binary or contains more than 10
+        // characters (10 digits)
+        if (!isValidBinaryNumber(number)) {
+            return error.num;
+        }
+
+        // Ignore places and return a 10-character hexadecimal number if number
+        // is negative
+        var stringified = number.toString();
+        if (stringified.length === 10 && stringified.substring(0, 1) === '1') {
+            return (1099511627264 + parseInt(stringified.substring(1), 2)).toString(16);
+        }
+
+        // Convert binary number to hexadecimal
+        var result = parseInt(number, 2).toString(16);
+
+        // Return hexadecimal number using the minimum number of characters
+        // necessary if places is undefined
+        if (places === undefined) {
+            return result;
+        } else {
+            // Return error if places is nonnumeric
+            if (isNaN(places)) {
+              return error.value;
+            }
+
+            // Return error if places is negative
+            if (places < 0) {
+              return error.num;
+            }
+
+            // Truncate places in case it is not an integer
+            places = Math.floor(places);
+
+            // Pad return value with leading 0s (zeros) if necessary (using
+            // Underscore.string)
+            return (places >= result.length) ? REPT('0', places - result.length) + result : error.num;
+        }
+    };
+
+    exports.BIN2OCT = function(number, places) {
+        // Return error if number is not binary or contains more than 10
+        // characters (10 digits)
+        if (!isValidBinaryNumber(number)) {
+            return error.num;
+        }
+
+        // Ignore places and return a 10-character octal number if number is
+        // negative
+        var stringified = number.toString();
+        if (stringified.length === 10 && stringified.substring(0, 1) === '1') {
+            return (1073741312 + parseInt(stringified.substring(1), 2)).toString(8);
+        }
+
+        // Convert binary number to octal
+        var result = parseInt(number, 2).toString(8);
+
+        // Return octal number using the minimum number of characters necessary
+        // if places is undefined
+        if (places === undefined) {
+            return result;
+        } else {
+            // Return error if places is nonnumeric
+            if (isNaN(places)) {
+              return error.value;
+            }
+
+            // Return error if places is negative
+            if (places < 0) {
+              return error.num;
+            }
+
+            // Truncate places in case it is not an integer
+            places = Math.floor(places);
+
+            // Pad return value with leading 0s (zeros) if necessary (using
+            // Underscore.string)
+            return (places >= result.length) ? REPT('0', places - result.length) + result : error.num;
+        }
+    };
+
+    exports.BITAND = function(number1, number2) {
+        // Return error if either number is a non-numeric value
+        number1 = utils.parseNumber(number1);
+        number2 = utils.parseNumber(number2);
+        if (utils.anyIsError(number1, number2)) {
+            return error.value;
+        }
+
+        // Return error if either number is less than 0
+        if (number1 < 0 || number2 < 0) {
+            return error.num;
+        }
+
+        // Return error if either number is a non-integer
+        if (Math.floor(number1) !== number1 || Math.floor(number2) !== number2) {
+            return error.num;
+        }
+
+        // Return error if either number is greater than (2^48)-1
+        if (number1 > 281474976710655 || number2 > 281474976710655) {
+            return error.num;
+        }
+
+        // Return bitwise AND of two numbers
+        return number1 & number2;
+    };
+
+    exports.BITLSHIFT = function(number, shift) {
+        number = utils.parseNumber(number);
+        shift = utils.parseNumber(shift);
+        if (utils.anyIsError(number, shift)) {
+            return error.value;
+        }
+
+        // Return error if number is less than 0
+        if (number < 0) {
+            return error.num;
+        }
+
+        // Return error if number is a non-integer
+        if (Math.floor(number) !== number) {
+            return error.num;
+        }
+
+        // Return error if number is greater than (2^48)-1
+        if (number > 281474976710655) {
+            return error.num;
+        }
+
+        // Return error if the absolute value of shift is greater than 53
+        if (Math.abs(shift) > 53) {
+            return error.num;
+        }
+
+        // Return number shifted by shift bits to the left or to the right if
+        // shift is negative
+        return (shift >= 0) ? number << shift : number >> -shift;
+    };
+
+    exports.BITOR = function(number1, number2) {
+        number1 = utils.parseNumber(number1);
+        number2 = utils.parseNumber(number2);
+        if (utils.anyIsError(number1, number2)) {
+            return error.value;
+        }
+
+        // Return error if either number is less than 0
+        if (number1 < 0 || number2 < 0) {
+            return error.num;
+        }
+
+        // Return error if either number is a non-integer
+        if (Math.floor(number1) !== number1 || Math.floor(number2) !== number2) {
+            return error.num;
+        }
+
+        // Return error if either number is greater than (2^48)-1
+        if (number1 > 281474976710655 || number2 > 281474976710655) {
+            return error.num;
+        }
+
+        // Return bitwise OR of two numbers
+        return number1 | number2;
+    };
+
+    exports.BITRSHIFT = function(number, shift) {
+        number = utils.parseNumber(number);
+        shift = utils.parseNumber(shift);
+        if (utils.anyIsError(number, shift)) {
+            return error.value;
+        }
+
+        // Return error if number is less than 0
+        if (number < 0) {
+            return error.num;
+        }
+
+        // Return error if number is a non-integer
+        if (Math.floor(number) !== number) {
+            return error.num;
+        }
+
+        // Return error if number is greater than (2^48)-1
+        if (number > 281474976710655) {
+            return error.num;
+        }
+
+        // Return error if the absolute value of shift is greater than 53
+        if (Math.abs(shift) > 53) {
+            return error.num;
+        }
+
+        // Return number shifted by shift bits to the right or to the left if
+        // shift is negative
+        return (shift >= 0) ? number >> shift : number << -shift;
+    };
+
+    exports.BITXOR = function(number1, number2) {
+        number1 = utils.parseNumber(number1);
+        number2 = utils.parseNumber(number2);
+        if (utils.anyIsError(number1, number2)) {
+            return error.value;
+        }
+
+        // Return error if either number is less than 0
+        if (number1 < 0 || number2 < 0) {
+            return error.num;
+        }
+
+        // Return error if either number is a non-integer
+        if (Math.floor(number1) !== number1 || Math.floor(number2) !== number2) {
+            return error.num;
+        }
+
+        // Return error if either number is greater than (2^48)-1
+        if (number1 > 281474976710655 || number2 > 281474976710655) {
+            return error.num;
+        }
+
+        // Return bitwise XOR of two numbers
+        return number1 ^ number2;
+    };
+
+    exports.COMPLEX = function(real, imaginary, suffix) {
+        real = utils.parseNumber(real);
+        imaginary = utils.parseNumber(imaginary);
+        if (utils.anyIsError(real, imaginary)) {
+            return real;
+        }
+
+        // Set suffix
+        suffix = (suffix === undefined) ? 'i' : suffix;
+
+        // Return error if suffix is neither "i" nor "j"
+        if (suffix !== 'i' && suffix !== 'j') {
+            return error.value;
+        }
+
+        // Return complex number
+        if (real === 0 && imaginary === 0) {
+            return 0;
+        } else if (real === 0) {
+            return (imaginary === 1) ? suffix : imaginary.toString() + suffix;
+        } else if (imaginary === 0) {
+            return real.toString();
+        } else {
+            var sign = (imaginary > 0) ? '+' : '';
+            return real.toString() + sign + ((imaginary === 1) ? suffix : imaginary.toString() + suffix);
+        }
+    };
+
+    exports.CONVERT = function(number, from_unit, to_unit) {
+        number = utils.parseNumber(number);
+        if (number instanceof Error) {
+            return number;
+        }
+
+        // List of units supported by CONVERT and units defined by the
+        // International System of Units
+        // [Name, Symbol, Alternate symbols, Quantity, ISU, CONVERT, Conversion
+        // ratio]
+        var units = [
+            ["a.u. of action", "?", null, "action", false, false, 1.05457168181818e-34],
+            ["a.u. of charge", "e", null, "electric_charge", false, false, 1.60217653141414e-19],
+            ["a.u. of energy", "Eh", null, "energy", false, false, 4.35974417757576e-18],
+            ["a.u. of length", "a?", null, "length", false, false, 5.29177210818182e-11],
+            ["a.u. of mass", "m?", null, "mass", false, false, 9.10938261616162e-31],
+            ["a.u. of time", "?/Eh", null, "time", false, false, 2.41888432650516e-17],
+            ["admiralty knot", "admkn", null, "speed", false, true, 0.514773333],
+            ["ampere", "A", null, "electric_current", true, false, 1],
+            ["ampere per meter", "A/m", null, "magnetic_field_intensity", true, false, 1],
+            ["ångström", "Å", ["ang"], "length", false, true, 1e-10],
+            ["are", "ar", null, "area", false, true, 100],
+            ["astronomical unit", "ua", null, "length", false, false, 1.49597870691667e-11],
+            ["bar", "bar", null, "pressure", false, false, 100000],
+            ["barn", "b", null, "area", false, false, 1e-28],
+            ["becquerel", "Bq", null, "radioactivity", true, false, 1],
+            ["bit", "bit", ["b"], "information", false, true, 1],
+            ["btu", "BTU", ["btu"], "energy", false, true, 1055.05585262],
+            ["byte", "byte", null, "information", false, true, 8],
+            ["candela", "cd", null, "luminous_intensity", true, false, 1],
+            ["candela per square metre", "cd/m?", null, "luminance", true, false, 1],
+            ["coulomb", "C", null, "electric_charge", true, false, 1],
+            ["cubic ångström", "ang3", ["ang^3"], "volume", false, true, 1e-30],
+            ["cubic foot", "ft3", ["ft^3"], "volume", false, true, 0.028316846592],
+            ["cubic inch", "in3", ["in^3"], "volume", false, true, 0.000016387064],
+            ["cubic light-year", "ly3", ["ly^3"], "volume", false, true, 8.46786664623715e-47],
+            ["cubic metre", "m?", null, "volume", true, true, 1],
+            ["cubic mile", "mi3", ["mi^3"], "volume", false, true, 4168181825.44058],
+            ["cubic nautical mile", "Nmi3", ["Nmi^3"], "volume", false, true, 6352182208],
+            ["cubic Pica", "Pica3", ["Picapt3", "Pica^3", "Picapt^3"], "volume", false, true, 7.58660370370369e-8],
+            ["cubic yard", "yd3", ["yd^3"], "volume", false, true, 0.764554857984],
+            ["cup", "cup", null, "volume", false, true, 0.0002365882365],
+            ["dalton", "Da", ["u"], "mass", false, false, 1.66053886282828e-27],
+            ["day", "d", ["day"], "time", false, true, 86400],
+            ["degree", "°", null, "angle", false, false, 0.0174532925199433],
+            ["degrees Rankine", "Rank", null, "temperature", false, true, 0.555555555555556],
+            ["dyne", "dyn", ["dy"], "force", false, true, 0.00001],
+            ["electronvolt", "eV", ["ev"], "energy", false, true, 1.60217656514141],
+            ["ell", "ell", null, "length", false, true, 1.143],
+            ["erg", "erg", ["e"], "energy", false, true, 1e-7],
+            ["farad", "F", null, "electric_capacitance", true, false, 1],
+            ["fluid ounce", "oz", null, "volume", false, true, 0.0000295735295625],
+            ["foot", "ft", null, "length", false, true, 0.3048],
+            ["foot-pound", "flb", null, "energy", false, true, 1.3558179483314],
+            ["gal", "Gal", null, "acceleration", false, false, 0.01],
+            ["gallon", "gal", null, "volume", false, true, 0.003785411784],
+            ["gauss", "G", ["ga"], "magnetic_flux_density", false, true, 1],
+            ["grain", "grain", null, "mass", false, true, 0.0000647989],
+            ["gram", "g", null, "mass", false, true, 0.001],
+            ["gray", "Gy", null, "absorbed_dose", true, false, 1],
+            ["gross registered ton", "GRT", ["regton"], "volume", false, true, 2.8316846592],
+            ["hectare", "ha", null, "area", false, true, 10000],
+            ["henry", "H", null, "inductance", true, false, 1],
+            ["hertz", "Hz", null, "frequency", true, false, 1],
+            ["horsepower", "HP", ["h"], "power", false, true, 745.69987158227],
+            ["horsepower-hour", "HPh", ["hh", "hph"], "energy", false, true, 2684519.538],
+            ["hour", "h", ["hr"], "time", false, true, 3600],
+            ["imperial gallon (U.K.)", "uk_gal", null, "volume", false, true, 0.00454609],
+            ["imperial hundredweight", "lcwt", ["uk_cwt", "hweight"], "mass", false, true, 50.802345],
+            ["imperial quart (U.K)", "uk_qt", null, "volume", false, true, 0.0011365225],
+            ["imperial ton", "brton", ["uk_ton", "LTON"], "mass", false, true, 1016.046909],
+            ["inch", "in", null, "length", false, true, 0.0254],
+            ["international acre", "uk_acre", null, "area", false, true, 4046.8564224],
+            ["IT calorie", "cal", null, "energy", false, true, 4.1868],
+            ["joule", "J", null, "energy", true, true, 1],
+            ["katal", "kat", null, "catalytic_activity", true, false, 1],
+            ["kelvin", "K", ["kel"], "temperature", true, true, 1],
+            ["kilogram", "kg", null, "mass", true, true, 1],
+            ["knot", "kn", null, "speed", false, true, 0.514444444444444],
+            ["light-year", "ly", null, "length", false, true, 9460730472580800],
+            ["litre", "L", ["l", "lt"], "volume", false, true, 0.001],
+            ["lumen", "lm", null, "luminous_flux", true, false, 1],
+            ["lux", "lx", null, "illuminance", true, false, 1],
+            ["maxwell", "Mx", null, "magnetic_flux", false, false, 1e-18],
+            ["measurement ton", "MTON", null, "volume", false, true, 1.13267386368],
+            ["meter per hour", "m/h", ["m/hr"], "speed", false, true, 0.00027777777777778],
+            ["meter per second", "m/s", ["m/sec"], "speed", true, true, 1],
+            ["meter per second squared", "m?s??", null, "acceleration", true, false, 1],
+            ["parsec", "pc", ["parsec"], "length", false, true, 30856775814671900],
+            ["meter squared per second", "m?/s", null, "kinematic_viscosity", true, false, 1],
+            ["metre", "m", null, "length", true, true, 1],
+            ["miles per hour", "mph", null, "speed", false, true, 0.44704],
+            ["millimetre of mercury", "mmHg", null, "pressure", false, false, 133.322],
+            ["minute", "?", null, "angle", false, false, 0.000290888208665722],
+            ["minute", "min", ["mn"], "time", false, true, 60],
+            ["modern teaspoon", "tspm", null, "volume", false, true, 0.000005],
+            ["mole", "mol", null, "amount_of_substance", true, false, 1],
+            ["morgen", "Morgen", null, "area", false, true, 2500],
+            ["n.u. of action", "?", null, "action", false, false, 1.05457168181818e-34],
+            ["n.u. of mass", "m?", null, "mass", false, false, 9.10938261616162e-31],
+            ["n.u. of speed", "c?", null, "speed", false, false, 299792458],
+            ["n.u. of time", "?/(me?c??)", null, "time", false, false, 1.28808866778687e-21],
+            ["nautical mile", "M", ["Nmi"], "length", false, true, 1852],
+            ["newton", "N", null, "force", true, true, 1],
+            ["œrsted", "Oe ", null, "magnetic_field_intensity", false, false, 79.5774715459477],
+            ["ohm", "Ω", null, "electric_resistance", true, false, 1],
+            ["ounce mass", "ozm", null, "mass", false, true, 0.028349523125],
+            ["pascal", "Pa", null, "pressure", true, false, 1],
+            ["pascal second", "Pa?s", null, "dynamic_viscosity", true, false, 1],
+            ["pferdestärke", "PS", null, "power", false, true, 735.49875],
+            ["phot", "ph", null, "illuminance", false, false, 0.0001],
+            ["pica (1/6 inch)", "pica", null, "length", false, true, 0.00035277777777778],
+            ["pica (1/72 inch)", "Pica", ["Picapt"], "length", false, true, 0.00423333333333333],
+            ["poise", "P", null, "dynamic_viscosity", false, false, 0.1],
+            ["pond", "pond", null, "force", false, true, 0.00980665],
+            ["pound force", "lbf", null, "force", false, true, 4.4482216152605],
+            ["pound mass", "lbm", null, "mass", false, true, 0.45359237],
+            ["quart", "qt", null, "volume", false, true, 0.000946352946],
+            ["radian", "rad", null, "angle", true, false, 1],
+            ["second", "?", null, "angle", false, false, 0.00000484813681109536],
+            ["second", "s", ["sec"], "time", true, true, 1],
+            ["short hundredweight", "cwt", ["shweight"], "mass", false, true, 45.359237],
+            ["siemens", "S", null, "electrical_conductance", true, false, 1],
+            ["sievert", "Sv", null, "equivalent_dose", true, false, 1],
+            ["slug", "sg", null, "mass", false, true, 14.59390294],
+            ["square ångström", "ang2", ["ang^2"], "area", false, true, 1e-20],
+            ["square foot", "ft2", ["ft^2"], "area", false, true, 0.09290304],
+            ["square inch", "in2", ["in^2"], "area", false, true, 0.00064516],
+            ["square light-year", "ly2", ["ly^2"], "area", false, true, 8.95054210748189e+31],
+            ["square meter", "m?", null, "area", true, true, 1],
+            ["square mile", "mi2", ["mi^2"], "area", false, true, 2589988.110336],
+            ["square nautical mile", "Nmi2", ["Nmi^2"], "area", false, true, 3429904],
+            ["square Pica", "Pica2", ["Picapt2", "Pica^2", "Picapt^2"], "area", false, true, 0.00001792111111111],
+            ["square yard", "yd2", ["yd^2"], "area", false, true, 0.83612736],
+            ["statute mile", "mi", null, "length", false, true, 1609.344],
+            ["steradian", "sr", null, "solid_angle", true, false, 1],
+            ["stilb", "sb", null, "luminance", false, false, 0.0001],
+            ["stokes", "St", null, "kinematic_viscosity", false, false, 0.0001],
+            ["stone", "stone", null, "mass", false, true, 6.35029318],
+            ["tablespoon", "tbs", null, "volume", false, true, 0.0000147868],
+            ["teaspoon", "tsp", null, "volume", false, true, 0.00000492892],
+            ["tesla", "T", null, "magnetic_flux_density", true, true, 1],
+            ["thermodynamic calorie", "c", null, "energy", false, true, 4.184],
+            ["ton", "ton", null, "mass", false, true, 907.18474],
+            ["tonne", "t", null, "mass", false, false, 1000],
+            ["U.K. pint", "uk_pt", null, "volume", false, true, 0.00056826125],
+            ["U.S. bushel", "bushel", null, "volume", false, true, 0.03523907],
+            ["U.S. oil barrel", "barrel", null, "volume", false, true, 0.158987295],
+            ["U.S. pint", "pt", ["us_pt"], "volume", false, true, 0.000473176473],
+            ["U.S. survey mile", "survey_mi", null, "length", false, true, 1609.347219],
+            ["U.S. survey/statute acre", "us_acre", null, "area", false, true, 4046.87261],
+            ["volt", "V", null, "voltage", true, false, 1],
+            ["watt", "W", null, "power", true, true, 1],
+            ["watt-hour", "Wh", ["wh"], "energy", false, true, 3600],
+            ["weber", "Wb", null, "magnetic_flux", true, false, 1],
+            ["yard", "yd", null, "length", false, true, 0.9144],
+            ["year", "yr", null, "time", false, true, 31557600]
+        ];
+
+        // Binary prefixes
+        // [Name, Prefix power of 2 value, Previx value, Abbreviation, Derived
+        // from]
+        var binary_prefixes = {
+            Yi: ["yobi", 80, 1208925819614629174706176, "Yi", "yotta"],
+            Zi: ["zebi", 70, 1180591620717411303424, "Zi", "zetta"],
+            Ei: ["exbi", 60, 1152921504606846976, "Ei", "exa"],
+            Pi: ["pebi", 50, 1125899906842624, "Pi", "peta"],
+            Ti: ["tebi", 40, 1099511627776, "Ti", "tera"],
+            Gi: ["gibi", 30, 1073741824, "Gi", "giga"],
+            Mi: ["mebi", 20, 1048576, "Mi", "mega"],
+            ki: ["kibi", 10, 1024, "ki", "kilo"]
+        };
+
+        // Unit prefixes
+        // [Name, Multiplier, Abbreviation]
+        var unit_prefixes = {
+            Y: ["yotta", 1e+24, "Y"],
+            Z: ["zetta", 1e+21, "Z"],
+            E: ["exa", 1e+18, "E"],
+            P: ["peta", 1e+15, "P"],
+            T: ["tera", 1e+12, "T"],
+            G: ["giga", 1e+09, "G"],
+            M: ["mega", 1e+06, "M"],
+            k: ["kilo", 1e+03, "k"],
+            h: ["hecto", 1e+02, "h"],
+            e: ["dekao", 1e+01, "e"],
+            d: ["deci", 1e-01, "d"],
+            c: ["centi", 1e-02, "c"],
+            m: ["milli", 1e-03, "m"],
+            u: ["micro", 1e-06, "u"],
+            n: ["nano", 1e-09, "n"],
+            p: ["pico", 1e-12, "p"],
+            f: ["femto", 1e-15, "f"],
+            a: ["atto", 1e-18, "a"],
+            z: ["zepto", 1e-21, "z"],
+            y: ["yocto", 1e-24, "y"]
+        };
+
+        // Initialize units and multipliers
+        var from = null;
+        var to = null;
+        var base_from_unit = from_unit;
+        var base_to_unit = to_unit;
+        var from_multiplier = 1;
+        var to_multiplier = 1;
+        var alt;
+
+        // Lookup from and to units
+        for (var i = 0; i < units.length; i++) {
+            alt = (units[i][2] === null) ? [] : units[i][2];
+            if (units[i][1] === base_from_unit || alt.indexOf(base_from_unit) >= 0) {
+              from = units[i];
+            }
+            if (units[i][1] === base_to_unit || alt.indexOf(base_to_unit) >= 0) {
+              to = units[i];
+            }
+        }
+
+        // Lookup from prefix
+        if (from === null) {
+            var from_binary_prefix = binary_prefixes[from_unit.substring(0, 2)];
+            var from_unit_prefix = unit_prefixes[from_unit.substring(0, 1)];
+
+            // Handle dekao unit prefix (only unit prefix with two characters)
+            if (from_unit.substring(0, 2) === 'da') {
+              from_unit_prefix = ["dekao", 1e+01, "da"];
+            }
+
+            // Handle binary prefixes first (so that 'Yi' is processed before
+            // 'Y')
+            if (from_binary_prefix) {
+              from_multiplier = from_binary_prefix[2];
+              base_from_unit = from_unit.substring(2);
+            } else if (from_unit_prefix) {
+              from_multiplier = from_unit_prefix[1];
+              base_from_unit = from_unit.substring(from_unit_prefix[2].length);
+            }
+
+            // Lookup from unit
+            for (var j = 0; j < units.length; j++) {
+              alt = (units[j][2] === null) ? [] : units[j][2];
+              if (units[j][1] === base_from_unit || alt.indexOf(base_from_unit) >= 0) {
+                  from = units[j];
+              }
+            }
+        }
+
+        // Lookup to prefix
+        if (to === null) {
+            var to_binary_prefix = binary_prefixes[to_unit.substring(0, 2)];
+            var to_unit_prefix = unit_prefixes[to_unit.substring(0, 1)];
+
+            // Handle dekao unit prefix (only unit prefix with two characters)
+            if (to_unit.substring(0, 2) === 'da') {
+              to_unit_prefix = ["dekao", 1e+01, "da"];
+            }
+
+            // Handle binary prefixes first (so that 'Yi' is processed before
+            // 'Y')
+            if (to_binary_prefix) {
+              to_multiplier = to_binary_prefix[2];
+              base_to_unit = to_unit.substring(2);
+            } else if (to_unit_prefix) {
+              to_multiplier = to_unit_prefix[1];
+              base_to_unit = to_unit.substring(to_unit_prefix[2].length);
+            }
+
+            // Lookup to unit
+            for (var k = 0; k < units.length; k++) {
+              alt = (units[k][2] === null) ? [] : units[k][2];
+              if (units[k][1] === base_to_unit || alt.indexOf(base_to_unit) >= 0) {
+                  to = units[k];
+              }
+            }
+        }
+
+        // Return error if a unit does not exist
+        if (from === null || to === null) {
+            return error.na;
+        }
+
+        // Return error if units represent different quantities
+        if (from[3] !== to[3]) {
+            return error.na;
+        }
+
+        // Return converted number
+        return number * from[6] * from_multiplier / (to[6] * to_multiplier);
+    };
+
+    exports.DEC2BIN = function(number, places) {
+        number = utils.parseNumber(number);
+        if (number instanceof Error) {
+            return number;
+        }
+
+        // Return error if number is not decimal, is lower than -512, or is
+        // greater than 511
+        if (!/^-?[0-9]{1,3}$/.test(number) || number < -512 || number > 511) {
+            return error.num;
+        }
+
+        // Ignore places and return a 10-character binary number if number is
+        // negative
+        if (number < 0) {
+            return '1' + REPT('0', 9 - (512 + number).toString(2).length) + (512 + number).toString(2);
+        }
+
+        // Convert decimal number to binary
+        var result = parseInt(number, 10).toString(2);
+
+        // Return binary number using the minimum number of characters necessary
+        // if places is undefined
+        if (typeof places === 'undefined') {
+            return result;
+        } else {
+            // Return error if places is nonnumeric
+            if (isNaN(places)) {
+              return error.value;
+            }
+
+            // Return error if places is negative
+            if (places < 0) {
+              return error.num;
+            }
+
+            // Truncate places in case it is not an integer
+            places = Math.floor(places);
+
+            // Pad return value with leading 0s (zeros) if necessary (using
+            // Underscore.string)
+            return (places >= result.length) ? REPT('0', places - result.length) + result : error.num;
+        }
+    };
+
+    exports.DEC2HEX = function(number, places) {
+        number = utils.parseNumber(number);
+        if (number instanceof Error) {
+            return number;
+        }
+
+        // Return error if number is not decimal, is lower than -549755813888,
+        // or is greater than 549755813887
+        if (!/^-?[0-9]{1,12}$/.test(number) || number < -549755813888 || number > 549755813887) {
+            return error.num;
+        }
+
+        // Ignore places and return a 10-character hexadecimal number if number
+        // is negative
+        if (number < 0) {
+            return (1099511627776 + number).toString(16);
+        }
+
+        // Convert decimal number to hexadecimal
+        var result = parseInt(number, 10).toString(16);
+
+        // Return hexadecimal number using the minimum number of characters
+        // necessary if places is undefined
+        if (typeof places === 'undefined') {
+            return result;
+        } else {
+            // Return error if places is nonnumeric
+            if (isNaN(places)) {
+              return error.value;
+            }
+
+            // Return error if places is negative
+            if (places < 0) {
+              return error.num;
+            }
+
+            // Truncate places in case it is not an integer
+            places = Math.floor(places);
+
+            // Pad return value with leading 0s (zeros) if necessary (using
+            // Underscore.string)
+            return (places >= result.length) ? REPT('0', places - result.length) + result : error.num;
+        }
+    };
+
+    exports.DEC2OCT = function(number, places) {
+        number = utils.parseNumber(number);
+        if (number instanceof Error) {
+            return number;
+        }
+
+        // Return error if number is not decimal, is lower than -549755813888,
+        // or is greater than 549755813887
+        if (!/^-?[0-9]{1,9}$/.test(number) || number < -536870912 || number > 536870911) {
+            return error.num;
+        }
+
+        // Ignore places and return a 10-character octal number if number is
+        // negative
+        if (number < 0) {
+            return (1073741824 + number).toString(8);
+        }
+
+        // Convert decimal number to octal
+        var result = parseInt(number, 10).toString(8);
+
+        // Return octal number using the minimum number of characters necessary
+        // if places is undefined
+        if (typeof places === 'undefined') {
+            return result;
+        } else {
+            // Return error if places is nonnumeric
+            if (isNaN(places)) {
+              return error.value;
+            }
+
+            // Return error if places is negative
+            if (places < 0) {
+              return error.num;
+            }
+
+            // Truncate places in case it is not an integer
+            places = Math.floor(places);
+
+            // Pad return value with leading 0s (zeros) if necessary (using
+            // Underscore.string)
+            return (places >= result.length) ? REPT('0', places - result.length) + result : error.num;
+        }
+    };
+
+    exports.DELTA = function(number1, number2) {
+        // Set number2 to zero if undefined
+        number2 = (number2 === undefined) ? 0 : number2;
+        number1 = utils.parseNumber(number1);
+        number2 = utils.parseNumber(number2);
+        if (utils.anyIsError(number1, number2)) {
+            return error.value;
+        }
+
+        // Return delta
+        return (number1 === number2) ? 1 : 0;
+    };
+
+    exports.ERF = function(lower_bound, upper_bound) {
+    };
+
+    exports.ERF.PRECISE = function() {
+    };
+
+    exports.ERFC = function(x) {
+    };
+
+    exports.ERFC.PRECISE = function() {
+    };
+
+    exports.GESTEP = function(number, step) {
+        step = step || 0;
+        number = utils.parseNumber(number);
+        if (utils.anyIsError(step, number)) {
+            return number;
+        }
+
+        // Return delta
+        return (number >= step) ? 1 : 0;
+    };
+
+    exports.HEX2BIN = function(number, places) {
+        // Return error if number is not hexadecimal or contains more than ten
+        // characters (10 digits)
+        if (!/^[0-9A-Fa-f]{1,10}$/.test(number)) {
+            return error.num;
+        }
+
+        // Check if number is negative
+        var negative = (number.length === 10 && number.substring(0, 1).toLowerCase() === 'f') ? true : false;
+
+        // Convert hexadecimal number to decimal
+        var decimal = (negative) ? parseInt(number, 16) - 1099511627776 : parseInt(number, 16);
+
+        // Return error if number is lower than -512 or greater than 511
+        if (decimal < -512 || decimal > 511) {
+            return error.num;
+        }
+
+        // Ignore places and return a 10-character binary number if number is
+        // negative
+        if (negative) {
+            return '1' + REPT('0', 9 - (512 + decimal).toString(2).length) + (512 + decimal).toString(2);
+        }
+
+        // Convert decimal number to binary
+        var result = decimal.toString(2);
+
+        // Return binary number using the minimum number of characters necessary
+        // if places is undefined
+        if (places === undefined) {
+            return result;
+        } else {
+            // Return error if places is nonnumeric
+            if (isNaN(places)) {
+              return error.value;
+            }
+
+            // Return error if places is negative
+            if (places < 0) {
+              return error.num;
+            }
+
+            // Truncate places in case it is not an integer
+            places = Math.floor(places);
+
+            // Pad return value with leading 0s (zeros) if necessary (using
+            // Underscore.string)
+            return (places >= result.length) ? REPT('0', places - result.length) + result : error.num;
+        }
+    };
+
+    exports.HEX2DEC = function(number) {
+        // Return error if number is not hexadecimal or contains more than ten
+        // characters (10 digits)
+        if (!/^[0-9A-Fa-f]{1,10}$/.test(number)) {
+            return error.num;
+        }
+
+        // Convert hexadecimal number to decimal
+        var decimal = parseInt(number, 16);
+
+        // Return decimal number
+        return (decimal >= 549755813888) ? decimal - 1099511627776 : decimal;
+    };
+
+    exports.HEX2OCT = function(number, places) {
+        // Return error if number is not hexadecimal or contains more than ten
+        // characters (10 digits)
+        if (!/^[0-9A-Fa-f]{1,10}$/.test(number)) {
+            return error.num;
+        }
+
+        // Convert hexadecimal number to decimal
+        var decimal = parseInt(number, 16);
+
+        // Return error if number is positive and greater than 0x1fffffff
+        // (536870911)
+        if (decimal > 536870911 && decimal < 1098974756864) {
+            return error.num;
+        }
+
+        // Ignore places and return a 10-character octal number if number is
+        // negative
+        if (decimal >= 1098974756864) {
+            return (decimal - 1098437885952).toString(8);
+        }
+
+        // Convert decimal number to octal
+        var result = decimal.toString(8);
+
+        // Return octal number using the minimum number of characters necessary
+        // if places is undefined
+        if (places === undefined) {
+            return result;
+        } else {
+            // Return error if places is nonnumeric
+            if (isNaN(places)) {
+              return error.value;
+            }
+
+            // Return error if places is negative
+            if (places < 0) {
+              return error.num;
+            }
+
+            // Truncate places in case it is not an integer
+            places = Math.floor(places);
+
+            // Pad return value with leading 0s (zeros) if necessary (using
+            // Underscore.string)
+            return (places >= result.length) ? REPT('0', places - result.length) + result : error.num;
+        }
+    };
+
+    exports.IMABS = function(inumber) {
+        // Lookup real and imaginary coefficients using exports.js
+        // [http://formulajs.org]
+        var x = exports.IMREAL(inumber);
+        var y = exports.IMAGINARY(inumber);
+
+        // Return error if either coefficient is not a number
+        if (utils.anyIsError(x, y)) {
+            return error.value;
+        }
+
+        // Return absolute value of complex number
+        return Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
+    };
+
+    exports.IMAGINARY = function(inumber) {
+        if (inumber === undefined || inumber === true || inumber === false) {
+            return error.value;
+        }
+
+        // Return 0 if inumber is equal to 0
+        if (inumber === 0 || inumber === '0') {
+            return 0;
+        }
+
+        // Handle special cases
+        if (['i', 'j'].indexOf(inumber) >= 0) {
+            return 1;
+        }
+
+        // Normalize imaginary coefficient
+        inumber = inumber.replace('+i', '+1i').replace('-i', '-1i').replace('+j', '+1j').replace('-j', '-1j');
+
+        // Lookup sign
+        var plus = inumber.indexOf('+');
+        var minus = inumber.indexOf('-');
+        if (plus === 0) {
+            plus = inumber.indexOf('+', 1);
+        }
+
+        if (minus === 0) {
+            minus = inumber.indexOf('-', 1);
+        }
+
+        // Lookup imaginary unit
+        var last = inumber.substring(inumber.length - 1, inumber.length);
+        var unit = (last === 'i' || last === 'j');
+
+        if (plus >= 0 || minus >= 0) {
+            // Return error if imaginary unit is neither i nor j
+            if (!unit) {
+              return error.num;
+            }
+
+            // Return imaginary coefficient of complex number
+            if (plus >= 0) {
+              return (isNaN(inumber.substring(0, plus)) || isNaN(inumber.substring(plus + 1, inumber.length - 1))) ?
+                  error.num :
+                  Number(inumber.substring(plus + 1, inumber.length - 1));
+            } else {
+              return (isNaN(inumber.substring(0, minus)) || isNaN(inumber.substring(minus + 1, inumber.length - 1))) ?
+                  error.num :
+                  -Number(inumber.substring(minus + 1, inumber.length - 1));
+            }
+        } else {
+            if (unit) {
+              return (isNaN(inumber.substring(0, inumber.length - 1))) ? error.num : inumber.substring(0, inumber.length - 1);
+            } else {
+              return (isNaN(inumber)) ? error.num : 0;
+            }
+        }
+    };
+
+    exports.IMARGUMENT = function(inumber) {
+        // Lookup real and imaginary coefficients using exports.js
+        // [http://formulajs.org]
+        var x = exports.IMREAL(inumber);
+        var y = exports.IMAGINARY(inumber);
+
+        // Return error if either coefficient is not a number
+        if (utils.anyIsError(x, y)) {
+            return error.value;
+        }
+
+        // Return error if inumber is equal to zero
+        if (x === 0 && y === 0) {
+            return error.div0;
+        }
+
+        // Return PI/2 if x is equal to zero and y is positive
+        if (x === 0 && y > 0) {
+            return Math.PI / 2;
+        }
+
+        // Return -PI/2 if x is equal to zero and y is negative
+        if (x === 0 && y < 0) {
+            return -Math.PI / 2;
+        }
+
+        // Return zero if x is negative and y is equal to zero
+        if (y === 0 && x > 0) {
+            return 0;
+        }
+
+        // Return zero if x is negative and y is equal to zero
+        if (y === 0 && x < 0) {
+            return -Math.PI;
+        }
+
+        // Return argument of complex number
+        if (x > 0) {
+            return Math.atan(y / x);
+        } else if (x < 0 && y >= 0) {
+            return Math.atan(y / x) + Math.PI;
+        } else {
+            return Math.atan(y / x) - Math.PI;
+        }
+    };
+
+    exports.IMCONJUGATE = function(inumber) {
+        // Lookup real and imaginary coefficients using exports.js
+        // [http://formulajs.org]
+        var x = exports.IMREAL(inumber);
+        var y = exports.IMAGINARY(inumber);
+
+        if (utils.anyIsError(x, y)) {
+            return error.value;
+        }
+
+        // Lookup imaginary unit
+        var unit = inumber.substring(inumber.length - 1);
+        unit = (unit === 'i' || unit === 'j') ? unit : 'i';
+
+        // Return conjugate of complex number
+        return (y !== 0) ? exports.COMPLEX(x, -y, unit) : inumber;
+    };
+
+    exports.IMCOS = function(inumber) {
+        // Lookup real and imaginary coefficients using exports.js
+        // [http://formulajs.org]
+        var x = exports.IMREAL(inumber);
+        var y = exports.IMAGINARY(inumber);
+
+        if (utils.anyIsError(x, y)) {
+            return error.value;
+        }
+
+        // Lookup imaginary unit
+        var unit = inumber.substring(inumber.length - 1);
+        unit = (unit === 'i' || unit === 'j') ? unit : 'i';
+
+        // Return cosine of complex number
+        return exports.COMPLEX(Math.cos(x) * (Math.exp(y) + Math.exp(-y)) / 2, -Math.sin(x) * (Math.exp(y) - Math.exp(-y)) / 2, unit);
+    };
+
+    exports.IMCOSH = function(inumber) {
+        // Lookup real and imaginary coefficients using exports.js
+        // [http://formulajs.org]
+        var x = exports.IMREAL(inumber);
+        var y = exports.IMAGINARY(inumber);
+
+        if (utils.anyIsError(x, y)) {
+            return error.value;
+        }
+
+        // Lookup imaginary unit
+        var unit = inumber.substring(inumber.length - 1);
+        unit = (unit === 'i' || unit === 'j') ? unit : 'i';
+
+        // Return hyperbolic cosine of complex number
+        return exports.COMPLEX(Math.cos(y) * (Math.exp(x) + Math.exp(-x)) / 2, Math.sin(y) * (Math.exp(x) - Math.exp(-x)) / 2, unit);
+    };
+
+    exports.IMCOT = function(inumber) {
+        // Lookup real and imaginary coefficients using Formula.js
+        // [http://formulajs.org]
+        var x = exports.IMREAL(inumber);
+        var y = exports.IMAGINARY(inumber);
+
+        if (utils.anyIsError(x, y)) {
+            return error.value;
+        }
+
+        // Return cotangent of complex number
+        return exports.IMDIV(exports.IMCOS(inumber), exports.IMSIN(inumber));
+    };
+
+    exports.IMDIV = function(inumber1, inumber2) {
+        // Lookup real and imaginary coefficients using Formula.js
+        // [http://formulajs.org]
+        var a = exports.IMREAL(inumber1);
+        var b = exports.IMAGINARY(inumber1);
+        var c = exports.IMREAL(inumber2);
+        var d = exports.IMAGINARY(inumber2);
+
+        if (utils.anyIsError(a, b, c, d)) {
+            return error.value;
+        }
+
+        // Lookup imaginary unit
+        var unit1 = inumber1.substring(inumber1.length - 1);
+        var unit2 = inumber2.substring(inumber2.length - 1);
+        var unit = 'i';
+        if (unit1 === 'j') {
+            unit = 'j';
+        } else if (unit2 === 'j') {
+            unit = 'j';
+        }
+
+        // Return error if inumber2 is null
+        if (c === 0 && d === 0) {
+            return error.num;
+        }
+
+        // Return exponential of complex number
+        var den = c * c + d * d;
+        return exports.COMPLEX((a * c + b * d) / den, (b * c - a * d) / den, unit);
+    };
+
+    exports.IMEXP = function(inumber) {
+        // Lookup real and imaginary coefficients using Formula.js
+        // [http://formulajs.org]
+        var x = exports.IMREAL(inumber);
+        var y = exports.IMAGINARY(inumber);
+
+        if (utils.anyIsError(x, y)) {
+            return error.value;
+        }
+
+        // Lookup imaginary unit
+        var unit = inumber.substring(inumber.length - 1);
+        unit = (unit === 'i' || unit === 'j') ? unit : 'i';
+
+        // Return exponential of complex number
+        var e = Math.exp(x);
+        return exports.COMPLEX(e * Math.cos(y), e * Math.sin(y), unit);
+    };
+
+    exports.IMLN = function(inumber) {
+        // Lookup real and imaginary coefficients using Formula.js
+        // [http://formulajs.org]
+        var x = exports.IMREAL(inumber);
+        var y = exports.IMAGINARY(inumber);
+
+        if (utils.anyIsError(x, y)) {
+            return error.value;
+        }
+
+        // Lookup imaginary unit
+        var unit = inumber.substring(inumber.length - 1);
+        unit = (unit === 'i' || unit === 'j') ? unit : 'i';
+
+        // Return exponential of complex number
+        return exports.COMPLEX(Math.log(Math.sqrt(x * x + y * y)), Math.atan(y / x), unit);
+    };
+
+    exports.IMLOG10 = function(inumber) {
+        // Lookup real and imaginary coefficients using Formula.js
+        // [http://formulajs.org]
+        var x = exports.IMREAL(inumber);
+        var y = exports.IMAGINARY(inumber);
+
+        if (utils.anyIsError(x, y)) {
+            return error.value;
+        }
+
+        // Lookup imaginary unit
+        var unit = inumber.substring(inumber.length - 1);
+        unit = (unit === 'i' || unit === 'j') ? unit : 'i';
+
+        // Return exponential of complex number
+        return exports.COMPLEX(Math.log(Math.sqrt(x * x + y * y)) / Math.log(10), Math.atan(y / x) / Math.log(10), unit);
+    };
+
+    exports.IMLOG2 = function(inumber) {
+        // Lookup real and imaginary coefficients using Formula.js
+        // [http://formulajs.org]
+        var x = exports.IMREAL(inumber);
+        var y = exports.IMAGINARY(inumber);
+
+        if (utils.anyIsError(x, y)) {
+            return error.value;
+        }
+
+        // Lookup imaginary unit
+        var unit = inumber.substring(inumber.length - 1);
+        unit = (unit === 'i' || unit === 'j') ? unit : 'i';
+
+        // Return exponential of complex number
+        return exports.COMPLEX(Math.log(Math.sqrt(x * x + y * y)) / Math.log(2), Math.atan(y / x) / Math.log(2), unit);
+    };
+
+    exports.IMPOWER = function(inumber, number) {
+        number = utils.parseNumber(number);
+        var x = exports.IMREAL(inumber);
+        var y = exports.IMAGINARY(inumber);
+        if (utils.anyIsError(number, x, y)) {
+            return error.value;
+        }
+
+        // Lookup imaginary unit
+        var unit = inumber.substring(inumber.length - 1);
+        unit = (unit === 'i' || unit === 'j') ? unit : 'i';
+
+        // Calculate power of modulus
+        var p = Math.pow(exports.IMABS(inumber), number);
+
+        // Calculate argument
+        var t = exports.IMARGUMENT(inumber);
+
+        // Return exponential of complex number
+        return exports.COMPLEX(p * Math.cos(number * t), p * Math.sin(number * t), unit);
+    };
+
+    exports.IMPRODUCT = function() {
+        // Initialize result
+        var result = arguments[0];
+
+        // Loop on all numbers
+        for (var i = 1; i < arguments.length; i++) {
+            // Lookup coefficients of two complex numbers
+            var a = exports.IMREAL(result);
+            var b = exports.IMAGINARY(result);
+            var c = exports.IMREAL(arguments[i]);
+            var d = exports.IMAGINARY(arguments[i]);
+
+            if (utils.anyIsError(a, b, c, d)) {
+              return error.value;
+            }
+
+            // Complute product of two complex numbers
+            result = exports.COMPLEX(a * c - b * d, a * d + b * c);
+        }
+
+        // Return product of complex numbers
+        return result;
+    };
+
+    exports.IMREAL = function(inumber) {
+        if (inumber === undefined || inumber === true || inumber === false) {
+            return error.value;
+        }
+
+        // Return 0 if inumber is equal to 0
+        if (inumber === 0 || inumber === '0') {
+            return 0;
+        }
+
+        // Handle special cases
+        if (['i', '+i', '1i', '+1i', '-i', '-1i', 'j', '+j', '1j', '+1j', '-j', '-1j'].indexOf(inumber) >= 0) {
+            return 0;
+        }
+
+        // Lookup sign
+        var plus = inumber.indexOf('+');
+        var minus = inumber.indexOf('-');
+        if (plus === 0) {
+            plus = inumber.indexOf('+', 1);
+        }
+        if (minus === 0) {
+            minus = inumber.indexOf('-', 1);
+        }
+
+        // Lookup imaginary unit
+        var last = inumber.substring(inumber.length - 1, inumber.length);
+        var unit = (last === 'i' || last === 'j');
+
+        if (plus >= 0 || minus >= 0) {
+            // Return error if imaginary unit is neither i nor j
+            if (!unit) {
+              return error.num;
+            }
+
+            // Return real coefficient of complex number
+            if (plus >= 0) {
+              return (isNaN(inumber.substring(0, plus)) || isNaN(inumber.substring(plus + 1, inumber.length - 1))) ?
+                  error.num :
+                  Number(inumber.substring(0, plus));
+            } else {
+              return (isNaN(inumber.substring(0, minus)) || isNaN(inumber.substring(minus + 1, inumber.length - 1))) ?
+                  error.num :
+                  Number(inumber.substring(0, minus));
+            }
+        } else {
+            if (unit) {
+              return (isNaN(inumber.substring(0, inumber.length - 1))) ? error.num : 0;
+            } else {
+              return (isNaN(inumber)) ? error.num : inumber;
+            }
+        }
+    };
+
+    exports.IMSEC = function(inumber) {
+        // Return error if inumber is a logical value
+        if (inumber === true || inumber === false) {
+            return error.value;
+        }
+
+        // Lookup real and imaginary coefficients using Formula.js
+        // [http://formulajs.org]
+        var x = exports.IMREAL(inumber);
+        var y = exports.IMAGINARY(inumber);
+
+        if (utils.anyIsError(x, y)) {
+            return error.value;
+        }
+
+        // Return secant of complex number
+        return exports.IMDIV('1', exports.IMCOS(inumber));
+    };
+
+    exports.IMSECH = function(inumber) {
+        // Lookup real and imaginary coefficients using Formula.js
+        // [http://formulajs.org]
+        var x = exports.IMREAL(inumber);
+        var y = exports.IMAGINARY(inumber);
+
+        if (utils.anyIsError(x, y)) {
+            return error.value;
+        }
+
+        // Return hyperbolic secant of complex number
+        return exports.IMDIV('1', exports.IMCOSH(inumber));
+    };
+
+    exports.IMSIN = function(inumber) {
+        // Lookup real and imaginary coefficients using Formula.js
+        // [http://formulajs.org]
+        var x = exports.IMREAL(inumber);
+        var y = exports.IMAGINARY(inumber);
+
+        if (utils.anyIsError(x, y)) {
+            return error.value;
+        }
+
+        // Lookup imaginary unit
+        var unit = inumber.substring(inumber.length - 1);
+        unit = (unit === 'i' || unit === 'j') ? unit : 'i';
+
+        // Return sine of complex number
+        return exports.COMPLEX(Math.sin(x) * (Math.exp(y) + Math.exp(-y)) / 2, Math.cos(x) * (Math.exp(y) - Math.exp(-y)) / 2, unit);
+    };
+
+    exports.IMSINH = function(inumber) {
+        // Lookup real and imaginary coefficients using Formula.js
+        // [http://formulajs.org]
+        var x = exports.IMREAL(inumber);
+        var y = exports.IMAGINARY(inumber);
+
+        if (utils.anyIsError(x, y)) {
+            return error.value;
+        }
+
+        // Lookup imaginary unit
+        var unit = inumber.substring(inumber.length - 1);
+        unit = (unit === 'i' || unit === 'j') ? unit : 'i';
+
+        // Return hyperbolic sine of complex number
+        return exports.COMPLEX(Math.cos(y) * (Math.exp(x) - Math.exp(-x)) / 2, Math.sin(y) * (Math.exp(x) + Math.exp(-x)) / 2, unit);
+    };
+
+    exports.IMSQRT = function(inumber) {
+        // Lookup real and imaginary coefficients using Formula.js
+        // [http://formulajs.org]
+        var x = exports.IMREAL(inumber);
+        var y = exports.IMAGINARY(inumber);
+
+        if (utils.anyIsError(x, y)) {
+            return error.value;
+        }
+
+        // Lookup imaginary unit
+        var unit = inumber.substring(inumber.length - 1);
+        unit = (unit === 'i' || unit === 'j') ? unit : 'i';
+
+        // Calculate power of modulus
+        var s = Math.sqrt(exports.IMABS(inumber));
+
+        // Calculate argument
+        var t = exports.IMARGUMENT(inumber);
+
+        // Return exponential of complex number
+        return exports.COMPLEX(s * Math.cos(t / 2), s * Math.sin(t / 2), unit);
+    };
+
+    exports.IMCSC = function (inumber) {
+        // Return error if inumber is a logical value
+        if (inumber === true || inumber === false) {
+            return error.value;
+        }
+
+        // Lookup real and imaginary coefficients using Formula.js
+        // [http://formulajs.org]
+        var x = exports.IMREAL(inumber);
+        var y = exports.IMAGINARY(inumber);
+
+        // Return error if either coefficient is not a number
+        if (utils.anyIsError(x, y)) {
+            return error.num;
+        }
+
+        // Return cosecant of complex number
+        return exports.IMDIV('1', exports.IMSIN(inumber));
+    };
+
+    exports.IMCSCH = function (inumber) {
+        // Return error if inumber is a logical value
+        if (inumber === true || inumber === false) {
+            return error.value;
+        }
+
+        // Lookup real and imaginary coefficients using Formula.js
+        // [http://formulajs.org]
+        var x = exports.IMREAL(inumber);
+        var y = exports.IMAGINARY(inumber);
+
+        // Return error if either coefficient is not a number
+        if (utils.anyIsError(x, y)) {
+            return error.num;
+        }
+
+        // Return hyperbolic cosecant of complex number
+        return exports.IMDIV('1', exports.IMSINH(inumber));
+    };
+
+    exports.IMSUB = function(inumber1, inumber2) {
+        // Lookup real and imaginary coefficients using Formula.js
+        // [http://formulajs.org]
+        var a = this.IMREAL(inumber1);
+        var b = this.IMAGINARY(inumber1);
+        var c = this.IMREAL(inumber2);
+        var d = this.IMAGINARY(inumber2);
+
+        if (utils.anyIsError(a, b, c, d)) {
+            return error.value;
+        }
+
+        // Lookup imaginary unit
+        var unit1 = inumber1.substring(inumber1.length - 1);
+        var unit2 = inumber2.substring(inumber2.length - 1);
+        var unit = 'i';
+        if (unit1 === 'j') {
+            unit = 'j';
+        } else if (unit2 === 'j') {
+            unit = 'j';
+        }
+
+        // Return _ of two complex numbers
+        return this.COMPLEX(a - c, b - d, unit);
+    };
+
+    exports.IMSUM = function() {
+        var args = utils.flatten(arguments);
+
+        // Initialize result
+        var result = args[0];
+
+        // Loop on all numbers
+        for (var i = 1; i < args.length; i++) {
+            // Lookup coefficients of two complex numbers
+            var a = this.IMREAL(result);
+            var b = this.IMAGINARY(result);
+            var c = this.IMREAL(args[i]);
+            var d = this.IMAGINARY(args[i]);
+
+            if (utils.anyIsError(a, b, c, d)) {
+              return error.value;
+            }
+
+            // Complute product of two complex numbers
+            result = this.COMPLEX(a + c, b + d);
+        }
+
+        // Return sum of complex numbers
+        return result;
+    };
+
+    exports.IMTAN = function(inumber) {
+        // Return error if inumber is a logical value
+        if (inumber === true || inumber === false) {
+            return error.value;
+        }
+
+        // Lookup real and imaginary coefficients using Formula.js
+        // [http://formulajs.org]
+        var x = exports.IMREAL(inumber);
+        var y = exports.IMAGINARY(inumber);
+
+        if (utils.anyIsError(x, y)) {
+            return error.value;
+        }
+
+        // Return tangent of complex number
+        return this.IMDIV(this.IMSIN(inumber), this.IMCOS(inumber));
+    };
+
+    exports.OCT2BIN = function(number, places) {
+        // Return error if number is not hexadecimal or contains more than ten
+        // characters (10 digits)
+        if (!/^[0-7]{1,10}$/.test(number)) {
+            return error.num;
+        }
+
+        // Check if number is negative
+        var negative = (number.length === 10 && number.substring(0, 1) === '7') ? true : false;
+
+        // Convert octal number to decimal
+        var decimal = (negative) ? parseInt(number, 8) - 1073741824 : parseInt(number, 8);
+
+        // Return error if number is lower than -512 or greater than 511
+        if (decimal < -512 || decimal > 511) {
+            return error.num;
+        }
+
+        // Ignore places and return a 10-character binary number if number is
+        // negative
+        if (negative) {
+            return '1' + REPT('0', 9 - (512 + decimal).toString(2).length) + (512 + decimal).toString(2);
+        }
+
+        // Convert decimal number to binary
+        var result = decimal.toString(2);
+
+        // Return binary number using the minimum number of characters necessary
+        // if places is undefined
+        if (typeof places === 'undefined') {
+            return result;
+        } else {
+            // Return error if places is nonnumeric
+            if (isNaN(places)) {
+              return error.value;
+            }
+
+            // Return error if places is negative
+            if (places < 0) {
+              return error.num;
+            }
+
+            // Truncate places in case it is not an integer
+            places = Math.floor(places);
+
+            // Pad return value with leading 0s (zeros) if necessary (using
+            // Underscore.string)
+            return (places >= result.length) ? REPT('0', places - result.length) + result : error.num;
+        }
+    };
+
+    exports.OCT2DEC = function(number) {
+        // Return error if number is not octal or contains more than ten
+        // characters (10 digits)
+        if (!/^[0-7]{1,10}$/.test(number)) {
+            return error.num;
+        }
+
+        // Convert octal number to decimal
+        var decimal = parseInt(number, 8);
+
+        // Return decimal number
+        return (decimal >= 536870912) ? decimal - 1073741824 : decimal;
+    };
+
+    exports.OCT2HEX = function(number, places) {
+        // Return error if number is not octal or contains more than ten
+        // characters (10 digits)
+        if (!/^[0-7]{1,10}$/.test(number)) {
+            return error.num;
+        }
+
+        // Convert octal number to decimal
+        var decimal = parseInt(number, 8);
+
+        // Ignore places and return a 10-character octal number if number is
+        // negative
+        if (decimal >= 536870912) {
+            return 'ff' + (decimal + 3221225472).toString(16);
+        }
+
+        // Convert decimal number to hexadecimal
+        var result = decimal.toString(16);
+
+        // Return hexadecimal number using the minimum number of characters
+        // necessary if places is undefined
+        if (places === undefined) {
+            return result;
+        } else {
+            // Return error if places is nonnumeric
+            if (isNaN(places)) {
+              return error.value;
+            }
+
+            // Return error if places is negative
+            if (places < 0) {
+              return error.num;
+            }
+
+            // Truncate places in case it is not an integer
+            places = Math.floor(places);
+
+            // Pad return value with leading 0s (zeros) if necessary (using
+            // Underscore.string)
+            return (places >= result.length) ? REPT('0', places - result.length) + result : error.num;
+        }
+    };
+
+    return exports;
+})();
+
+jexcel.methods.financial = (function() {
+    var exports = {};
+
+    function validDate(d) {
+        return d && d.getTime && !isNaN(d.getTime());
+    }
+
+    function ensureDate(d) {
+        return (d instanceof Date)?d:new Date(d);
+    }
+
+    exports.ACCRINT = function(issue, first, settlement, rate, par, frequency, basis) {
+        // Return error if either date is invalid
+        issue        = ensureDate(issue);
+        first        = ensureDate(first);
+        settlement = ensureDate(settlement);
+        if (!validDate(issue) || !validDate(first) || !validDate(settlement)) {
+            return '#VALUE!';
+        }
+
+        // Return error if either rate or par are lower than or equal to zero
+        if (rate <= 0 || par <= 0) {
+            return '#NUM!';
+        }
+
+        // Return error if frequency is neither 1, 2, or 4
+        if ([1, 2, 4].indexOf(frequency) === -1) {
+            return '#NUM!';
+        }
+
+        // Return error if basis is neither 0, 1, 2, 3, or 4
+        if ([0, 1, 2, 3, 4].indexOf(basis) === -1) {
+            return '#NUM!';
+        }
+
+        // Return error if settlement is before or equal to issue
+        if (settlement <= issue) {
+            return '#NUM!';
+        }
+
+        // Set default values
+        par   = par   || 0;
+        basis = basis || 0;
+
+        // Compute accrued interest
+        return par * rate * YEARFRAC(issue, settlement, basis);
+    };
+
+    exports.ACCRINTM = null;
+
+    exports.AMORDEGRC = null;
+
+    exports.AMORLINC = null;
+
+    exports.COUPDAYBS = null;
+
+    exports.COUPDAYS = null;
+
+    exports.COUPDAYSNC = null;
+
+    exports.COUPNCD = null;
+
+    exports.COUPNUM = null;
+
+    exports.COUPPCD = null;
+
+    exports.CUMIPMT = function(rate, periods, value, start, end, type) {
+        // Credits: algorithm inspired by Apache OpenOffice
+        // Credits: Hannes Stiebitzhofer for the translations of function and
+            // variable names
+        // Requires exports.FV() and exports.PMT() from exports.js
+            // [http://stoic.com/exports/]
+
+        rate = utils.parseNumber(rate);
+        periods = utils.parseNumber(periods);
+        value = utils.parseNumber(value);
+        if (utils.anyIsError(rate, periods, value)) {
+            return error.value;
+        }
+
+        // Return error if either rate, periods, or value are lower than or
+            // equal to zero
+        if (rate <= 0 || periods <= 0 || value <= 0) {
+            return error.num;
+        }
+
+        // Return error if start < 1, end < 1, or start > end
+        if (start < 1 || end < 1 || start > end) {
+            return error.num;
+        }
+
+        // Return error if type is neither 0 nor 1
+        if (type !== 0 && type !== 1) {
+            return error.num;
+        }
+
+        // Compute cumulative interest
+        var payment = exports.PMT(rate, periods, value, 0, type);
+        var interest = 0;
+
+        if (start === 1) {
+            if (type === 0) {
+                interest = -value;
+                start++;
+            }
+        }
+
+        for (var i = start; i <= end; i++) {
+            if (type === 1) {
+                interest += exports.FV(rate, i - 2, payment, value, 1) - payment;
+            } else {
+                interest += exports.FV(rate, i - 1, payment, value, 0);
+            }
+        }
+        interest *= rate;
+
+        // Return cumulative interest
+        return interest;
+    };
+
+    exports.CUMPRINC = function(rate, periods, value, start, end, type) {
+        // Credits: algorithm inspired by Apache OpenOffice
+        // Credits: Hannes Stiebitzhofer for the translations of function and
+            // variable names
+
+        rate = utils.parseNumber(rate);
+        periods = utils.parseNumber(periods);
+        value = utils.parseNumber(value);
+        if (utils.anyIsError(rate, periods, value)) {
+            return error.value;
+        }
+
+        // Return error if either rate, periods, or value are lower than or
+            // equal to zero
+        if (rate <= 0 || periods <= 0 || value <= 0) {
+            return error.num;
+        }
+
+        // Return error if start < 1, end < 1, or start > end
+        if (start < 1 || end < 1 || start > end) {
+            return error.num;
+        }
+
+        // Return error if type is neither 0 nor 1
+        if (type !== 0 && type !== 1) {
+            return error.num;
+        }
+
+        // Compute cumulative principal
+        var payment = exports.PMT(rate, periods, value, 0, type);
+        var principal = 0;
+        if (start === 1) {
+            if (type === 0) {
+                principal = payment + value * rate;
+            } else {
+                principal = payment;
+            }
+            start++;
+        }
+        for (var i = start; i <= end; i++) {
+            if (type > 0) {
+                principal += payment - (exports.FV(rate, i - 2, payment, value, 1) - payment) * rate;
+            } else {
+                principal += payment - exports.FV(rate, i - 1, payment, value, 0) * rate;
+            }
+        }
+
+        // Return cumulative principal
+        return principal;
+    };
+
+    exports.DB = function(cost, salvage, life, period, month) {
+        // Initialize month
+        month = (month === undefined) ? 12 : month;
+
+        cost = utils.parseNumber(cost);
+        salvage = utils.parseNumber(salvage);
+        life = utils.parseNumber(life);
+        period = utils.parseNumber(period);
+        month = utils.parseNumber(month);
+        if (utils.anyIsError(cost, salvage, life, period, month)) {
+            return error.value;
+        }
+
+        // Return error if any of the parameters is negative
+        if (cost < 0 || salvage < 0 || life < 0 || period < 0) {
+            return error.num;
+        }
+
+        // Return error if month is not an integer between 1 and 12
+        if ([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].indexOf(month) === -1) {
+            return error.num;
+        }
+
+        // Return error if period is greater than life
+        if (period > life) {
+            return error.num;
+        }
+
+        // Return 0 (zero) if salvage is greater than or equal to cost
+        if (salvage >= cost) {
+            return 0;
+        }
+
+        // Rate is rounded to three decimals places
+        var rate = (1 - Math.pow(salvage / cost, 1 / life)).toFixed(3);
+
+        // Compute initial depreciation
+        var initial = cost * rate * month / 12;
+
+        // Compute total depreciation
+        var total = initial;
+        var current = 0;
+        var ceiling = (period === life) ? life - 1 : period;
+        for (var i = 2; i <= ceiling; i++) {
+            current = (cost - total) * rate;
+            total += current;
+        }
+
+        // Depreciation for the first and last periods are special cases
+        if (period === 1) {
+            // First period
+            return initial;
+        } else if (period === life) {
+            // Last period
+            return (cost - total) * rate;
+        } else {
+            return current;
+        }
+    };
+
+    exports.DDB = function(cost, salvage, life, period, factor) {
+        // Initialize factor
+        factor = (factor === undefined) ? 2 : factor;
+
+        cost = utils.parseNumber(cost);
+        salvage = utils.parseNumber(salvage);
+        life = utils.parseNumber(life);
+        period = utils.parseNumber(period);
+        factor = utils.parseNumber(factor);
+        if (utils.anyIsError(cost, salvage, life, period, factor)) {
+            return error.value;
+        }
+
+        // Return error if any of the parameters is negative or if factor is
+            // null
+        if (cost < 0 || salvage < 0 || life < 0 || period < 0 || factor <= 0) {
+            return error.num;
+        }
+
+        // Return error if period is greater than life
+        if (period > life) {
+            return error.num;
+        }
+
+        // Return 0 (zero) if salvage is greater than or equal to cost
+        if (salvage >= cost) {
+            return 0;
+        }
+
+        // Compute depreciation
+        var total = 0;
+        var current = 0;
+        for (var i = 1; i <= period; i++) {
+            current = Math.min((cost - total) * (factor / life), (cost - salvage - total));
+            total += current;
+        }
+
+        // Return depreciation
+        return current;
+    };
+
+    exports.DISC = null;
+
+    exports.DOLLARDE = function(dollar, fraction) {
+        // Credits: algorithm inspired by Apache OpenOffice
+
+        dollar = utils.parseNumber(dollar);
+        fraction = utils.parseNumber(fraction);
+        if (utils.anyIsError(dollar, fraction)) {
+            return error.value;
+        }
+
+        // Return error if fraction is negative
+        if (fraction < 0) {
+            return error.num;
+        }
+
+        // Return error if fraction is greater than or equal to 0 and less than
+            // 1
+        if (fraction >= 0 && fraction < 1) {
+            return error.div0;
+        }
+
+        // Truncate fraction if it is not an integer
+        fraction = parseInt(fraction, 10);
+
+        // Compute integer part
+        var result = parseInt(dollar, 10);
+
+        // Add decimal part
+        result += (dollar % 1) * Math.pow(10, Math.ceil(Math.log(fraction) / Math.LN10)) / fraction;
+
+        // Round result
+        var power = Math.pow(10, Math.ceil(Math.log(fraction) / Math.LN2) + 1);
+        result = Math.round(result * power) / power;
+
+        // Return converted dollar price
+        return result;
+    };
+
+    exports.DOLLARFR = function(dollar, fraction) {
+        // Credits: algorithm inspired by Apache OpenOffice
+
+        dollar = utils.parseNumber(dollar);
+        fraction = utils.parseNumber(fraction);
+        if (utils.anyIsError(dollar, fraction)) {
+            return error.value;
+        }
+
+        // Return error if fraction is negative
+        if (fraction < 0) {
+            return error.num;
+        }
+
+        // Return error if fraction is greater than or equal to 0 and less than
+            // 1
+        if (fraction >= 0 && fraction < 1) {
+            return error.div0;
+        }
+
+        // Truncate fraction if it is not an integer
+        fraction = parseInt(fraction, 10);
+
+        // Compute integer part
+        var result = parseInt(dollar, 10);
+
+        // Add decimal part
+        result += (dollar % 1) * Math.pow(10, -Math.ceil(Math.log(fraction) / Math.LN10)) * fraction;
+
+        // Return converted dollar price
+        return result;
+    };
+
+    exports.DURATION = null;
+
+    exports.EFFECT = function(rate, periods) {
+        rate = utils.parseNumber(rate);
+        periods = utils.parseNumber(periods);
+        if (utils.anyIsError(rate, periods)) {
+            return error.value;
+        }
+
+        // Return error if rate <=0 or periods < 1
+        if (rate <= 0 || periods < 1) {
+            return error.num;
+        }
+
+        // Truncate periods if it is not an integer
+        periods = parseInt(periods, 10);
+
+        // Return effective annual interest rate
+        return Math.pow(1 + rate / periods, periods) - 1;
+    };
+
+    exports.FV = function(rate, periods, payment, value, type) {
+        // Credits: algorithm inspired by Apache OpenOffice
+
+        value = value || 0;
+        type = type || 0;
+
+        rate = utils.parseNumber(rate);
+        periods = utils.parseNumber(periods);
+        payment = utils.parseNumber(payment);
+        value = utils.parseNumber(value);
+        type = utils.parseNumber(type);
+        if (utils.anyIsError(rate, periods, payment, value, type)) {
+            return error.value;
+        }
+
+        // Return future value
+        var result;
+        if (rate === 0) {
+            result = value + payment * periods;
+        } else {
+            var term = Math.pow(1 + rate, periods);
+            if (type === 1) {
+                result = value * term + payment * (1 + rate) * (term - 1) / rate;
+            } else {
+                result = value * term + payment * (term - 1) / rate;
+            }
+        }
+        return -result;
+    };
+
+    exports.FVSCHEDULE = function(principal, schedule) {
+        principal = utils.parseNumber(principal);
+        schedule = utils.parseNumberArray(utils.flatten(schedule));
+        if (utils.anyIsError(principal, schedule)) {
+            return error.value;
+        }
+
+        var n = schedule.length;
+        var future = principal;
+
+        // Apply all interests in schedule
+        for (var i = 0; i < n; i++) {
+            // Apply scheduled interest
+            future *= 1 + schedule[i];
+        }
+
+        // Return future value
+        return future;
+    };
+
+    exports.INTRATE = null;
+
+    exports.IPMT = function(rate, period, periods, present, future, type) {
+        // Credits: algorithm inspired by Apache OpenOffice
+
+        future = future || 0;
+        type = type || 0;
+
+        rate = utils.parseNumber(rate);
+        period = utils.parseNumber(period);
+        periods = utils.parseNumber(periods);
+        present = utils.parseNumber(present);
+        future = utils.parseNumber(future);
+        type = utils.parseNumber(type);
+        if (utils.anyIsError(rate, period, periods, present, future, type)) {
+            return error.value;
+        }
+
+        // Compute payment
+        var payment = exports.PMT(rate, periods, present, future, type);
+
+        // Compute interest
+        var interest;
+        if (period === 1) {
+            if (type === 1) {
+                interest = 0;
+            } else {
+                interest = -present;
+            }
+        } else {
+            if (type === 1) {
+                interest = exports.FV(rate, period - 2, payment, present, 1) - payment;
+            } else {
+                interest = exports.FV(rate, period - 1, payment, present, 0);
+            }
+        }
+
+        // Return interest
+        return interest * rate;
+    };
+
+    exports.IRR = function(values, guess) {
+        // Credits: algorithm inspired by Apache OpenOffice
+
+        guess = guess || 0;
+
+        values = utils.parseNumberArray(utils.flatten(values));
+        guess = utils.parseNumber(guess);
+        if (utils.anyIsError(values, guess)) {
+            return error.value;
+        }
+
+        // Calculates the resulting amount
+        var irrResult = function(values, dates, rate) {
+            var r = rate + 1;
+            var result = values[0];
+            for (var i = 1; i < values.length; i++) {
+                result += values[i] / Math.pow(r, (dates[i] - dates[0]) / 365);
+            }
+            return result;
+        };
+
+        // Calculates the first derivation
+        var irrResultDeriv = function(values, dates, rate) {
+            var r = rate + 1;
+            var result = 0;
+            for (var i = 1; i < values.length; i++) {
+                var frac = (dates[i] - dates[0]) / 365;
+                result -= frac * values[i] / Math.pow(r, frac + 1);
+            }
+            return result;
+        };
+
+        // Initialize dates and check that values contains at least one positive
+            // value and one negative value
+        var dates = [];
+        var positive = false;
+        var negative = false;
+        for (var i = 0; i < values.length; i++) {
+            dates[i] = (i === 0) ? 0 : dates[i - 1] + 365;
+            if (values[i] > 0) {
+                positive = true;
+            }
+            if (values[i] < 0) {
+                negative = true;
+            }
+        }
+
+        // Return error if values does not contain at least one positive value
+            // and one negative value
+        if (!positive || !negative) {
+            return error.num;
+        }
+
+        // Initialize guess and resultRate
+        guess = (guess === undefined) ? 0.1 : guess;
+        var resultRate = guess;
+
+        // Set maximum epsilon for end of iteration
+        var epsMax = 1e-10;
+
+        // Implement Newton's method
+        var newRate, epsRate, resultValue;
+        var contLoop = true;
+        do {
+            resultValue = irrResult(values, dates, resultRate);
+            newRate = resultRate - resultValue / irrResultDeriv(values, dates, resultRate);
+            epsRate = Math.abs(newRate - resultRate);
+            resultRate = newRate;
+            contLoop = (epsRate > epsMax) && (Math.abs(resultValue) > epsMax);
+        } while (contLoop);
+
+        // Return internal rate of return
+        return resultRate;
+    };
+
+    exports.ISPMT = function(rate, period, periods, value) {
+        rate = utils.parseNumber(rate);
+        period = utils.parseNumber(period);
+        periods = utils.parseNumber(periods);
+        value = utils.parseNumber(value);
+        if (utils.anyIsError(rate, period, periods, value)) {
+            return error.value;
+        }
+
+        // Return interest
+        return value * rate * (period / periods - 1);
+    };
+
+    exports.MDURATION = null;
+
+    exports.MIRR = function(values, finance_rate, reinvest_rate) {
+        values = utils.parseNumberArray(utils.flatten(values));
+        finance_rate = utils.parseNumber(finance_rate);
+        reinvest_rate = utils.parseNumber(reinvest_rate);
+        if (utils.anyIsError(values, finance_rate, reinvest_rate)) {
+            return error.value;
+        }
+
+        // Initialize number of values
+        var n = values.length;
+
+        // Lookup payments (negative values) and incomes (positive values)
+        var payments = [];
+        var incomes = [];
+        for (var i = 0; i < n; i++) {
+            if (values[i] < 0) {
+                payments.push(values[i]);
+            } else {
+                incomes.push(values[i]);
+            }
+        }
+
+        // Return modified internal rate of return
+        var num = -exports.NPV(reinvest_rate, incomes) * Math.pow(1 + reinvest_rate, n - 1);
+        var den = exports.NPV(finance_rate, payments) * (1 + finance_rate);
+        return Math.pow(num / den, 1 / (n - 1)) - 1;
+    };
+
+    exports.NOMINAL = function(rate, periods) {
+        rate = utils.parseNumber(rate);
+        periods = utils.parseNumber(periods);
+        if (utils.anyIsError(rate, periods)) {
+            return error.value;
+        }
+
+        // Return error if rate <=0 or periods < 1
+        if (rate <= 0 || periods < 1) {
+            return error.num;
+        }
+
+        // Truncate periods if it is not an integer
+        periods = parseInt(periods, 10);
+
+        // Return nominal annual interest rate
+        return (Math.pow(rate + 1, 1 / periods) - 1) * periods;
+    };
+
+    exports.NPER = function(rate, payment, present, future, type) {
+        type = (type === undefined) ? 0 : type;
+        future = (future === undefined) ? 0 : future;
+
+        rate = utils.parseNumber(rate);
+        payment = utils.parseNumber(payment);
+        present = utils.parseNumber(present);
+        future = utils.parseNumber(future);
+        type = utils.parseNumber(type);
+        if (utils.anyIsError(rate, payment, present, future, type)) {
+            return error.value;
+        }
+
+        // Return number of periods
+        var num = payment * (1 + rate * type) - future * rate;
+        var den = (present * rate + payment * (1 + rate * type));
+        return Math.log(num / den) / Math.log(1 + rate);
+    };
+
+    exports.NPV = function() {
+        var args = utils.parseNumberArray(utils.flatten(arguments));
+        if (args instanceof Error) {
+            return args;
+        }
+
+        // Lookup rate
+        var rate = args[0];
+
+        // Initialize net present value
+        var value = 0;
+
+        // Loop on all values
+        for (var j = 1; j < args.length; j++) {
+            value += args[j] / Math.pow(1 + rate, j);
+        }
+
+        // Return net present value
+        return value;
+    };
+
+    exports.ODDFPRICE = null;
+
+    exports.ODDFYIELD = null;
+
+    exports.ODDLPRICE = null;
+
+    exports.ODDLYIELD = null;
+
+    exports.PDURATION = function(rate, present, future) {
+        rate = utils.parseNumber(rate);
+        present = utils.parseNumber(present);
+        future = utils.parseNumber(future);
+        if (utils.anyIsError(rate, present, future)) {
+            return error.value;
+        }
+
+        // Return error if rate <=0
+        if (rate <= 0) {
+            return error.num;
+        }
+
+        // Return number of periods
+        return (Math.log(future) - Math.log(present)) / Math.log(1 + rate);
+    };
+
+    exports.PMT = function(rate, periods, present, future, type) {
+        // Credits: algorithm inspired by Apache OpenOffice
+
+        future = future || 0;
+        type = type || 0;
+
+        rate = utils.parseNumber(rate);
+        periods = utils.parseNumber(periods);
+        present = utils.parseNumber(present);
+        future = utils.parseNumber(future);
+        type = utils.parseNumber(type);
+        if (utils.anyIsError(rate, periods, present, future, type)) {
+            return error.value;
+        }
+
+        // Return payment
+        var result;
+        if (rate === 0) {
+            result = (present + future) / periods;
+        } else {
+            var term = Math.pow(1 + rate, periods);
+            if (type === 1) {
+                result = (future * rate / (term - 1) + present * rate / (1 - 1 / term)) / (1 + rate);
+            } else {
+                result = future * rate / (term - 1) + present * rate / (1 - 1 / term);
+            }
+        }
+        return -result;
+    };
+
+    exports.PPMT = function(rate, period, periods, present, future, type) {
+        future = future || 0;
+        type = type || 0;
+
+        rate = utils.parseNumber(rate);
+        periods = utils.parseNumber(periods);
+        present = utils.parseNumber(present);
+        future = utils.parseNumber(future);
+        type = utils.parseNumber(type);
+        if (utils.anyIsError(rate, periods, present, future, type)) {
+            return error.value;
+        }
+
+        return exports.PMT(rate, periods, present, future, type) - exports.IPMT(rate, period, periods, present, future, type);
+    };
+
+    exports.PRICE = null;
+
+    exports.PRICEDISC = null;
+
+    exports.PRICEMAT = null;
+
+    exports.PV = function(rate, periods, payment, future, type) {
+        future = future || 0;
+        type = type || 0;
+
+        rate = utils.parseNumber(rate);
+        periods = utils.parseNumber(periods);
+        payment = utils.parseNumber(payment);
+        future = utils.parseNumber(future);
+        type = utils.parseNumber(type);
+        if (utils.anyIsError(rate, periods, payment, future, type)) {
+            return error.value;
+        }
+
+        // Return present value
+        if (rate === 0) {
+            return -payment * periods - future;
+        } else {
+            return (((1 - Math.pow(1 + rate, periods)) / rate) * payment * (1 + rate * type) - future) / Math.pow(1 + rate, periods);
+        }
+    };
+
+    exports.RATE = function(periods, payment, present, future, type, guess) {
+        // Credits: rabugento
+
+        guess = (guess === undefined) ? 0.01 : guess;
+        future = (future === undefined) ? 0 : future;
+        type = (type === undefined) ? 0 : type;
+
+        periods = utils.parseNumber(periods);
+        payment = utils.parseNumber(payment);
+        present = utils.parseNumber(present);
+        future = utils.parseNumber(future);
+        type = utils.parseNumber(type);
+        guess = utils.parseNumber(guess);
+        if (utils.anyIsError(periods, payment, present, future, type, guess)) {
+            return error.value;
+        }
+
+        // Set maximum epsilon for end of iteration
+        var epsMax = 1e-6;
+
+        // Set maximum number of iterations
+        var iterMax = 100;
+        var iter = 0;
+        var close = false;
+        var rate = guess;
+
+        while (iter < iterMax && !close) {
+            var t1 = Math.pow(rate + 1, periods);
+            var t2 = Math.pow(rate + 1, periods - 1);
+
+            var f1 = future + t1 * present + payment * (t1 - 1) * (rate * type + 1) / rate;
+            var f2 = periods * t2 * present - payment * (t1 - 1) *(rate * type + 1) / Math.pow(rate,2);
+            var f3 = periods * payment * t2 * (rate * type + 1) / rate + payment * (t1 - 1) * type / rate;
+
+            var newRate = rate - f1 / (f2 + f3);
+
+            if (Math.abs(newRate - rate) < epsMax) close = true;
+            iter++
+            rate = newRate;
+        }
+
+        if (!close) return Number.NaN + rate;
+        return rate;
+    };
+
+    // TODO
+    exports.RECEIVED = null;
+
+    exports.RRI = function(periods, present, future) {
+        periods = utils.parseNumber(periods);
+        present = utils.parseNumber(present);
+        future = utils.parseNumber(future);
+        if (utils.anyIsError(periods, present, future)) {
+            return error.value;
+        }
+
+        // Return error if periods or present is equal to 0 (zero)
+        if (periods === 0 || present === 0) {
+            return error.num;
+        }
+
+        // Return equivalent interest rate
+        return Math.pow(future / present, 1 / periods) - 1;
+    };
+
+    exports.SLN = function(cost, salvage, life) {
+        cost = utils.parseNumber(cost);
+        salvage = utils.parseNumber(salvage);
+        life = utils.parseNumber(life);
+        if (utils.anyIsError(cost, salvage, life)) {
+            return error.value;
+        }
+
+        // Return error if life equal to 0 (zero)
+        if (life === 0) {
+            return error.num;
+        }
+
+        // Return straight-line depreciation
+        return (cost - salvage) / life;
+    };
+
+    exports.SYD = function(cost, salvage, life, period) {
+        // Return error if any of the parameters is not a number
+        cost = utils.parseNumber(cost);
+        salvage = utils.parseNumber(salvage);
+        life = utils.parseNumber(life);
+        period = utils.parseNumber(period);
+        if (utils.anyIsError(cost, salvage, life, period)) {
+            return error.value;
+        }
+
+        // Return error if life equal to 0 (zero)
+        if (life === 0) {
+            return error.num;
+        }
+
+        // Return error if period is lower than 1 or greater than life
+        if (period < 1 || period > life) {
+            return error.num;
+        }
+
+        // Truncate period if it is not an integer
+        period = parseInt(period, 10);
+
+        // Return straight-line depreciation
+        return ((cost - salvage) * (life - period + 1) * 2) / (life * (life + 1));
+    };
+
+    exports.TBILLEQ = function(settlement, maturity, discount) {
+        settlement = utils.parseDate(settlement);
+        maturity = utils.parseDate(maturity);
+        discount = utils.parseNumber(discount);
+        if (utils.anyIsError(settlement, maturity, discount)) {
+            return error.value;
+        }
+
+        // Return error if discount is lower than or equal to zero
+        if (discount <= 0) {
+            return error.num;
+        }
+
+        // Return error if settlement is greater than maturity
+        if (settlement > maturity) {
+            return error.num;
+        }
+
+        // Return error if maturity is more than one year after settlement
+        if (maturity - settlement > 365 * 24 * 60 * 60 * 1000) {
+            return error.num;
+        }
+
+        // Return bond-equivalent yield
+        return (365 * discount) / (360 - discount * DAYS360(settlement, maturity, false));
+    };
+
+    exports.TBILLPRICE = function(settlement, maturity, discount) {
+        settlement = utils.parseDate(settlement);
+        maturity = utils.parseDate(maturity);
+        discount = utils.parseNumber(discount);
+        if (utils.anyIsError(settlement, maturity, discount)) {
+            return error.value;
+        }
+
+        // Return error if discount is lower than or equal to zero
+        if (discount <= 0) {
+            return error.num;
+        }
+
+        // Return error if settlement is greater than maturity
+        if (settlement > maturity) {
+            return error.num;
+        }
+
+        // Return error if maturity is more than one year after settlement
+        if (maturity - settlement > 365 * 24 * 60 * 60 * 1000) {
+            return error.num;
+        }
+
+        // Return bond-equivalent yield
+        return 100 * (1 - discount * DAYS360(settlement, maturity, false) / 360);
+    };
+
+    exports.TBILLYIELD = function(settlement, maturity, price) {
+        settlement = utils.parseDate(settlement);
+        maturity = utils.parseDate(maturity);
+        price = utils.parseNumber(price);
+        if (utils.anyIsError(settlement, maturity, price)) {
+            return error.value;
+        }
+
+        // Return error if price is lower than or equal to zero
+        if (price <= 0) {
+            return error.num;
+        }
+
+        // Return error if settlement is greater than maturity
+        if (settlement > maturity) {
+            return error.num;
+        }
+
+        // Return error if maturity is more than one year after settlement
+        if (maturity - settlement > 365 * 24 * 60 * 60 * 1000) {
+            return error.num;
+        }
+
+        // Return bond-equivalent yield
+        return (100 - price) * 360 / (price * DAYS360(settlement, maturity, false));
+    };
+
+    exports.VDB = null;
+
+    exports.XIRR = function(values, dates, guess) {
+        // Credits: algorithm inspired by Apache OpenOffice
+
+        values = utils.parseNumberArray(utils.flatten(values));
+        dates = utils.parseDateArray(utils.flatten(dates));
+        guess = utils.parseNumber(guess);
+        if (utils.anyIsError(values, dates, guess)) {
+            return error.value;
+        }
+
+        // Calculates the resulting amount
+        var irrResult = function(values, dates, rate) {
+            var r = rate + 1;
+            var result = values[0];
+            for (var i = 1; i < values.length; i++) {
+                result += values[i] / Math.pow(r, DAYS(dates[i], dates[0]) / 365);
+            }
+            return result;
+        };
+
+        // Calculates the first derivation
+        var irrResultDeriv = function(values, dates, rate) {
+            var r = rate + 1;
+            var result = 0;
+            for (var i = 1; i < values.length; i++) {
+                var frac = DAYS(dates[i], dates[0]) / 365;
+                result -= frac * values[i] / Math.pow(r, frac + 1);
+            }
+            return result;
+        };
+
+        // Check that values contains at least one positive value and one
+            // negative value
+        var positive = false;
+        var negative = false;
+        for (var i = 0; i < values.length; i++) {
+            if (values[i] > 0) {
+                positive = true;
+            }
+            if (values[i] < 0) {
+                negative = true;
+            }
+        }
+
+        // Return error if values does not contain at least one positive value
+            // and one negative value
+        if (!positive || !negative) {
+            return error.num;
+        }
+
+        // Initialize guess and resultRate
+        guess = guess || 0.1;
+        var resultRate = guess;
+
+        // Set maximum epsilon for end of iteration
+        var epsMax = 1e-10;
+
+        // Implement Newton's method
+        var newRate, epsRate, resultValue;
+        var contLoop = true;
+        do {
+            resultValue = irrResult(values, dates, resultRate);
+            newRate = resultRate - resultValue / irrResultDeriv(values, dates, resultRate);
+            epsRate = Math.abs(newRate - resultRate);
+            resultRate = newRate;
+            contLoop = (epsRate > epsMax) && (Math.abs(resultValue) > epsMax);
+        } while (contLoop);
+
+        // Return internal rate of return
+        return resultRate;
+    };
+
+    exports.XNPV = function(rate, values, dates) {
+        rate = utils.parseNumber(rate);
+        values = utils.parseNumberArray(utils.flatten(values));
+        dates = utils.parseDateArray(utils.flatten(dates));
+        if (utils.anyIsError(rate, values, dates)) {
+            return error.value;
+        }
+
+        var result = 0;
+        for (var i = 0; i < values.length; i++) {
+            result += values[i] / Math.pow(1 + rate, DAYS(dates[i], dates[0]) / 365);
+        }
+        return result;
+    };
+
+    exports.YIELD = null;
+
+    exports.YIELDDISC = null;
+
+    exports.YIELDMAT = null;
+
+    return exports;
+})();
+
+jexcel.methods.information = (function() {
+    var exports = {};
+    exports.CELL = null;
+
+    exports.ERROR = {};
+    exports.ERROR.TYPE = function(error_val) {
+        switch (error_val) {
+            case error.nil: return 1;
+            case error.div0: return 2;
+            case error.value: return 3;
+            case error.ref: return 4;
+            case error.name: return 5;
+            case error.num: return 6;
+            case error.na: return 7;
+            case error.data: return 8;
+        }
+        return error.na;
+    };
+
+    exports.INFO = null;
+
+    exports.ISBLANK = function(value) {
+        return value === null;
+    };
+
+    exports.ISBINARY = function (number) {
+        return (/^[01]{1,10}$/).test(number);
+    };
+
+    exports.ISERR = function(value) {
+        return ([error.value, error.ref, error.div0, error.num, error.name, error.nil]).indexOf(value) >= 0 ||
+            (typeof value === 'number' && (isNaN(value) || !isFinite(value)));
+    };
+
+    exports.ISERROR = function(value) {
+        return exports.ISERR(value) || value === error.na;
+    };
+
+    exports.ISEVEN = function(number) {
+        return (Math.floor(Math.abs(number)) & 1) ? false : true;
+    };
+
+    // TODO
+    exports.ISFORMULA = null;
+
+    exports.ISLOGICAL = function(value) {
+        return value === true || value === false;
+    };
+
+    exports.ISNA = function(value) {
+        return value === error.na;
+    };
+
+    exports.ISNONTEXT = function(value) {
+        return typeof(value) !== 'string';
+    };
+
+    exports.ISNUMBER = function(value) {
+        return typeof(value) === 'number' && !isNaN(value) && isFinite(value);
+    };
+
+    exports.ISODD = function(number) {
+        return (Math.floor(Math.abs(number)) & 1) ? true : false;
+    };
+
+    exports.ISREF = null;
+
+    exports.ISTEXT = function(value) {
+        return typeof(value) === 'string';
+    };
+
+    exports.N = function(value) {
+        if (this.ISNUMBER(value)) {
+            return value;
+        }
+        if (value instanceof Date) {
+            return value.getTime();
+        }
+        if (value === true) {
+            return 1;
+        }
+        if (value === false) {
+            return 0;
+        }
+        if (this.ISERROR(value)) {
+            return value;
+        }
+        return 0;
+    };
+
+    exports.NA = function() {
+        return error.na;
+    };
+
+    exports.SHEET = null;
+
+    exports.SHEETS = null;
+
+    exports.TYPE = function(value) {
+        if (this.ISNUMBER(value)) {
+            return 1;
+        }
+        if (this.ISTEXT(value)) {
+            return 2;
+        }
+        if (this.ISLOGICAL(value)) {
+            return 4;
+        }
+        if (this.ISERROR(value)) {
+            return 16;
+        }
+        if (Array.isArray(value)) {
+            return 64;
+        }
+    };
+
+    return exports;
+})();
+
+jexcel.methods.logical = (function() {
+    var exports = {};
+
+    exports.AND = function() {
+        var args = utils.flatten(arguments);
+        var result = true;
+        for (var i = 0; i < args.length; i++) {
+            if (!args[i]) {
+                result = false;
+            }
+        }
+        return result;
+    };
+
+    exports.CHOOSE = function() {
+        if (arguments.length < 2) {
+            return error.na;
+        }
+
+        var index = arguments[0];
+        if (index < 1 || index > 254) {
+            return error.value;
+        }
+
+        if (arguments.length < index + 1) {
+            return error.value;
+        }
+
+        return arguments[index];
+    };
+
+    exports.FALSE = function() {
+        return false;
+    };
+
+    exports.IF = function(test, then_value, otherwise_value) {
+        return test ? then_value : otherwise_value;
+    };
+
+    exports.IFERROR = function(value, valueIfError) {
+        if (ISERROR(value)) {
+            return valueIfError;
+        }
+        return value;
+    };
+
+    exports.IFNA = function(value, value_if_na) {
+        return value === error.na ? value_if_na : value;
+    };
+
+    exports.NOT = function(logical) {
+        return !logical;
+    };
+
+    exports.OR = function() {
+        var args = utils.flatten(arguments);
+        var result = false;
+        for (var i = 0; i < args.length; i++) {
+            if (args[i]) {
+                result = true;
+            }
+        }
+        return result;
+    };
+
+    exports.TRUE = function() {
+        return true;
+    };
+
+    exports.XOR = function() {
+        var args = utils.flatten(arguments);
+        var result = 0;
+        for (var i = 0; i < args.length; i++) {
+            if (args[i]) {
+                result++;
+            }
+        }
+        return (Math.floor(Math.abs(result)) & 1) ? true : false;
+    };
+
+    exports.SWITCH = function() {
+        var result;
+        if (arguments.length > 0)  {
+            var targetValue = arguments[0];
+            var argc = arguments.length - 1;
+            var switchCount = Math.floor(argc / 2);
+            var switchSatisfied = false;
+            var defaultClause = argc % 2 === 0 ? null : arguments[arguments.length - 1];
+
+            if (switchCount) {
+                for (var index = 0; index < switchCount; index++) {
+                    if (targetValue === arguments[index * 2 + 1]) {
+                      result = arguments[index * 2 + 2];
+                      switchSatisfied = true;
+                      break;
+                    }
+                }
+            }
+
+            if (!switchSatisfied && defaultClause) {
+                result = defaultClause;
+            }
+        }
+
+        return result;
+    };
+
+    return exports;
+})();
+
+jexcel.methods.math = (function() {
+    var exports = {};
+
+    exports.ABS = function(number) {
+        number = utils.parseNumber(number);
+        if (number instanceof Error) {
+            return number;
+        }
+        return Math.abs(utils.parseNumber(number));
+    };
+
+    exports.ACOS = function(number) {
+        number = utils.parseNumber(number);
+        if (number instanceof Error) {
+            return number;
+        }
+        return Math.acos(number);
+    };
+
+    exports.ACOSH = function(number) {
+        number = utils.parseNumber(number);
+        if (number instanceof Error) {
+            return number;
+        }
+        return Math.log(number + Math.sqrt(number * number - 1));
+    };
+
+    exports.ACOT = function(number) {
+        number = utils.parseNumber(number);
+        if (number instanceof Error) {
+            return number;
+        }
+        return Math.atan(1 / number);
+    };
+
+    exports.ACOTH = function(number) {
+        number = utils.parseNumber(number);
+        if (number instanceof Error) {
+            return number;
+        }
+        return 0.5 * Math.log((number + 1) / (number - 1));
+    };
+
+    exports.AGGREGATE = null
+
+    exports.ARABIC = function(text) {
+        // Credits: Rafa? Kukawski
+        if (!/^M*(?:D?C{0,3}|C[MD])(?:L?X{0,3}|X[CL])(?:V?I{0,3}|I[XV])$/.test(text)) {
+            return error.value;
+        }
+        var r = 0;
+        text.replace(/[MDLV]|C[MD]?|X[CL]?|I[XV]?/g, function(i) {
+            r += {
+                M: 1000,
+                CM: 900,
+                D: 500,
+                CD: 400,
+                C: 100,
+                XC: 90,
+                L: 50,
+                XL: 40,
+                X: 10,
+                IX: 9,
+                V: 5,
+                IV: 4,
+                I: 1
+            }[i];
+        });
+        return r;
+    };
+
+    exports.ASIN = function(number) {
+        number = utils.parseNumber(number);
+        if (number instanceof Error) {
+            return number;
+        }
+        return Math.asin(number);
+    };
+
+    exports.ASINH = function(number) {
+        number = utils.parseNumber(number);
+        if (number instanceof Error) {
+            return number;
+        }
+        return Math.log(number + Math.sqrt(number * number + 1));
+    };
+
+    exports.ATAN = function(number) {
+        number = utils.parseNumber(number);
+        if (number instanceof Error) {
+            return number;
+        }
+        return Math.atan(number);
+    };
+
+    exports.ATAN2 = function(number_x, number_y) {
+        number_x = utils.parseNumber(number_x);
+        number_y = utils.parseNumber(number_y);
+        if (utils.anyIsError(number_x, number_y)) {
+            return error.value;
+        }
+        return Math.atan2(number_x, number_y);
+    };
+
+    exports.ATANH = function(number) {
+        number = utils.parseNumber(number);
+        if (number instanceof Error) {
+            return number;
+        }
+        return Math.log((1 + number) / (1 - number)) / 2;
+    };
+
+    exports.BASE = function(number, radix, min_length) {
+        min_length = min_length || 0;
+
+        number = utils.parseNumber(number);
+        radix = utils.parseNumber(radix);
+        min_length = utils.parseNumber(min_length);
+        if (utils.anyIsError(number, radix, min_length)) {
+            return error.value;
+        }
+        min_length = (min_length === undefined) ? 0 : min_length;
+        var result = number.toString(radix);
+        return new Array(Math.max(min_length + 1 - result.length, 0)).join('0') + result;
+    };
+
+    exports.CEILING = function(number, significance, mode) {
+        significance = (significance === undefined) ? 1 : significance;
+        mode = (mode === undefined) ? 0 : mode;
+
+        number = utils.parseNumber(number);
+        significance = utils.parseNumber(significance);
+        mode = utils.parseNumber(mode);
+        if (utils.anyIsError(number, significance, mode)) {
+            return error.value;
+        }
+        if (significance === 0) {
+            return 0;
+        }
+
+        significance = Math.abs(significance);
+        if (number >= 0) {
+            return Math.ceil(number / significance) * significance;
+        } else {
+            if (mode === 0) {
+                return -1 * Math.floor(Math.abs(number) / significance) * significance;
+            } else {
+                return -1 * Math.ceil(Math.abs(number) / significance) * significance;
+            }
+        }
+    };
+
+    exports.CEILING.MATH = exports.CEILING;
+
+    exports.CEILING.PRECISE = exports.CEILING;
+
+    exports.COMBIN = function(number, number_chosen) {
+        number = utils.parseNumber(number);
+        number_chosen = utils.parseNumber(number_chosen);
+        if (utils.anyIsError(number, number_chosen)) {
+            return error.value;
+        }
+        return exports.FACT(number) / (exports.FACT(number_chosen) * exports.FACT(number - number_chosen));
+    };
+
+    exports.COMBINA = function(number, number_chosen) {
+        number = utils.parseNumber(number);
+        number_chosen = utils.parseNumber(number_chosen);
+        if (utils.anyIsError(number, number_chosen)) {
+            return error.value;
+        }
+        return (number === 0 && number_chosen === 0) ? 1 : exports.COMBIN(number + number_chosen - 1, number - 1);
+    };
+
+    exports.COS = function(number) {
+        number = utils.parseNumber(number);
+        if (number instanceof Error) {
+            return number;
+        }
+        return Math.cos(number);
+    };
+
+    exports.COSH = function(number) {
+        number = utils.parseNumber(number);
+        if (number instanceof Error) {
+            return number;
+        }
+        return (Math.exp(number) + Math.exp(-number)) / 2;
+    };
+
+    exports.COT = function(number) {
+        number = utils.parseNumber(number);
+        if (number instanceof Error) {
+            return number;
+        }
+        return 1 / Math.tan(number);
+    };
+
+    exports.COTH = function(number) {
+        number = utils.parseNumber(number);
+        if (number instanceof Error) {
+            return number;
+        }
+        var e2 = Math.exp(2 * number);
+        return (e2 + 1) / (e2 - 1);
+    };
+
+    exports.CSC = function(number) {
+        number = utils.parseNumber(number);
+        if (number instanceof Error) {
+            return number;
+        }
+        return 1 / Math.sin(number);
+    };
+
+    exports.CSCH = function(number) {
+        number = utils.parseNumber(number);
+        if (number instanceof Error) {
+            return number;
+        }
+        return 2 / (Math.exp(number) - Math.exp(-number));
+    };
+
+    exports.DECIMAL = function(number, radix) {
+        if (arguments.length < 1) {
+            return error.value;
+        }
+
+
+        return parseInt(number, radix);
+    };
+
+    exports.DEGREES = function(number) {
+        number = utils.parseNumber(number);
+        if (number instanceof Error) {
+            return number;
+        }
+        return number * 180 / Math.PI;
+    };
+
+    exports.EVEN = function(number) {
+        number = utils.parseNumber(number);
+        if (number instanceof Error) {
+            return number;
+        }
+        return exports.CEILING(number, -2, -1);
+    };
+
+    exports.EXP = Math.exp;
+
+    var MEMOIZED_FACT = [];
+    exports.FACT = function(number) {
+        number = utils.parseNumber(number);
+        if (number instanceof Error) {
+            return number;
+        }
+        var n = Math.floor(number);
+        if (n === 0 || n === 1) {
+            return 1;
+        } else if (MEMOIZED_FACT[n] > 0) {
+            return MEMOIZED_FACT[n];
+        } else {
+            MEMOIZED_FACT[n] = exports.FACT(n - 1) * n;
+            return MEMOIZED_FACT[n];
+        }
+    };
+
+    exports.FACTDOUBLE = function(number) {
+        number = utils.parseNumber(number);
+        if (number instanceof Error) {
+            return number;
+        }
+        var n = Math.floor(number);
+        if (n <= 0) {
+            return 1;
+        } else {
+            return n * exports.FACTDOUBLE(n - 2);
+        }
+    };
+
+    exports.FLOOR = function(number, significance, mode) {
+        significance = (significance === undefined) ? 1 : significance;
+        mode = (mode === undefined) ? 0 : mode;
+
+        number = utils.parseNumber(number);
+        significance = utils.parseNumber(significance);
+        mode = utils.parseNumber(mode);
+        if (utils.anyIsError(number, significance, mode)) {
+            return error.value;
+        }
+        if (significance === 0) {
+            return 0;
+        }
+
+        significance = Math.abs(significance);
+        if (number >= 0) {
+            return Math.floor(number / significance) * significance;
+        } else {
+            if (mode === 0) {
+                return -1 * Math.ceil(Math.abs(number) / significance) * significance;
+            } else {
+                return -1 * Math.floor(Math.abs(number) / significance) * significance;
+            }
+        }
+    };
+
+    exports.FLOOR.MATH = exports.FLOOR;
+
+    exports.GCD = null;
+
+    exports.INT = function(number) {
+        number = utils.parseNumber(number);
+        if (number instanceof Error) {
+            return number;
+        }
+        return Math.floor(number);
+    };
+
+    exports.LCM = function() {
+        // Credits: Jonas Raoni Soares Silva
+        var o = utils.parseNumberArray(utils.flatten(arguments));
+        if (o instanceof Error) {
+            return o;
+        }
+        for (var i, j, n, d, r = 1;
+            (n = o.pop()) !== undefined;) {
+            while (n > 1) {
+                if (n % 2) {
+                    for (i = 3, j = Math.floor(Math.sqrt(n)); i <= j && n % i; i += 2) {
+                      //empty
+                    }
+                    d = (i <= j) ? i : n;
+                } else {
+                    d = 2;
+                }
+                for (n /= d, r *= d, i = o.length; i;
+                    (o[--i] % d) === 0 && (o[i] /= d) === 1 && o.splice(i, 1)) {
+                    //empty
+                }
+            }
+        }
+        return r;
+    };
+
+    exports.LN = function(number) {
+        number = utils.parseNumber(number);
+        if (number instanceof Error) {
+            return number;
+        }
+        return Math.log(number);
+    };
+
+    exports.LOG = function(number, base) {
+        number = utils.parseNumber(number);
+        base = (base === undefined) ? 10 : utils.parseNumber(base);
+
+        if (utils.anyIsError(number, base)) {
+            return error.value;
+        }
+
+        return Math.log(number) / Math.log(base);
+    };
+
+    exports.LOG10 = function(number) {
+        number = utils.parseNumber(number);
+        if (number instanceof Error) {
+            return number;
+        }
+        return Math.log(number) / Math.log(10);
+    };
+
+    exports.MDETERM = null;
+
+    exports.MINVERSE = null;
+
+    exports.MMULT = null;
+
+    exports.MOD = function(dividend, divisor) {
+        dividend = utils.parseNumber(dividend);
+        divisor = utils.parseNumber(divisor);
+        if (utils.anyIsError(dividend, divisor)) {
+            return error.value;
+        }
+        if (divisor === 0) {
+            return error.div0;
+        }
+        var modulus = Math.abs(dividend % divisor);
+        return (divisor > 0) ? modulus : -modulus;
+    };
+
+    exports.MROUND = function(number, multiple) {
+        number = utils.parseNumber(number);
+        multiple = utils.parseNumber(multiple);
+        if (utils.anyIsError(number, multiple)) {
+            return error.value;
+        }
+        if (number * multiple < 0) {
+            return error.num;
+        }
+
+        return Math.round(number / multiple) * multiple;
+    };
+
+    exports.MULTINOMIAL = function() {
+        var args = utils.parseNumberArray(utils.flatten(arguments));
+        if (args instanceof Error) {
+            return args;
+        }
+        var sum = 0;
+        var divisor = 1;
+        for (var i = 0; i < args.length; i++) {
+            sum += args[i];
+            divisor *= exports.FACT(args[i]);
+        }
+        return exports.FACT(sum) / divisor;
+    };
+
+    exports.MUNIT = null;
+
+    exports.ODD = function(number) {
+        number = utils.parseNumber(number);
+        if (number instanceof Error) {
+            return number;
+        }
+        var temp = Math.ceil(Math.abs(number));
+        temp = (temp & 1) ? temp : temp + 1;
+        return (number > 0) ? temp : -temp;
+    };
+
+    exports.PI = function() {
+        return Math.PI;
+    };
+
+    exports.POWER = function(number, power) {
+        number = utils.parseNumber(number);
+        power = utils.parseNumber(power);
+        if (utils.anyIsError(number, power)) {
+            return error.value;
+        }
+        var result = Math.pow(number, power);
+        if (isNaN(result)) {
+            return error.num;
+        }
+
+        return result;
+    };
+
+    exports.PRODUCT = function() {
+        var args = utils.parseNumberArray(utils.flatten(arguments));
+        if (args instanceof Error) {
+            return args;
+        }
+        var result = 1;
+        for (var i = 0; i < args.length; i++) {
+            result *= args[i];
+        }
+        return result;
+    };
+
+    exports.QUOTIENT = function(numerator, denominator) {
+        numerator = utils.parseNumber(numerator);
+        denominator = utils.parseNumber(denominator);
+        if (utils.anyIsError(numerator, denominator)) {
+            return error.value;
+        }
+        return parseInt(numerator / denominator, 10);
+    };
+
+    exports.RADIANS = function(number) {
+        number = utils.parseNumber(number);
+        if (number instanceof Error) {
+            return number;
+        }
+        return number * Math.PI / 180;
+    };
+
+    exports.RAND = function() {
+        return Math.random();
+    };
+
+    exports.RANDBETWEEN = function(bottom, top) {
+        bottom = utils.parseNumber(bottom);
+        top = utils.parseNumber(top);
+        if (utils.anyIsError(bottom, top)) {
+            return error.value;
+        }
+        // Creative Commons Attribution 3.0 License
+        // Copyright (c) 2012 eqcode
+        return bottom + Math.ceil((top - bottom + 1) * Math.random()) - 1;
+    };
+
+    exports.ROMAN = null;
+
+    exports.ROUND = function(number, digits) {
+        number = utils.parseNumber(number);
+        digits = utils.parseNumber(digits);
+        if (utils.anyIsError(number, digits)) {
+            return error.value;
+        }
+        return Math.round(number * Math.pow(10, digits)) / Math.pow(10, digits);
+    };
+
+    exports.ROUNDDOWN = function(number, digits) {
+        number = utils.parseNumber(number);
+        digits = utils.parseNumber(digits);
+        if (utils.anyIsError(number, digits)) {
+            return error.value;
+        }
+        var sign = (number > 0) ? 1 : -1;
+        return sign * (Math.floor(Math.abs(number) * Math.pow(10, digits))) / Math.pow(10, digits);
+    };
+
+    exports.ROUNDUP = function(number, digits) {
+        number = utils.parseNumber(number);
+        digits = utils.parseNumber(digits);
+        if (utils.anyIsError(number, digits)) {
+            return error.value;
+        }
+        var sign = (number > 0) ? 1 : -1;
+        return sign * (Math.ceil(Math.abs(number) * Math.pow(10, digits))) / Math.pow(10, digits);
+    };
+
+    exports.SEC = function(number) {
+        number = utils.parseNumber(number);
+        if (number instanceof Error) {
+            return number;
+        }
+        return 1 / Math.cos(number);
+    };
+
+    exports.SECH = function(number) {
+        number = utils.parseNumber(number);
+        if (number instanceof Error) {
+            return number;
+        }
+        return 2 / (Math.exp(number) + Math.exp(-number));
+    };
+
+    exports.SERIESSUM = function(x, n, m, coefficients) {
+        x = utils.parseNumber(x);
+        n = utils.parseNumber(n);
+        m = utils.parseNumber(m);
+        coefficients = utils.parseNumberArray(coefficients);
+        if (utils.anyIsError(x, n, m, coefficients)) {
+            return error.value;
+        }
+        var result = coefficients[0] * Math.pow(x, n);
+        for (var i = 1; i < coefficients.length; i++) {
+            result += coefficients[i] * Math.pow(x, n + i * m);
+        }
+        return result;
+    };
+
+    exports.SIGN = function(number) {
+        number = utils.parseNumber(number);
+        if (number instanceof Error) {
+            return number;
+        }
+        if (number < 0) {
+            return -1;
+        } else if (number === 0) {
+            return 0;
+        } else {
+            return 1;
+        }
+    };
+
+    exports.SIN = function(number) {
+        number = utils.parseNumber(number);
+        if (number instanceof Error) {
+            return number;
+        }
+        return Math.sin(number);
+    };
+
+    exports.SINH = function(number) {
+        number = utils.parseNumber(number);
+        if (number instanceof Error) {
+            return number;
+        }
+        return (Math.exp(number) - Math.exp(-number)) / 2;
+    };
+
+    exports.SQRT = function(number) {
+        number = utils.parseNumber(number);
+        if (number instanceof Error) {
+            return number;
+        }
+        if (number < 0) {
+            return error.num;
+        }
+        return Math.sqrt(number);
+    };
+
+    exports.SQRTPI = function(number) {
+        number = utils.parseNumber(number);
+        if (number instanceof Error) {
+            return number;
+        }
+        return Math.sqrt(number * Math.PI);
+    };
+
+    exports.SUBTOTAL = null;
+
+    exports.ADD = function (num1, num2) {
+        if (arguments.length !== 2) {
+            return error.na;
+        }
+
+        num1 = utils.parseNumber(num1);
+        num2 = utils.parseNumber(num2);
+        if (utils.anyIsError(num1, num2)) {
+            return error.value;
+        }
+
+        return num1 + num2;
+    };
+
+    exports.MINUS = function (num1, num2) {
+        if (arguments.length !== 2) {
+            return error.na;
+        }
+
+        num1 = utils.parseNumber(num1);
+        num2 = utils.parseNumber(num2);
+        if (utils.anyIsError(num1, num2)) {
+            return error.value;
+        }
+
+        return num1 - num2;
+    };
+
+    exports.DIVIDE = function (dividend, divisor) {
+        if (arguments.length !== 2) {
+            return error.na;
+        }
+
+        dividend = utils.parseNumber(dividend);
+        divisor = utils.parseNumber(divisor);
+        if (utils.anyIsError(dividend, divisor)) {
+            return error.value;
+        }
+
+        if (divisor === 0) {
+            return error.div0;
+        }
+
+        return dividend / divisor;
+    };
+
+    exports.MULTIPLY = function (factor1, factor2) {
+        if (arguments.length !== 2) {
+            return error.na;
+        }
+
+        factor1 = utils.parseNumber(factor1);
+        factor2 = utils.parseNumber(factor2);
+        if (utils.anyIsError(factor1, factor2)) {
+            return error.value;
+        }
+
+        return factor1 * factor2;
+    };
+
+    exports.GTE = function (num1, num2) {
+        if (arguments.length !== 2) {
+            return error.na;
+        }
+
+        num1 = utils.parseNumber(num1);
+        num2 = utils.parseNumber(num2);
+        if (utils.anyIsError(num1, num2)) {
+            return error.error;
+        }
+
+        return num1 >= num2;
+    };
+
+    exports.LT = function (num1, num2) {
+        if (arguments.length !== 2) {
+            return error.na;
+        }
+
+        num1 = utils.parseNumber(num1);
+        num2 = utils.parseNumber(num2);
+        if (utils.anyIsError(num1, num2)) {
+            return error.error;
+        }
+
+        return num1 < num2;
+    };
+
+    exports.LTE = function (num1, num2) {
+        if (arguments.length !== 2) {
+            return error.na;
+        }
+
+        num1 = utils.parseNumber(num1);
+        num2 = utils.parseNumber(num2);
+        if (utils.anyIsError(num1, num2)) {
+            return error.error;
+        }
+
+        return num1 <= num2;
+    };
+
+    exports.EQ = function (value1, value2) {
+        if (arguments.length !== 2) {
+            return error.na;
+        }
+
+        return value1 === value2;
+    };
+
+    exports.NE = function (value1, value2) {
+        if (arguments.length !== 2) {
+            return error.na;
+        }
+
+        return value1 !== value2;
+    };
+
+    exports.POW = function (base, exponent) {
+        if (arguments.length !== 2) {
+            return error.na;
+        }
+
+        base = utils.parseNumber(base);
+        exponent = utils.parseNumber(exponent);
+        if (utils.anyIsError(base, exponent)) {
+            return error.error;
+        }
+
+        return exports.POWER(base, exponent);
+    };
+
+    exports.SUM = function() {
+        var result = 0;
+        var argsKeys = Object.keys(arguments);
+        for (var i = 0; i < argsKeys.length; ++i) {
+            var elt = arguments[argsKeys[i]];
+            if (typeof elt === 'number') {
+                result += elt;
+            } else if (typeof elt === 'string') {
+                var parsed = parseFloat(elt);
+                !isNaN(parsed) && (result += parsed);
+            } else if (Array.isArray(elt)) {
+                result += exports.SUM.apply(null, elt);
+            }
+        }
+        return result;
+    };
+
+    exports.SUMIF = function(range, criteria) {
+        range = utils.parseNumberArray(utils.flatten(range));
+        if (range instanceof Error) {
+            return range;
+        }
+        var result = 0;
+        for (var i = 0; i < range.length; i++) {
+            result += (eval(range[i] + criteria)) ? range[i] : 0; // jshint ignore:line
+        }
+        return result;
+    };
+
+    exports.SUMIFS = function() {
+        var args = utils.argsToArray(arguments);
+        var range = utils.parseNumberArray(utils.flatten(args.shift()));
+        if (range instanceof Error) {
+            return range;
+        }
+        var criteria = args;
+
+        var n_range_elements = range.length;
+        var n_criterias = criteria.length;
+
+        var result = 0;
+        for (var i = 0; i < n_range_elements; i++) {
+            var el = range[i];
+            var condition = '';
+            for (var c = 0; c < n_criterias; c++) {
+                condition += el + criteria[c];
+                if (c !== n_criterias - 1) {
+                    condition += '&&';
+                }
+            }
+            if (eval(condition)) { // jshint ignore:line
+                result += el;
+            }
+        }
+        return result;
+    };
+
+    exports.SUMPRODUCT = null;
+
+    exports.SUMSQ = function() {
+        var numbers = utils.parseNumberArray(utils.flatten(arguments));
+        if (numbers instanceof Error) {
+            return numbers;
+        }
+        var result = 0;
+        var length = numbers.length;
+        for (var i = 0; i < length; i++) {
+            result += (ISNUMBER(numbers[i])) ? numbers[i] * numbers[i] : 0;
+        }
+        return result;
+    };
+
+    exports.SUMX2MY2 = function(array_x, array_y) {
+        array_x = utils.parseNumberArray(utils.flatten(array_x));
+        array_y = utils.parseNumberArray(utils.flatten(array_y));
+        if (utils.anyIsError(array_x, array_y)) {
+            return error.value;
+        }
+        var result = 0;
+        for (var i = 0; i < array_x.length; i++) {
+            result += array_x[i] * array_x[i] - array_y[i] * array_y[i];
+        }
+        return result;
+    };
+
+    exports.SUMX2PY2 = function(array_x, array_y) {
+        array_x = utils.parseNumberArray(utils.flatten(array_x));
+        array_y = utils.parseNumberArray(utils.flatten(array_y));
+        if (utils.anyIsError(array_x, array_y)) {
+            return error.value;
+        }
+        var result = 0;
+        array_x = utils.parseNumberArray(utils.flatten(array_x));
+        array_y = utils.parseNumberArray(utils.flatten(array_y));
+        for (var i = 0; i < array_x.length; i++) {
+            result += array_x[i] * array_x[i] + array_y[i] * array_y[i];
+        }
+        return result;
+    };
+
+    exports.SUMXMY2 = function(array_x, array_y) {
+        array_x = utils.parseNumberArray(utils.flatten(array_x));
+        array_y = utils.parseNumberArray(utils.flatten(array_y));
+        if (utils.anyIsError(array_x, array_y)) {
+            return error.value;
+        }
+        var result = 0;
+        array_x = utils.flatten(array_x);
+        array_y = utils.flatten(array_y);
+        for (var i = 0; i < array_x.length; i++) {
+            result += Math.pow(array_x[i] - array_y[i], 2);
+        }
+        return result;
+    };
+
+    exports.TAN = function(number) {
+        number = utils.parseNumber(number);
+        if (number instanceof Error) {
+            return number;
+        }
+        return Math.tan(number);
+    };
+
+    exports.TANH = function(number) {
+        number = utils.parseNumber(number);
+        if (number instanceof Error) {
+            return number;
+        }
+        var e2 = Math.exp(2 * number);
+        return (e2 - 1) / (e2 + 1);
+    };
+
+    exports.TRUNC = function(number, digits) {
+        digits = (digits === undefined) ? 0 : digits;
+        number = utils.parseNumber(number);
+        digits = utils.parseNumber(digits);
+        if (utils.anyIsError(number, digits)) {
+            return error.value;
+        }
+        var sign = (number > 0) ? 1 : -1;
+        return sign * (Math.floor(Math.abs(number) * Math.pow(10, digits))) / Math.pow(10, digits);
+    };
+
+    return exports;
+})();
+
+jexcel.methods.misc = (function() {
+    var exports = {};
+
+    exports.UNIQUE = function () {
+        var result = [];
+        for (var i = 0; i < arguments.length; ++i) {
+            var hasElement = false;
+            var element = arguments[i];
+
+            // Check if we've already seen this element.
+            for (var j = 0; j < result.length; ++j) {
+                hasElement = result[j] === element;
+                if (hasElement) { break; }
+            }
+
+            // If we did not find it, add it to the result.
+            if (!hasElement) {
+                result.push(element);
+            }
+        }
+        return result;
+    };
+
+    exports.FLATTEN = utils.flatten;
+
+    exports.ARGS2ARRAY = function () {
+        return Array.prototype.slice.call(arguments, 0);
+    };
+
+    exports.REFERENCE = function (context, reference) {
+        try {
+            var path = reference.split('.');
+            var result = context;
+            for (var i = 0; i < path.length; ++i) {
+                var step = path[i];
+                if (step[step.length - 1] === ']') {
+                    var opening = step.indexOf('[');
+                    var index = step.substring(opening + 1, step.length - 1);
+                    result = result[step.substring(0, opening)][index];
+                } else {
+                    result = result[step];
+                }
+            }
+            return result;
+        } catch (error) {}
+    };
+
+    exports.JOIN = function (array, separator) {
+        return array.join(separator);
+    };
+
+    exports.NUMBERS = function () {
+        var possibleNumbers = utils.flatten(arguments);
+        return possibleNumbers.filter(function (el) {
+            return typeof el === 'number';
+        });
+    };
+
+    exports.NUMERAL = null;
+
+    return exports;
+})();
+
+jexcel.methods.text = (function() {
+    var exports = {};
+
+    exports.ASC = null;
+
+    exports.BAHTTEXT = null;
+
+    exports.CHAR = function(number) {
+        number = utils.parseNumber(number);
+        if (number instanceof Error) {
+            return number;
+        }
+        return String.fromCharCode(number);
+    };
+
+    exports.CLEAN = function(text) {
+        text = text || '';
+        var re = /[\0-\x1F]/g;
+        return text.replace(re, "");
+    };
+
+    exports.CODE = function(text) {
+        text = text || '';
+        return text.charCodeAt(0);
+    };
+
+    exports.CONCATENATE = function() {
+        var args = utils.flatten(arguments);
+
+        var trueFound = 0;
+        while ((trueFound = args.indexOf(true)) > -1) {
+            args[trueFound] = 'TRUE';
+        }
+
+        var falseFound = 0;
+        while ((falseFound = args.indexOf(false)) > -1) {
+            args[falseFound] = 'FALSE';
+        }
+
+        return args.join('');
+    };
+
+    exports.DBCS = null;
+
+    exports.DOLLAR = null;
+
+    exports.EXACT = function(text1, text2) {
+        return text1 === text2;
+    };
+
+    exports.FIND = function(find_text, within_text, position) {
+        position = (position === undefined) ? 0 : position;
+        return within_text ? within_text.indexOf(find_text, position - 1) + 1 : null;
+    };
+
+    exports.FIXED = null;
+
+    exports.HTML2TEXT = function (value) {
+        var result = '';
+
+        if (value) {
+            if (value instanceof Array) {
+                value.forEach(function (line) {
+                    if (result !== '') {
+                      result += '\n';
+                    }
+                    result += (line.replace(/<(?:.|\n)*?>/gm, ''));
+                });
+            } else {
+                result = value.replace(/<(?:.|\n)*?>/gm, '');
+            }
+        }
+
+        return result;
+    };
+
+    exports.LEFT = function(text, number) {
+        number = (number === undefined) ? 1 : number;
+        number = utils.parseNumber(number);
+        if (number instanceof Error || typeof text !== 'string') {
+            return error.value;
+        }
+        return text ? text.substring(0, number) : null;
+    };
+
+    exports.LEN = function(text) {
+        if (arguments.length === 0) {
+            return error.error;
+        }
+
+        if (typeof text === 'string') {
+            return text ? text.length : 0;
+        }
+
+        if (text.length) {
+            return text.length;
+        }
+
+        return error.value;
+    };
+
+    exports.LOWER = function(text) {
+        if (typeof text !== 'string') {
+            return error.value;
+        }
+        return text ? text.toLowerCase() : text;
+    };
+
+    exports.MID = function(text, start, number) {
+        start = utils.parseNumber(start);
+        number = utils.parseNumber(number);
+        if (utils.anyIsError(start, number) || typeof text !== 'string') {
+            return number;
+        }
+
+        var begin = start - 1;
+        var end = begin + number;
+
+        return text.substring(begin, end);
+    };
+
+    exports.NUMBERVALUE = null;
+
+    exports.PRONETIC = null;
+
+    exports.PROPER = function(text) {
+        if (text === undefined || text.length === 0) {
+            return error.value;
+        }
+        if (text === true) {
+            text = 'TRUE';
+        }
+        if (text === false) {
+            text = 'FALSE';
+        }
+        if (isNaN(text) && typeof text === 'number') {
+            return error.value;
+        }
+        if (typeof text === 'number') {
+            text = '' + text;
+        }
+
+        return text.replace(/\w\S*/g, function(txt) {
+            return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+        });
+    };
+
+    exports.REGEXEXTRACT = function (text, regular_expression) {
+        var match = text.match(new RegExp(regular_expression));
+        return match ? (match[match.length > 1 ? match.length - 1 : 0]) : null;
+    };
+
+    exports.REGEXMATCH = function (text, regular_expression, full) {
+        var match = text.match(new RegExp(regular_expression));
+        return full ? match : !!match;
+    };
+
+    exports.REGEXREPLACE = function (text, regular_expression, replacement) {
+        return text.replace(new RegExp(regular_expression), replacement);
+    };
+
+    exports.REPLACE = function(text, position, length, new_text) {
+        position = utils.parseNumber(position);
+        length = utils.parseNumber(length);
+        if (utils.anyIsError(position, length) ||
+            typeof text !== 'string' ||
+            typeof new_text !== 'string') {
+            return error.value;
+        }
+        return text.substr(0, position - 1) + new_text + text.substr(position - 1 + length);
+    };
+
+    exports.REPT = function(text, number) {
+        number = utils.parseNumber(number);
+        if (number instanceof Error) {
+            return number;
+        }
+        return new Array(number + 1).join(text);
+    };
+
+    exports.RIGHT = function(text, number) {
+        number = (number === undefined) ? 1 : number;
+        number = utils.parseNumber(number);
+        if (number instanceof Error) {
+            return number;
+        }
+        return text ? text.substring(text.length - number) : null;
+    };
+
+    exports.SEARCH = function(find_text, within_text, position) {
+        var foundAt;
+        if (typeof find_text !== 'string' || typeof within_text !== 'string') {
+            return error.value;
+        }
+        position = (position === undefined) ? 0 : position;
+        foundAt = within_text.toLowerCase().indexOf(find_text.toLowerCase(), position - 1)+1;
+        return (foundAt === 0)?error.value:foundAt;
+    };
+
+    exports.SPLIT = function (text, separator) {
+        return text.split(separator);
+    };
+
+    exports.SUBSTITUTE = function(text, old_text, new_text, occurrence) {
+        if (!text || !old_text || !new_text) {
+            return text;
+        } else if (occurrence === undefined) {
+            return text.replace(new RegExp(old_text, 'g'), new_text);
+        } else {
+            var index = 0;
+            var i = 0;
+            while (text.indexOf(old_text, index) > 0) {
+                index = text.indexOf(old_text, index + 1);
+                i++;
+                if (i === occurrence) {
+                    return text.substring(0, index) + new_text + text.substring(index + old_text.length);
+                }
+            }
+        }
+    };
+
+    exports.T = function(value) {
+        return (typeof value === "string") ? value : '';
+    };
+
+    exports.TEXT = null;
+
+    exports.TRIM = function(text) {
+        if (typeof text !== 'string') {
+            return error.value;
+        }
+        return text.replace(/ +/g, ' ').trim();
+    };
+
+    exports.UNICHAR = exports.CHAR;
+
+    exports.UNICODE = exports.CODE;
+
+    exports.UPPER = function(text) {
+        if (typeof text !== 'string') {
+            return error.value;
+        }
+        return text.toUpperCase();
+    };
+
+    exports.VALUE = null;
+
+    return exports;
+})();
+
+jexcel.methods.stats = (function() {
+    var exports = {};
+
+    var SQRT2PI = 2.5066282746310002;
+
+    exports.AVEDEV = null;
+
+    exports.AVERAGE = function() {
+        var range = utils.numbers(utils.flatten(arguments));
+        var n = range.length;
+        var sum = 0;
+        var count = 0;
+        for (var i = 0; i < n; i++) {
+            sum += range[i];
+            count += 1;
+        }
+        return sum / count;
+    };
+
+    exports.AVERAGEA = function() {
+        var range = utils.flatten(arguments);
+        var n = range.length;
+        var sum = 0;
+        var count = 0;
+        for (var i = 0; i < n; i++) {
+            var el = range[i];
+            if (typeof el === 'number') {
+                sum += el;
+            }
+            if (el === true) {
+                sum++;
+            }
+            if (el !== null) {
+                count++;
+            }
+        }
+        return sum / count;
+    };
+
+    exports.AVERAGEIF = function(range, criteria, average_range) {
+        average_range = average_range || range;
+        range = utils.flatten(range);
+        average_range = utils.parseNumberArray(utils.flatten(average_range));
+        if (average_range instanceof Error) {
+            return average_range;
+        }
+        var average_count = 0;
+        var result = 0;
+        for (var i = 0; i < range.length; i++) {
+            if (eval(range[i] + criteria)) { // jshint ignore:line
+                result += average_range[i];
+                average_count++;
+            }
+        }
+        return result / average_count;
+    };
+
+    exports.AVERAGEIFS = null;
+
+    exports.COUNT = function() {
+        return utils.numbers(utils.flatten(arguments)).length;
+    };
+
+    exports.COUNTA = function() {
+        var range = utils.flatten(arguments);
+        return range.length - exports.COUNTBLANK(range);
+    };
+
+    exports.COUNTIN = function (range, value) {
+        var result = 0;
+        for (var i = 0; i < range.length; i++) {
+            if (range[i] === value) {
+                result++;
+            }
+        }
+        return result;
+    };
+
+    exports.COUNTBLANK = function() {
+        var range = utils.flatten(arguments);
+        var blanks = 0;
+        var element;
+        for (var i = 0; i < range.length; i++) {
+            element = range[i];
+            if (element === null || element === '') {
+                blanks++;
+            }
+        }
+        return blanks;
+    };
+
+    exports.COUNTIF = function(range, criteria) {
+        range = utils.flatten(range);
+        if (!/[<>=!]/.test(criteria)) {
+            criteria = '=="' + criteria + '"';
+        }
+        var matches = 0;
+        for (var i = 0; i < range.length; i++) {
+            if (typeof range[i] !== 'string') {
+                if (eval(range[i] + criteria)) { // jshint ignore:line
+                    matches++;
+                }
+            } else {
+                if (eval('"' + range[i] + '"' + criteria)) { // jshint ignore:line
+                    matches++;
+                }
+            }
+        }
+        return matches;
+    };
+
+    exports.COUNTIFS = function() {
+        var args = utils.argsToArray(arguments);
+        var results = new Array(utils.flatten(args[0]).length);
+        for (var i = 0; i < results.length; i++) {
+            results[i] = true;
+        }
+        for (i = 0; i < args.length; i += 2) {
+            var range = utils.flatten(args[i]);
+            var criteria = args[i + 1];
+            if (!/[<>=!]/.test(criteria)) {
+                criteria = '=="' + criteria + '"';
+            }
+            for (var j = 0; j < range.length; j++) {
+                if (typeof range[j] !== 'string') {
+                    results[j] = results[j] && eval(range[j] + criteria); // jshint ignore:line
+                } else {
+                    results[j] = results[j] && eval('"' + range[j] + '"' + criteria); // jshint ignore:line
+                }
+            }
+        }
+        var result = 0;
+        for (i = 0; i < results.length; i++) {
+            if (results[i]) {
+                result++;
+            }
+        }
+        return result;
+    };
+
+    exports.COUNTUNIQUE = function () {
+        return UNIQUE.apply(null, utils.flatten(arguments)).length;
+    };
+
+    exports.FISHER = function(x) {
+        x = utils.parseNumber(x);
+        if (x instanceof Error) {
+            return x;
+        }
+        return Math.log((1 + x) / (1 - x)) / 2;
+    };
+
+    exports.FISHERINV = function(y) {
+        y = utils.parseNumber(y);
+        if (y instanceof Error) {
+            return y;
+        }
+        var e2y = Math.exp(2 * y);
+        return (e2y - 1) / (e2y + 1);
+    };
+
+    exports.FREQUENCY = function(data, bins) {
+        data = utils.parseNumberArray(utils.flatten(data));
+        bins = utils.parseNumberArray(utils.flatten(bins));
+        if (utils.anyIsError(data, bins)) {
+            return error.value;
+        }
+        var n = data.length;
+        var b = bins.length;
+        var r = [];
+        for (var i = 0; i <= b; i++) {
+            r[i] = 0;
+            for (var j = 0; j < n; j++) {
+                if (i === 0) {
+                    if (data[j] <= bins[0]) {
+                        r[0] += 1;
+                    }
+                } else if (i < b) {
+                    if (data[j] > bins[i - 1] && data[j] <= bins[i]) {
+                        r[i] += 1;
+                    }
+                } else if (i === b) {
+                    if (data[j] > bins[b - 1]) {
+                        r[b] += 1;
+                    }
+                }
+            }
+        }
+        return r;
+    };
+
+    exports.LARGE = function(range, k) {
+        range = utils.parseNumberArray(utils.flatten(range));
+        k = utils.parseNumber(k);
+        if (utils.anyIsError(range, k)) {
+            return range;
+        }
+        return range.sort(function(a, b) {
+            return b - a;
+        })[k - 1];
+    };
+
+    exports.MAX = function() {
+        var range = utils.numbers(utils.flatten(arguments));
+        return (range.length === 0) ? 0 : Math.max.apply(Math, range);
+    };
+
+    exports.MAXA = function() {
+        var range = utils.arrayValuesToNumbers(utils.flatten(arguments));
+        return (range.length === 0) ? 0 : Math.max.apply(Math, range);
+    };
+
+    exports.MIN = function() {
+        var range = utils.numbers(utils.flatten(arguments));
+        return (range.length === 0) ? 0 : Math.min.apply(Math, range);
+    };
+
+    exports.MINA = function() {
+        var range = utils.arrayValuesToNumbers(utils.flatten(arguments));
+        return (range.length === 0) ? 0 : Math.min.apply(Math, range);
+    };
+
+    exports.MODE = {};
+
+    exports.MODE.MULT = function() {
+        // Credits: Roönaän
+        var range = utils.parseNumberArray(utils.flatten(arguments));
+        if (range instanceof Error) {
+            return range;
+        }
+        var n = range.length;
+        var count = {};
+        var maxItems = [];
+        var max = 0;
+        var currentItem;
+
+        for (var i = 0; i < n; i++) {
+            currentItem = range[i];
+            count[currentItem] = count[currentItem] ? count[currentItem] + 1 : 1;
+            if (count[currentItem] > max) {
+                max = count[currentItem];
+                maxItems = [];
+            }
+            if (count[currentItem] === max) {
+                maxItems[maxItems.length] = currentItem;
+            }
+        }
+        return maxItems;
+    };
+
+    exports.MODE.SNGL = function() {
+        var range = utils.parseNumberArray(utils.flatten(arguments));
+        if (range instanceof Error) {
+            return range;
+        }
+        return exports.MODE.MULT(range).sort(function(a, b) {
+            return a - b;
+        })[0];
+    };
+
+    exports.PERCENTILE = {};
+
+    exports.PERCENTILE.EXC = function(array, k) {
+        array = utils.parseNumberArray(utils.flatten(array));
+        k = utils.parseNumber(k);
+        if (utils.anyIsError(array, k)) {
+            return error.value;
+        }
+        array = array.sort(function(a, b) {
+            {
+                return a - b;
+            }
+        });
+        var n = array.length;
+        if (k < 1 / (n + 1) || k > 1 - 1 / (n + 1)) {
+            return error.num;
+        }
+        var l = k * (n + 1) - 1;
+        var fl = Math.floor(l);
+        return utils.cleanFloat((l === fl) ? array[l] : array[fl] + (l - fl) * (array[fl + 1] - array[fl]));
+    };
+
+    exports.PERCENTILE.INC = function(array, k) {
+        array = utils.parseNumberArray(utils.flatten(array));
+        k = utils.parseNumber(k);
+        if (utils.anyIsError(array, k)) {
+            return error.value;
+        }
+        array = array.sort(function(a, b) {
+            return a - b;
+        });
+        var n = array.length;
+        var l = k * (n - 1);
+        var fl = Math.floor(l);
+        return utils.cleanFloat((l === fl) ? array[l] : array[fl] + (l - fl) * (array[fl + 1] - array[fl]));
+    };
+
+    exports.PERCENTRANK = {};
+
+    exports.PERCENTRANK.EXC = function(array, x, significance) {
+        significance = (significance === undefined) ? 3 : significance;
+        array = utils.parseNumberArray(utils.flatten(array));
+        x = utils.parseNumber(x);
+        significance = utils.parseNumber(significance);
+        if (utils.anyIsError(array, x, significance)) {
+            return error.value;
+        }
+        array = array.sort(function(a, b) {
+            return a - b;
+        });
+        var uniques = UNIQUE.apply(null, array);
+        var n = array.length;
+        var m = uniques.length;
+        var power = Math.pow(10, significance);
+        var result = 0;
+        var match = false;
+        var i = 0;
+        while (!match && i < m) {
+            if (x === uniques[i]) {
+                result = (array.indexOf(uniques[i]) + 1) / (n + 1);
+                match = true;
+            } else if (x >= uniques[i] && (x < uniques[i + 1] || i === m - 1)) {
+                result = (array.indexOf(uniques[i]) + 1 + (x - uniques[i]) / (uniques[i + 1] - uniques[i])) / (n + 1);
+                match = true;
+            }
+            i++;
+        }
+        return Math.floor(result * power) / power;
+    };
+
+    exports.PERCENTRANK.INC = function(array, x, significance) {
+        significance = (significance === undefined) ? 3 : significance;
+        array = utils.parseNumberArray(utils.flatten(array));
+        x = utils.parseNumber(x);
+        significance = utils.parseNumber(significance);
+        if (utils.anyIsError(array, x, significance)) {
+            return error.value;
+        }
+        array = array.sort(function(a, b) {
+            return a - b;
+        });
+        var uniques = UNIQUE.apply(null, array);
+        var n = array.length;
+        var m = uniques.length;
+        var power = Math.pow(10, significance);
+        var result = 0;
+        var match = false;
+        var i = 0;
+        while (!match && i < m) {
+            if (x === uniques[i]) {
+                result = array.indexOf(uniques[i]) / (n - 1);
+                match = true;
+            } else if (x >= uniques[i] && (x < uniques[i + 1] || i === m - 1)) {
+                result = (array.indexOf(uniques[i]) + (x - uniques[i]) / (uniques[i + 1] - uniques[i])) / (n - 1);
+                match = true;
+            }
+            i++;
+        }
+        return Math.floor(result * power) / power;
+    };
+
+    exports.PERMUT = function(number, number_chosen) {
+        number = utils.parseNumber(number);
+        number_chosen = utils.parseNumber(number_chosen);
+        if (utils.anyIsError(number, number_chosen)) {
+            return error.value;
+        }
+        return FACT(number) / FACT(number - number_chosen);
+    };
+
+    exports.PERMUTATIONA = function(number, number_chosen) {
+        number = utils.parseNumber(number);
+        number_chosen = utils.parseNumber(number_chosen);
+        if (utils.anyIsError(number, number_chosen)) {
+            return error.value;
+        }
+        return Math.pow(number, number_chosen);
+    };
+
+    exports.PHI = function(x) {
+        x = utils.parseNumber(x);
+        if (x instanceof Error) {
+            return error.value;
+        }
+        return Math.exp(-0.5 * x * x) / SQRT2PI;
+    };
+
+    exports.PROB = function(range, probability, lower, upper) {
+        if (lower === undefined) {
+            return 0;
+        }
+        upper = (upper === undefined) ? lower : upper;
+
+        range = utils.parseNumberArray(utils.flatten(range));
+        probability = utils.parseNumberArray(utils.flatten(probability));
+        lower = utils.parseNumber(lower);
+        upper = utils.parseNumber(upper);
+        if (utils.anyIsError(range, probability, lower, upper)) {
+            return error.value;
+        }
+
+        if (lower === upper) {
+            return (range.indexOf(lower) >= 0) ? probability[range.indexOf(lower)] : 0;
+        }
+
+        var sorted = range.sort(function(a, b) {
+            return a - b;
+        });
+        var n = sorted.length;
+        var result = 0;
+        for (var i = 0; i < n; i++) {
+            if (sorted[i] >= lower && sorted[i] <= upper) {
+                result += probability[range.indexOf(sorted[i])];
+            }
+        }
+        return result;
+    };
+
+    exports.QUARTILE = {};
+
+    exports.QUARTILE.EXC = function(range, quart) {
+        range = utils.parseNumberArray(utils.flatten(range));
+        quart = utils.parseNumber(quart);
+        if (utils.anyIsError(range, quart)) {
+            return error.value;
+        }
+        switch (quart) {
+            case 1:
+                return exports.PERCENTILE.EXC(range, 0.25);
+            case 2:
+                return exports.PERCENTILE.EXC(range, 0.5);
+            case 3:
+                return exports.PERCENTILE.EXC(range, 0.75);
+            default:
+                return error.num;
+        }
+    };
+
+    exports.QUARTILE.INC = function(range, quart) {
+        range = utils.parseNumberArray(utils.flatten(range));
+        quart = utils.parseNumber(quart);
+        if (utils.anyIsError(range, quart)) {
+            return error.value;
+        }
+        switch (quart) {
+            case 1:
+                return exports.PERCENTILE.INC(range, 0.25);
+            case 2:
+                return exports.PERCENTILE.INC(range, 0.5);
+            case 3:
+                return exports.PERCENTILE.INC(range, 0.75);
+            default:
+                return error.num;
+        }
+    };
+
+    exports.RANK = {};
+
+    exports.RANK.AVG = function(number, range, order) {
+        number = utils.parseNumber(number);
+        range = utils.parseNumberArray(utils.flatten(range));
+        if (utils.anyIsError(number, range)) {
+            return error.value;
+        }
+        range = utils.flatten(range);
+        order = order || false;
+        var sort = (order) ? function(a, b) {
+            return a - b;
+        } : function(a, b) {
+            return b - a;
+        };
+        range = range.sort(sort);
+
+        var length = range.length;
+        var count = 0;
+        for (var i = 0; i < length; i++) {
+            if (range[i] === number) {
+                count++;
+            }
+        }
+
+        return (count > 1) ? (2 * range.indexOf(number) + count + 1) / 2 : range.indexOf(number) + 1;
+    };
+
+    exports.RANK.EQ = function(number, range, order) {
+        number = utils.parseNumber(number);
+        range = utils.parseNumberArray(utils.flatten(range));
+        if (utils.anyIsError(number, range)) {
+            return error.value;
+        }
+        order = order || false;
+        var sort = (order) ? function(a, b) {
+            return a - b;
+        } : function(a, b) {
+            return b - a;
+        };
+        range = range.sort(sort);
+        return range.indexOf(number) + 1;
+    };
+
+    exports.RSQ = function(data_x, data_y) { // no need to flatten here, PEARSON will take care of that
+        data_x = utils.parseNumberArray(utils.flatten(data_x));
+        data_y = utils.parseNumberArray(utils.flatten(data_y));
+        if (utils.anyIsError(data_x, data_y)) {
+            return error.value;
+        }
+        return Math.pow(exports.PEARSON(data_x, data_y), 2);
+    };
+
+    exports.SMALL = function(range, k) {
+        range = utils.parseNumberArray(utils.flatten(range));
+        k = utils.parseNumber(k);
+        if (utils.anyIsError(range, k)) {
+            return range;
+        }
+        return range.sort(function(a, b) {
+            return a - b;
+        })[k - 1];
+    };
+
+    exports.STANDARDIZE = function(x, mean, sd) {
+        x = utils.parseNumber(x);
+        mean = utils.parseNumber(mean);
+        sd = utils.parseNumber(sd);
+        if (utils.anyIsError(x, mean, sd)) {
+            return error.value;
+        }
+        return (x - mean) / sd;
+    };
+
+    exports.STDEV = {};
+
+    exports.STDEV.P = function() {
+        var v = exports.VAR.P.apply(this, arguments);
+        return Math.sqrt(v);
+    };
+
+    exports.STDEV.S = function() {
+        var v = exports.VAR.S.apply(this, arguments);
+        return Math.sqrt(v);
+    };
+
+    exports.STDEVA = function() {
+        var v = exports.VARA.apply(this, arguments);
+        return Math.sqrt(v);
+    };
+
+    exports.STDEVPA = function() {
+        var v = exports.VARPA.apply(this, arguments);
+        return Math.sqrt(v);
+    };
+
+    exports.VAR = {};
+
+    exports.VAR.P = function() {
+        var range = utils.numbers(utils.flatten(arguments));
+        var n = range.length;
+        var sigma = 0;
+        var mean = exports.AVERAGE(range);
+        for (var i = 0; i < n; i++) {
+            sigma += Math.pow(range[i] - mean, 2);
+        }
+        return sigma / n;
+    };
+
+    exports.VAR.S = function() {
+        var range = utils.numbers(utils.flatten(arguments));
+        var n = range.length;
+        var sigma = 0;
+        var mean = exports.AVERAGE(range);
+        for (var i = 0; i < n; i++) {
+            sigma += Math.pow(range[i] - mean, 2);
+        }
+        return sigma / (n - 1);
+    };
+
+    exports.VARA = function() {
+        var range = utils.flatten(arguments);
+        var n = range.length;
+        var sigma = 0;
+        var count = 0;
+        var mean = exports.AVERAGEA(range);
+        for (var i = 0; i < n; i++) {
+            var el = range[i];
+            if (typeof el === 'number') {
+                sigma += Math.pow(el - mean, 2);
+            } else if (el === true) {
+                sigma += Math.pow(1 - mean, 2);
+            } else {
+                sigma += Math.pow(0 - mean, 2);
+            }
+
+            if (el !== null) {
+                count++;
+            }
+        }
+        return sigma / (count - 1);
+    };
+
+    exports.VARPA = function() {
+        var range = utils.flatten(arguments);
+        var n = range.length;
+        var sigma = 0;
+        var count = 0;
+        var mean = exports.AVERAGEA(range);
+        for (var i = 0; i < n; i++) {
+            var el = range[i];
+            if (typeof el === 'number') {
+                sigma += Math.pow(el - mean, 2);
+            } else if (el === true) {
+                sigma += Math.pow(1 - mean, 2);
+            } else {
+                sigma += Math.pow(0 - mean, 2);
+            }
+
+            if (el !== null) {
+                count++;
+            }
+        }
+        return sigma / count;
+    };
+
+    exports.WEIBULL = {};
+
+    exports.WEIBULL.DIST = function(x, alpha, beta, cumulative) {
+        x = utils.parseNumber(x);
+        alpha = utils.parseNumber(alpha);
+        beta = utils.parseNumber(beta);
+        if (utils.anyIsError(x, alpha, beta)) {
+            return error.value;
+        }
+        return (cumulative) ? 1 - Math.exp(-Math.pow(x / beta, alpha)) : Math.pow(x, alpha - 1) * Math.exp(-Math.pow(x / beta, alpha)) * alpha / Math.pow(beta, alpha);
+    };
+
+    exports.Z = {};
+
+    exports.Z.TEST = function(range, x, sd) {
+        range = utils.parseNumberArray(utils.flatten(range));
+        x = utils.parseNumber(x);
+        if (utils.anyIsError(range, x)) {
+            return error.value;
+        }
+
+        sd = sd || exports.STDEV.S(range);
+        var n = range.length;
+        return 1 - exports.NORM.S.DIST((exports.AVERAGE(range) - x) / (sd / Math.sqrt(n)), true);
+    };
+
+    return exports;
+})();
+
+for (var i = 0; i < Object.keys(jexcel.methods).length; i++) {
+    var methods = jexcel.methods[Object.keys(jexcel.methods)[i]];
+    for (var j = 0; j < Object.keys(methods).length; j++) {
+        if (typeof(methods[Object.keys(methods)[j]]) == 'function') {
+            window[Object.keys(methods)[j]] = methods[Object.keys(methods)[j]];
+        } else {
+            window[Object.keys(methods)[j]] = function() {
+                return Object.keys(methods)[j] + 'Not implemented';
+            }
+        }
+    }
+}
+
+if (true) {
+    module.exports = jexcel;
+}
+
 
 /***/ }),
 
@@ -33066,6 +45457,3316 @@ if ( !noGlobal ) {
 return jQuery;
 } );
 
+
+/***/ }),
+
+/***/ "./node_modules/jsuites/dist/jsuites.css":
+/*!***********************************************!*\
+  !*** ./node_modules/jsuites/dist/jsuites.css ***!
+  \***********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+
+var content = __webpack_require__(/*! !../../css-loader??ref--6-1!../../postcss-loader/src??ref--6-2!./jsuites.css */ "./node_modules/css-loader/index.js?!./node_modules/postcss-loader/src/index.js?!./node_modules/jsuites/dist/jsuites.css");
+
+if(typeof content === 'string') content = [[module.i, content, '']];
+
+var transform;
+var insertInto;
+
+
+
+var options = {"hmr":true}
+
+options.transform = transform
+options.insertInto = undefined;
+
+var update = __webpack_require__(/*! ../../style-loader/lib/addStyles.js */ "./node_modules/style-loader/lib/addStyles.js")(content, options);
+
+if(content.locals) module.exports = content.locals;
+
+if(false) {}
+
+/***/ }),
+
+/***/ "./node_modules/jsuites/dist/jsuites.js":
+/*!**********************************************!*\
+  !*** ./node_modules/jsuites/dist/jsuites.js ***!
+  \**********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+
+/**
+ * (c) jSuites Javascript Web Components
+ *
+ * Author: Paul Hodel <paul.hodel@gmail.com>
+ * Website: https://bossanova.uk/jsuites/
+ * Description: Create amazing web based applications.
+ *
+ * MIT License
+ *
+ */
+;(function (global, factory) {
+     true ? module.exports = factory() :
+    undefined;
+
+    // Keep compatibility with jtools legacy
+    global.jApp = global.jSuites;
+}(this, (function () {
+
+    'use strict';
+
+    var jSuites = function(options) {
+        var obj = {}
+    
+        // Find root element
+        obj.el = document.querySelector('.app');
+    
+        // Backdrop
+        obj.backdrop = document.createElement('div');
+        obj.backdrop.classList.add('jbackdrop');
+    
+        obj.getWindowWidth = function() {
+            var w = window,
+            d = document,
+            e = d.documentElement,
+            g = d.getElementsByTagName('body')[0],
+            x = w.innerWidth || e.clientWidth || g.clientWidth;
+            return x;
+        }
+    
+        obj.getWindowHeight = function() {
+            var w = window,
+            d = document,
+            e = d.documentElement,
+            g = d.getElementsByTagName('body')[0],
+            y = w.innerHeight|| e.clientHeight|| g.clientHeight;
+            return  y;
+        }
+    
+        obj.getPosition = function(e) {
+            if (e.changedTouches && e.changedTouches[0]) {
+                var x = e.changedTouches[0].pageX;
+                var y = e.changedTouches[0].pageY;
+            } else {
+                var x = (window.Event) ? e.pageX : event.clientX + (document.documentElement.scrollLeft ? document.documentElement.scrollLeft : document.body.scrollLeft);
+                var y = (window.Event) ? e.pageY : event.clientY + (document.documentElement.scrollTop ? document.documentElement.scrollTop : document.body.scrollTop);
+            }
+    
+            return [ x, y ];
+        }
+    
+        obj.click = function(el) {
+            // Create our event (with options)
+            var evt = new MouseEvent('click', {
+                bubbles: true,
+                cancelable: true,
+                view: window
+            });
+            el.dispatchEvent(evt);
+        }
+    
+        obj.getElement = function(element, className) {
+            var foundElement = false;
+    
+            function path (element) {
+                if (element.className) {
+                    if (element.classList.contains(className)) {
+                        foundElement = element;
+                    }
+                }
+    
+                if (element.parentNode) {
+                    path(element.parentNode);
+                }
+            }
+    
+            path(element);
+    
+            return foundElement;
+        }
+    
+        obj.getLinkElement = function(element) {
+            var targetElement = false;
+    
+            function path (element) {
+                if ((element.tagName == 'A' || element.tagName == 'DIV') && element.getAttribute('data-href')) {
+                    targetElement = element;
+                }
+    
+                if (element.parentNode) {
+                    path(element.parentNode);
+                }
+            }
+    
+            path(element);
+    
+            return targetElement;
+        }
+    
+        obj.getFormElements = function(formObject) {
+            var ret = {};
+    
+            if (formObject) {
+                var elements = formObject.querySelectorAll("input, select, textarea");
+            } else {
+                var elements = document.querySelectorAll("input, select, textarea");
+            }
+    
+            for (var i = 0; i < elements.length; i++) {
+                var element = elements[i];
+                var name = element.name;
+                var value = element.value;
+    
+                if (name) {
+                    ret[name] = value;
+                }
+            }
+    
+            return ret;
+        }
+    
+        obj.getFiles = function(element) {
+            if (! element) {
+                console.error('No element defined in the arguments of your method');
+            }
+            // Clear current data
+            var inputs = element.querySelectorAll('input');
+            for (var i = 0; i < inputs.length; i++) {
+                inputs[i].remove();
+            }
+    
+            // Get attachments
+            var files = element.querySelectorAll('.jfile');
+    
+            if (files.length > 0) {
+                for (var i = 0; i < files.length; i++) {
+                    var extension = files[i].getAttribute('data-name').toLowerCase().split('.');
+                    var input = document.createElement('input');
+                    input.setAttribute('type', 'hidden');
+                    input.setAttribute('name', 'files[' + i + '][name]');
+                    input.value = files[i].getAttribute('data-name').toLowerCase()
+                    files[i].parentNode.appendChild(input);
+    
+                    var input = document.createElement('input');
+                    input.setAttribute('type', 'hidden');
+                    input.setAttribute('name', 'files[' + i + '][extension]');
+                    input.value = extension[1];
+                    files[i].parentNode.appendChild(input);
+    
+                    var input = document.createElement('input');
+                    input.setAttribute('type', 'hidden');
+                    input.setAttribute('name', 'files[' + i + '][size]');
+                    input.value = files[i].getAttribute('data-size');
+                    files[i].parentNode.appendChild(input);
+    
+                    var input = document.createElement('input');
+                    input.setAttribute('type', 'hidden');
+                    input.setAttribute('name', 'files[' + i + '][lastmodified]');
+                    input.value = files[i].getAttribute('data-lastmodified');
+                    files[i].parentNode.appendChild(input);
+    
+                    if (files[i].getAttribute('data-cover')) {
+                        var input = document.createElement('input');
+                        input.setAttribute('type', 'hidden');
+                        input.setAttribute('name', 'files[' + i + '][cover]');
+                        input.value = 1;
+                        files[i].parentNode.appendChild(input);
+                    }
+    
+                    // File thumbs
+                    var content = files[i].getAttribute('data-thumbs');
+    
+                    if (content) {
+                        if (content.substr(0,4) == 'data') {
+                            var content = files[i].getAttribute('data-thumbs').split(',');
+    
+                            var input = document.createElement('input');
+                            input.setAttribute('type', 'hidden');
+                            input.setAttribute('name', 'files[' + i + '][thumbs]');
+                            input.value = content[1];
+                            files[i].parentNode.appendChild(input);
+                        } else {
+                            var input = document.createElement('input');
+                            input.setAttribute('type', 'hidden');
+                            input.setAttribute('name', 'files[' + i + '][thumbs]');
+                            input.value = content;
+                            files[i].parentNode.appendChild(input);
+                        }
+                    }
+    
+                    // File content
+                    var content = files[i].getAttribute('src');
+    
+                    if (content.substr(0,4) == 'data') {
+                        var content = files[i].getAttribute('src').split(',');
+    
+                        var input = document.createElement('input');
+                        input.setAttribute('type', 'hidden');
+                        input.setAttribute('name', 'files[' + i + '][content]');
+                        input.value = content[1];
+                        files[i].parentNode.appendChild(input);
+                    } else {
+                        if (files[i].classList.contains('jremove')) {
+                            var input = document.createElement('input');
+                            input.setAttribute('type', 'hidden');
+                            input.setAttribute('name', 'files[' + i + '][remove]');
+                            input.value = 1;
+                            files[i].parentNode.appendChild(input);
+                        }
+                    }
+                }
+            }
+        }
+    
+        obj.ajax = function(postOptions) {
+            if (! postOptions.data) {
+                postOptions.data = {};
+            }
+            postOptions.data = new URLSearchParams(postOptions.data);
+    
+            // Remote call
+            fetch(postOptions.url, {
+                method: postOptions.method ? postOptions.method : 'POST',
+                headers: new Headers({
+                    'Accept': 'application/json',
+                    'Content-type': 'application/x-www-form-urlencoded; charset=UTF-8'
+                }),
+                body: postOptions.data
+            })
+            .then(function(data) {
+                data.json().then(function(result) {
+                    if (postOptions.success && typeof(postOptions.success) == 'function') {
+                        postOptions.success(result);
+                    }
+                })
+            });
+        }
+    
+        obj.keyDownControls = function(e) {
+            if (e.which == 27) {
+                var nodes = document.querySelectorAll('.jmodal');
+                if (nodes.length > 0) {
+                    for (var i = 0; i < nodes.length; i++) {
+                        nodes[i].modal.close();
+                    }
+                }
+    
+                var nodes = document.querySelectorAll('.jslider');
+                if (nodes.length > 0) {
+                    for (var i = 0; i < nodes.length; i++) {
+                        nodes[i].slider.close();
+                    }
+                }
+    
+                if (document.querySelector('.jdialog')) {
+                    jSuites.dialog.close();
+                }
+            } else if (e.which == 13) {
+                if (document.querySelector('.jdialog')) {
+                    if (typeof(jSuites.dialog.options.onconfirm) == 'function') {
+                        jSuites.dialog.options.onconfirm();
+                    }
+                    jSuites.dialog.close();
+                }
+            }
+    
+            // Verify mask
+            if (jSuites.mask) {
+                jSuites.mask.apply(e);
+            }
+        }
+    
+        obj.actionDownControl = function(e) {
+            jSuites.touchTracker = jSuites.getPosition(e);
+            setTimeout(function() {
+                jSuites.touchTracker = null;
+            }, 300);
+        }
+    
+        obj.actionUpControl = function(e) {
+            var position = jSuites.getPosition(e);
+    
+            if (jSuites.touchTracker && (position[0] - jSuites.touchTracker[0]) > 100) {
+                // Left
+                var event = new CustomEvent("swipeleft");
+                document.dispatchEvent(event);
+            } else if (jSuites.touchTracker && (jSuites.touchTracker[0] - position[0]) > 100) {
+                // Right
+                var event = new CustomEvent("swiperight");
+                document.dispatchEvent(event);
+            } else {
+                var element = null;
+                if (element = jSuites.getLinkElement(e.target)) {
+                    var link = element.getAttribute('data-href');
+                    if (link == 'back') {
+                        window.history.back();
+                    } else {
+                        jSuites.page(link);
+                    }
+                }
+            }
+        }
+    
+        // Add events
+        document.addEventListener('touchstart', obj.actionDownControl);
+        document.addEventListener('touchend', obj.actionUpControl);
+        document.addEventListener('keydown', obj.keyDownControls);
+    
+        window.onpopstate = function(e) {
+            if (e.state && e.state.route) {
+                if (jSuites.page && jSuites.page.items && jSuites.page.items[e.state.route]) {
+                    jSuites.page.items[e.state.route].show(true);
+                    // Verify toolbar bind with this page
+                    if (jSuites.page.items[e.state.route].options.toolbar) {
+                        jSuites.page.items[e.state.route].options.toolbar.selectItem(jSuites.page.items[e.state.route].options.toolbarItem);
+                    }
+                }
+            }
+        }
+    
+        obj.touchTracker = null;
+    
+        return obj;
+    }();
+    
+    
+    jSuites.calendar = (function(el, options) {
+        var obj = {};
+        obj.options = {};
+    
+        // Global container
+        if (! jSuites.dropdown.current) {
+            jSuites.dropdown.current = null;
+        }
+    
+        // Default configuration
+        var defaults = {
+            // Date format
+            format:'DD/MM/YYYY',
+            // Allow keyboard date entry
+            readonly:0,
+            // Today is default
+            today:0,
+            // Show timepicker
+            time:0,
+            // Show the reset button
+            resetButton:true,
+            // Placeholder
+            placeholder:'',
+            // Translations can be done here
+            months:['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+            weekdays:['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],
+            weekdays_short:['S', 'M', 'T', 'W', 'T', 'F', 'S'],
+            // Value
+            value:null,
+            // Events
+            onclose:null,
+            onchange:null,
+            // Fullscreen (this is automatic set for screensize < 800)
+            fullscreen:false,
+            // Internal mode controller
+            mode:null,
+            position:null,
+        };
+    
+        // Loop through our object
+        for (var property in defaults) {
+            if (options && options.hasOwnProperty(property)) {
+                obj.options[property] = options[property];
+            } else {
+                obj.options[property] = defaults[property];
+            }
+        }
+    
+        // Value
+        if (! obj.options.value && el.value) {
+            obj.options.value = el.value;
+        }
+    
+        // Make sure use upper case in the format
+        obj.options.format = obj.options.format.toUpperCase();
+    
+        if (obj.options.value) {
+            var date = obj.options.value.split(' ');
+            var time = date[1];
+            var date = date[0].split('-');
+            var y = parseInt(date[0]);
+            var m = parseInt(date[1]);
+            var d = parseInt(date[2]);
+    
+            if (time) {
+                var time = time.split(':');
+                var h = parseInt(time[0]);
+                var i = parseInt(time[1]);
+            } else {
+                var h = 0;
+                var i = 0;
+            }
+        } else {
+            var date = new Date();
+            var y = date.getFullYear();
+            var m = date.getMonth() + 1;
+            var d = date.getDate();
+            var h = date.getHours();
+            var i = date.getMinutes();
+        }
+    
+        // Current value
+        obj.date = [ y, m, d, h, i, 0 ];
+    
+        // Two digits
+        var two = function(value) {
+            value = '' + value;
+            if (value.length == 1) {
+                value = '0' + value;
+            }
+            return value;
+        }
+    
+        // Calendar elements
+        var calendarReset = document.createElement('div');
+        calendarReset.className = 'jcalendar-reset';
+        calendarReset.innerHTML = 'Reset';
+    
+        var calendarConfirm = document.createElement('div');
+        calendarConfirm.className = 'jcalendar-confirm';
+        calendarConfirm.innerHTML = 'Done';
+    
+        var calendarControls = document.createElement('div');
+        calendarControls.className = 'jcalendar-controls'
+        if (obj.options.resetButton) {
+            calendarControls.appendChild(calendarReset);
+        }
+        calendarControls.appendChild(calendarConfirm);
+    
+        var calendarContainer = document.createElement('div');
+        calendarContainer.className = 'jcalendar-container';
+    
+        var calendarContent = document.createElement('div');
+        calendarContent.className = 'jcalendar-content';
+        calendarContent.appendChild(calendarControls);
+        calendarContainer.appendChild(calendarContent);
+    
+        // Main element
+        var calendar = document.createElement('div');
+        calendar.className = 'jcalendar';
+        calendar.appendChild(calendarContainer);
+    
+        // Previous button
+        var calendarHeaderPrev = document.createElement('td');
+        calendarHeaderPrev.setAttribute('colspan', '2');
+        calendarHeaderPrev.className = 'jcalendar-prev';
+    
+        // Header with year and month
+        var calendarLabelYear = document.createElement('span');
+        calendarLabelYear.className = 'jcalendar-year';
+    
+        var calendarLabelMonth = document.createElement('span');
+        calendarLabelMonth.className = 'jcalendar-month';
+    
+        var calendarHeaderTitle = document.createElement('td');
+        calendarHeaderTitle.className = 'jcalendar-header';
+        calendarHeaderTitle.setAttribute('colspan', '3');
+        calendarHeaderTitle.appendChild(calendarLabelMonth);
+        calendarHeaderTitle.appendChild(calendarLabelYear);
+    
+        var calendarHeaderNext = document.createElement('td');
+        calendarHeaderNext.setAttribute('colspan', '2');
+        calendarHeaderNext.className = 'jcalendar-next';
+    
+        var calendarHeaderRow = document.createElement('tr');
+        calendarHeaderRow.appendChild(calendarHeaderPrev);
+        calendarHeaderRow.appendChild(calendarHeaderTitle);
+        calendarHeaderRow.appendChild(calendarHeaderNext);
+    
+        var calendarHeader = document.createElement('thead');
+        calendarHeader.appendChild(calendarHeaderRow);
+    
+        var calendarBody = document.createElement('tbody');
+        var calendarFooter = document.createElement('tfoot');
+    
+        // Calendar table
+        var calendarTable = document.createElement('table');
+        calendarTable.setAttribute('cellpadding', '0');
+        calendarTable.setAttribute('cellspacing', '0');
+        calendarTable.appendChild(calendarHeader);
+        calendarTable.appendChild(calendarBody);
+        calendarTable.appendChild(calendarFooter);
+        calendarContent.appendChild(calendarTable);
+    
+        var calendarSelectHour = document.createElement('select');
+        calendarSelectHour.onchange = function() {
+            obj.date[3] = this.value; 
+        }
+    
+        for (var i = 0; i < 24; i++) {
+            var element = document.createElement('option');
+            element.value = i;
+            element.innerHTML = two(i);
+            calendarSelectHour.appendChild(element);
+        }
+    
+        var calendarSelectMin = document.createElement('select');
+        calendarSelectMin.onchange = function() {
+            obj.date[4] = this.value; 
+        }
+    
+        for (var i = 0; i < 60; i++) {
+            var element = document.createElement('option');
+            element.value = i;
+            element.innerHTML = two(i);
+            calendarSelectMin.appendChild(element);
+        }
+    
+        // Footer controls
+        var calendarControls = document.createElement('div');
+        calendarControls.className = 'jcalendar-controls';
+    
+        var calendarControlsTime = document.createElement('div');
+        calendarControlsTime.className = 'jcalendar-time';
+        calendarControlsTime.style.maxWidth = '140px';
+        calendarControlsTime.appendChild(calendarSelectHour);
+        calendarControlsTime.appendChild(calendarSelectMin);
+    
+        var calendarControlsUpdate = document.createElement('div');
+        calendarControlsUpdate.style.flexGrow = '10';
+        calendarControlsUpdate.innerHTML = '<input type="button" class="jcalendar-update" value="Update">'
+        calendarControls.appendChild(calendarControlsTime);
+        calendarControls.appendChild(calendarControlsUpdate);
+        calendarContent.appendChild(calendarControls);
+    
+        var calendarBackdrop = document.createElement('div');
+        calendarBackdrop.className = 'jcalendar-backdrop';
+        calendar.appendChild(calendarBackdrop);
+    
+        // Methods
+        obj.open = function (value) {
+            if (jSuites.calendar.current) {
+                if (jSuites.calendar.current != obj) {
+                    jSuites.calendar.current.close();
+                }
+            }
+    
+            if (! jSuites.calendar.current) {
+                jSuites.calendar.current = obj;
+                // Show calendar
+                calendar.classList.add('jcalendar-focus');
+                // Get days
+                obj.getDays();
+                // Hour
+                if (obj.options.time) {
+                    calendarSelectHour.value = obj.date[3];
+                    calendarSelectMin.value = obj.date[4];
+                }
+    
+                // Get the position of the corner helper
+                if (jSuites.getWindowWidth() < 800 || obj.options.fullscreen) {
+                    // Full
+                    calendar.classList.add('jcalendar-fullsize');
+                    // Animation
+                    calendarContent.classList.add('slide-bottom-in');
+                } else {
+                    const rect = el.getBoundingClientRect();
+                    const rectContent = calendarContent.getBoundingClientRect();
+    
+                    if (obj.options.position) {
+                        calendarContainer.style.position = 'fixed';
+                        if (window.innerHeight < rect.bottom + rectContent.height) {
+                            calendarContainer.style.top = (rect.top - (rectContent.height + 2)) + 'px';
+                        } else {
+                            calendarContainer.style.top = (rect.top + rect.height + 2) + 'px';
+                        }
+                    } else {
+                        if (window.innerHeight < rect.bottom + rectContent.height) {
+                            calendarContainer.style.bottom = (1 * rect.height + rectContent.height + 2) + 'px';
+                        } else {
+                            calendarContainer.style.top = 2 + 'px'; 
+                        }
+                    }
+                }
+            }
+        }
+    
+        obj.close = function (ignoreEvents, update) {
+            if (jSuites.calendar.current) {
+                jSuites.calendar.current =  null;
+    
+                if (update != false && el.tagName == 'INPUT') {
+                    obj.setValue(obj.getValue());
+                }
+    
+                if (! ignoreEvents && typeof(obj.options.onclose) == 'function') {
+                    obj.options.onclose(el);
+                }
+    
+                // Animation
+                calendarContainer.classList.remove('slide-bottom-in');
+                calendar.classList.remove('jcalendar-focus');
+            }
+    
+            return obj.getValue(); 
+        }
+    
+        obj.prev = function() {
+            // Check if the visualization is the days picker or years picker
+            if (obj.options.mode == 'years') {
+                obj.date[0] = obj.date[0] - 12;
+    
+                // Update picker table of days
+                obj.getYears();
+            } else {
+                // Go to the previous month
+                if (obj.date[1] < 2) {
+                    obj.date[0] = obj.date[0] - 1;
+                    obj.date[1] = 1;
+                } else {
+                    obj.date[1] = obj.date[1] - 1;
+                }
+    
+                // Update picker table of days
+                obj.getDays();
+            }
+        }
+    
+        obj.next = function() {
+            // Check if the visualization is the days picker or years picker
+            if (obj.options.mode == 'years') {
+                obj.date[0] = parseInt(obj.date[0]) + 12;
+    
+                // Update picker table of days
+                obj.getYears();
+            } else {
+                // Go to the previous month
+                if (obj.date[1] > 11) {
+                    obj.date[0] = obj.date[0] + 1;
+                    obj.date[1] = 1;
+                } else {
+                    obj.date[1] = obj.date[1] + 1;
+                }
+    
+                // Update picker table of days
+                obj.getDays();
+            }
+        }
+    
+        obj.setValue = function(val) {
+            if (val) {
+                // Keep value
+                obj.options.value = val;
+                // Set label
+                var value = obj.setLabel(val, obj.options.format);
+                var date = obj.options.value.split(' ');
+                if (! date[1]) {
+                    date[1] = '00:00:00';
+                }
+                var time = date[1].split(':')
+                var date = date[0].split('-');
+                var y = parseInt(date[0]);
+                var m = parseInt(date[1]);
+                var d = parseInt(date[2]);
+                var h = parseInt(time[0]);
+                var i = parseInt(time[1]);
+                obj.date = [ y, m, d, h, i, 0 ];
+                var val = obj.setLabel(val, obj.options.format);
+    
+                if (el.value != val) {
+                    el.value = val;
+                    // On change
+                    if (typeof(obj.options.onchange) ==  'function') {
+                        obj.options.onchange(el, val, obj.date);
+                    }
+                }
+    
+                obj.getDays();
+            }
+        }
+    
+        obj.getValue = function() {
+            if (obj.date) {
+                if (obj.options.time) {
+                    return two(obj.date[0]) + '-' + two(obj.date[1]) + '-' + two(obj.date[2]) + ' ' + two(obj.date[3]) + ':' + two(obj.date[4]) + ':' + two(0);
+                } else {
+                    return two(obj.date[0]) + '-' + two(obj.date[1]) + '-' + two(obj.date[2]) + ' ' + two(0) + ':' + two(0) + ':' + two(0);
+                }
+            } else {
+                return "";
+            }
+        }
+    
+        /**
+         * Update calendar
+         */
+        obj.update = function(element) {
+            obj.date[2] = element.innerText;
+    
+            if (! obj.options.time) {
+                obj.close();
+            } else {
+                obj.date[3] = calendarSelectHour.value;
+                obj.date[4] = calendarSelectMin.value;
+            }
+    
+            var elements = calendar.querySelector('.jcalendar-selected');
+            if (elements) {
+                elements.classList.remove('jcalendar-selected');
+            }
+            element.classList.add('jcalendar-selected')
+        }
+    
+        /**
+         * Set to blank
+         */
+        obj.reset = function() {
+            // Clear element
+            obj.date = null;
+            // Reset element
+            el.value = '';
+            // Close calendar
+            obj.close();
+        }
+    
+        /**
+         * Get calendar days
+         */
+        obj.getDays = function() {
+            // Mode
+            obj.options.mode = 'days';
+    
+            // Variables
+            var d = 0;
+            var today = 0;
+            var today_d = 0;
+            var calendar_day;
+    
+            // Setting current values in case of NULLs
+            var date = new Date();
+    
+            var year = obj.date && obj.date[0] ? obj.date[0] : parseInt(date.getFullYear());
+            var month = obj.date && obj.date[1] ? obj.date[1] : parseInt(date.getMonth()) + 1;
+            var day = obj.date && obj.date[2] ? obj.date[2] : parseInt(date.getDay());
+            var hour = obj.date && obj.date[3] ? obj.date[3] : parseInt(date.getHours());
+            var min = obj.date && obj.date[4] ? obj.date[4] : parseInt(date.getMinutes());
+    
+            obj.date = [year, month, day, hour, min, 0 ];
+    
+            // Update title
+            calendarLabelYear.innerHTML = year;
+            calendarLabelMonth.innerHTML = obj.options.months[month - 1];
+    
+            // Flag if this is the current month and year
+            if ((date.getMonth() == month-1) && (date.getFullYear() == year)) {
+                today = 1;
+                today_d = date.getDate();
+            }
+    
+            var date = new Date(year, month, 0, 0, 0);
+            var nd = date.getDate();
+    
+            var date = new Date(year, month-1, 0, hour, min);
+            var fd = date.getDay() + 1;
+    
+            // Reset table
+            calendarBody.innerHTML = '';
+    
+            // Weekdays Row
+            var row = document.createElement('tr');
+            row.setAttribute('align', 'center');
+            calendarBody.appendChild(row);
+    
+            for (var i = 0; i < 7; i++) {
+                var cell = document.createElement('td');
+                cell.setAttribute('width', '30');
+                cell.classList.add('jcalendar-weekday')
+                cell.innerHTML = obj.options.weekdays_short[i];
+                row.appendChild(cell);
+            }
+    
+            // Avoid a blank line
+            if (fd == 7) {
+                var j = 7;
+            } else {
+                var j = 0;
+            }
+    
+            // Days inside the table
+            var row = document.createElement('tr');
+            row.setAttribute('align', 'center');
+            calendarBody.appendChild(row);
+    
+            // Days in the month
+            for (var i = j; i < (Math.ceil((nd + fd) / 7) * 7); i++) {
+                // Create row
+                if ((i > 0) && (!(i % 7))) {
+                    var row = document.createElement('tr');
+                    row.setAttribute('align', 'center');
+                    calendarBody.appendChild(row);
+                }
+    
+                if ((i >= fd) && (i < nd + fd)) {
+                    d += 1;
+                } else {
+                    d = 0;
+                }
+    
+                // Create cell
+                var cell = document.createElement('td');
+                cell.setAttribute('width', '30');
+                cell.classList.add('jcalendar-set-day');
+                row.appendChild(cell);
+    
+                if (d == 0) {
+                    cell.innerHTML = '';
+                } else {
+                    if (d < 10) {
+                        cell.innerHTML = 0 + d;
+                    } else {
+                        cell.innerHTML = d;
+                    }
+                }
+    
+                // Selected
+                if (d && d == day) {
+                    cell.classList.add('jcalendar-selected');
+                }
+    
+                // Sundays
+                if (! (i % 7)) {
+                    cell.style.color = 'red';
+                }
+    
+                // Today
+                if ((today == 1) && (today_d == d)) {
+                    cell.style.fontWeight = 'bold';
+                }
+            }
+    
+            // Show time controls
+            if (obj.options.time) {
+                calendarControlsTime.style.display = '';
+            } else {
+                calendarControlsTime.style.display = 'none';
+            }
+        }
+    
+        obj.getMonths = function() {
+            // Mode
+            obj.options.mode = 'months';
+    
+            // Loading month labels
+            var months = obj.options.months;
+    
+            // Update title
+            calendarLabelYear.innerHTML = obj.date[0];
+            calendarLabelMonth.innerHTML = '';
+    
+            // Create months table
+            var html = '<td colspan="7"><table width="100%"><tr align="center">';
+    
+            for (i = 0; i < 12; i++) {
+                if ((i > 0) && (!(i % 4))) {
+                    html += '</tr><tr align="center">';
+                }
+                month = parseInt(i) + 1;
+                html += '<td class="jcalendar-set-month" data-value="' + month + '">' + months[i] +'</td>';
+            }
+    
+            html += '</tr></table></td>';
+    
+            calendarBody.innerHTML = html;
+        }
+    
+        obj.getYears = function() { 
+            // Mode
+            obj.options.mode = 'years';
+    
+            // Array of years
+            var y = [];
+            for (i = 0; i < 25; i++) {
+                y[i] = parseInt(obj.date[0]) + (i - 12);
+            }
+    
+            // Assembling the year tables
+            var html = '<td colspan="7"><table width="100%"><tr align="center">';
+    
+            for (i = 0; i < 25; i++) {
+                if ((i > 0) && (!(i % 5))) {
+                    html += '</tr><tr align="center">';
+                }
+                html += '<td class="jcalendar-set-year">'+ y[i] +'</td>';
+            }
+    
+            html += '</tr></table></td>';
+    
+            calendarBody.innerHTML = html;
+        }
+    
+        obj.setLabel = function(value, format) {
+            return jSuites.calendar.getDateString(value, format);
+        }
+    
+        obj.fromFormatted = function (value, format) {
+            return jSuites.calendar.extractDateFromString(value, format);
+        }
+    
+        // Add properties
+        el.setAttribute('autocomplete', 'off');
+        el.setAttribute('data-mask', obj.options.format.toLowerCase());
+    
+        if (obj.options.readonly) {
+            el.setAttribute('readonly', 'readonly');
+        }
+    
+        if (obj.options.placeholder) {
+            el.setAttribute('placeholder', obj.options.placeholder);
+        }
+    
+        // Handle events
+        el.addEventListener("focus", function(e) {
+            obj.open();
+        });
+    
+        el.addEventListener("mousedown", function(e) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            obj.open();
+        });
+    
+        el.addEventListener("keyup", function(e) {
+            if (e.target.value && e.target.value.length > 3) {
+                var test = jSuites.calendar.extractDateFromString(e.target.value, obj.options.format);
+                if (test) {
+                    console.log(test);
+                    if (e.target.getAttribute('data-completed') == 'true') {
+                        obj.setValue(test);
+                    }
+                }
+            }
+        });
+    
+        if (! jSuites.calendar.hasEvents) {
+            // Add global events
+            document.addEventListener("swipeleft", function(e) {
+                if (calendar.classList.contains('jcalendar-focus')) {
+                    obj.prev();
+                }
+            });
+    
+            document.addEventListener("swiperight", function(e) {
+                if (calendar.classList.contains('jcalendar-focus')) {
+                    obj.next();
+                }
+            });
+    
+            document.addEventListener("mousedown", jSuites.calendar.mouseDownControls);
+    
+            // Has events
+            jSuites.calendar.hasEvents = true;
+        }
+    
+        // Append element to the DOM
+        el.parentNode.insertBefore(calendar, el.nextSibling);
+    
+        // Keep object available from the node
+        el.calendar = obj;
+    
+        return obj;
+    });
+    
+    // Helper to extract date from a string
+    jSuites.calendar.extractDateFromString = function(date, format) {
+        var v1 = '' + date;
+        var v2 = format.replace(/[0-9]/g,'');
+    
+        var test = 1;
+    
+        // Get year
+        var y = v2.search("YYYY");
+        y = v1.substr(y,4);
+        if (parseInt(y) != y) {
+            test = 0;
+        }
+    
+        // Get month
+        var m = v2.search("MM");
+        m = v1.substr(m,2);
+        if (parseInt(m) != m || d > 12) {
+            test = 0;
+        }
+    
+        // Get day
+        var d = v2.search("DD");
+        d = v1.substr(d,2);
+        if (parseInt(d) != d  || d > 31) {
+            test = 0;
+        }
+    
+        // Get hour
+        var h = v2.search("HH");
+        if (h >= 0) {
+            h = v1.substr(h,2);
+            if (! parseInt(h) || h > 23) {
+                h = '00';
+            }
+        } else {
+            h = '00';
+        }
+        
+        // Get minutes
+        var i = v2.search("MI");
+        if (i >= 0) {
+            i = v1.substr(i,2);
+            if (! parseInt(i) || i > 59) {
+                i = '00';
+            }
+        } else {
+            i = '00';
+        }
+    
+        // Get seconds
+        var s = v2.search("SS");
+        if (s >= 0) {
+            s = v1.substr(s,2);
+            if (! parseInt(s) || s > 59) {
+                s = '00';
+            }
+        } else {
+            s = '00';
+        }
+    
+        if (test == 1 && date.length == format.length) {
+            // Update source
+            var data = y + '-' + m + '-' + d + ' ' + h + ':' +  i + ':' + s;
+    
+            return data;
+        }
+    
+        return '';
+    }
+    
+    // Helper to convert date into string
+    jSuites.calendar.getDateString = function(value, format) {
+        // Default calendar
+        if (! format) {
+            var format = 'DD/MM/YYYY';
+        }
+    
+        if (value) {
+            var d = ''+value;
+            d = d.split(' ');
+    
+            var h = '';
+            var m = '';
+            var s = '';
+    
+            if (d[1]) {
+                h = d[1].split(':');
+                m = h[1];
+                s = h[2];
+                h = h[0];
+            } else {
+                h = '00';
+                m = '00';
+                s = '00';
+            }
+    
+            d = d[0].split('-');
+    
+            if (d[0] && d[1] && d[2] && d[0] > 0 && d[1] > 0 && d[1] < 13 && d[2] > 0 && d[2] < 32) {
+                var calendar = new Date(d[0], d[1]-1, d[2]);
+                var weekday = new Array('Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday');
+    
+                d[1] = (d[1].length < 2 ? '0' : '') + d[1];
+                d[2] = (d[2].length < 2 ? '0' : '') + d[2];
+                h = (h.length < 2 ? '0' : '') + h;
+                m = (m.length < 2 ? '0' : '') + m;
+                s = (s.length < 2 ? '0' : '') + s;
+    
+                value = format;
+                value = value.replace('WD', weekday[calendar.getDay()]);
+                value = value.replace('DD', d[2]);
+                value = value.replace('MM', d[1]);
+                value = value.replace('YYYY', d[0]);
+                value = value.replace('YY', d[0].substring(2,4));
+    
+                if (h) {
+                    value = value.replace('HH24', h);
+                }
+    
+                if (h > 12) {
+                    value = value.replace('HH12', h - 12);
+                    value = value.replace('HH', h);
+                } else {
+                    value = value.replace('HH12', h);
+                    value = value.replace('HH', h);
+                }
+    
+                value = value.replace('MI', m);
+                value = value.replace('MM', m);
+                value = value.replace('SS', s);
+            } else {
+                value = '';
+            }
+        }
+    
+        return value;
+    }
+    
+    jSuites.calendar.mouseDownControls = function(e) {
+        if (! jSuites.getElement(e.target, 'jcalendar')) {
+            if (jSuites.calendar.current) {
+                jSuites.calendar.current.close(false, false);
+            }
+        } else {
+            if (jSuites.calendar.current) {
+                var action = e.target.className;
+    
+                // Object id
+                if (action == 'jcalendar-prev') {
+                    jSuites.calendar.current.prev();
+                } else if (action == 'jcalendar-next') {
+                    jSuites.calendar.current.next();
+                } else if (action == 'jcalendar-month') {
+                    jSuites.calendar.current.getMonths();
+                } else if (action == 'jcalendar-year') {
+                    jSuites.calendar.current.getYears();
+                } else if (action == 'jcalendar-set-year') {
+                    jSuites.calendar.current.date[0] = e.target.innerText;
+                    jSuites.calendar.current.getDays();
+                } else if (action == 'jcalendar-set-month') {
+                    jSuites.calendar.current.date[1] = parseInt(e.target.getAttribute('data-value'));
+                    jSuites.calendar.current.getDays();
+                } else if (action == 'jcalendar-confirm' || action == 'jcalendar-update') {
+                    jSuites.calendar.current.close();
+                } else if (action == 'jcalendar-close') {
+                    jSuites.calendar.current.close();
+                } else if (action == 'jcalendar-backdrop') {
+                    jSuites.calendar.current.close(false, false);
+                } else if (action == 'jcalendar-reset') {
+                    jSuites.calendar.current.reset();
+                } else if (e.target.classList.contains('jcalendar-set-day')) {
+                    if (e.target.innerText) {
+                        // Keep selected day
+                        jSuites.calendar.current.update(e.target);
+                    }
+                }
+    
+                if (action.substr(0,9) == 'jcalendar') {
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                }
+            }
+        }
+    }
+    
+    /**
+     * Color Picker v1.0.1
+     * Author: paul.hodel@gmail.com
+     * https://github.com/paulhodel/jtools
+     */
+    
+    jSuites.color = (function(el, options) {
+        var obj = {};
+        obj.options = {};
+        obj.values = [];
+    
+        // Global container
+        if (! jSuites.color.current) {
+            jSuites.color.current = null;
+        }
+    
+        // Default configuration
+        var defaults = {
+            placeholder:'',
+            value:null,
+            onclose:null,
+            onchange:null,
+            position:null,
+        };
+    
+        // Loop through our object
+        for (var property in defaults) {
+            if (options && options.hasOwnProperty(property)) {
+                obj.options[property] = options[property];
+            } else {
+                obj.options[property] = defaults[property];
+            }
+        }
+    
+        var x = 0;
+        var y = 0;
+        var z = 0;
+    
+        var palette = {
+            "red": {
+                "50": "#ffebee",
+                "100": "#ffcdd2",
+                "200": "#ef9a9a",
+                "300": "#e57373",
+                "400": "#ef5350",
+                "500": "#f44336",
+                "600": "#e53935",
+                "700": "#d32f2f",
+                "800": "#c62828",
+                "900": "#b71c1c",
+              },
+              "pink": {
+                "50": "#fce4ec",
+                "100": "#f8bbd0",
+                "200": "#f48fb1",
+                "300": "#f06292",
+                "400": "#ec407a",
+                "500": "#e91e63",
+                "600": "#d81b60",
+                "700": "#c2185b",
+                "800": "#ad1457",
+                "900": "#880e4f",
+              },
+              "purple": {
+                "50": "#f3e5f5",
+                "100": "#e1bee7",
+                "200": "#ce93d8",
+                "300": "#ba68c8",
+                "400": "#ab47bc",
+                "500": "#9c27b0",
+                "600": "#8e24aa",
+                "700": "#7b1fa2",
+                "800": "#6a1b9a",
+                "900": "#4a148c",
+              },
+              "deeppurple": {
+                "50": "#ede7f6",
+                "100": "#d1c4e9",
+                "200": "#b39ddb",
+                "300": "#9575cd",
+                "400": "#7e57c2",
+                "500": "#673ab7",
+                "600": "#5e35b1",
+                "700": "#512da8",
+                "800": "#4527a0",
+                "900": "#311b92",
+              },
+              "indigo": {
+                "50": "#e8eaf6",
+                "100": "#c5cae9",
+                "200": "#9fa8da",
+                "300": "#7986cb",
+                "400": "#5c6bc0",
+                "500": "#3f51b5",
+                "600": "#3949ab",
+                "700": "#303f9f",
+                "800": "#283593",
+                "900": "#1a237e",
+              },
+              "blue": {
+                "50": "#e3f2fd",
+                "100": "#bbdefb",
+                "200": "#90caf9",
+                "300": "#64b5f6",
+                "400": "#42a5f5",
+                "500": "#2196f3",
+                "600": "#1e88e5",
+                "700": "#1976d2",
+                "800": "#1565c0",
+                "900": "#0d47a1",
+              },
+              "lightblue": {
+                "50": "#e1f5fe",
+                "100": "#b3e5fc",
+                "200": "#81d4fa",
+                "300": "#4fc3f7",
+                "400": "#29b6f6",
+                "500": "#03a9f4",
+                "600": "#039be5",
+                "700": "#0288d1",
+                "800": "#0277bd",
+                "900": "#01579b",
+              },
+              "cyan": {
+                "50": "#e0f7fa",
+                "100": "#b2ebf2",
+                "200": "#80deea",
+                "300": "#4dd0e1",
+                "400": "#26c6da",
+                "500": "#00bcd4",
+                "600": "#00acc1",
+                "700": "#0097a7",
+                "800": "#00838f",
+                "900": "#006064",
+              },
+              "teal": {
+                "50": "#e0f2f1",
+                "100": "#b2dfdb",
+                "200": "#80cbc4",
+                "300": "#4db6ac",
+                "400": "#26a69a",
+                "500": "#009688",
+                "600": "#00897b",
+                "700": "#00796b",
+                "800": "#00695c",
+                "900": "#004d40",
+              },
+              "green": {
+                "50": "#e8f5e9",
+                "100": "#c8e6c9",
+                "200": "#a5d6a7",
+                "300": "#81c784",
+                "400": "#66bb6a",
+                "500": "#4caf50",
+                "600": "#43a047",
+                "700": "#388e3c",
+                "800": "#2e7d32",
+                "900": "#1b5e20",
+              },
+              "lightgreen": {
+                "50": "#f1f8e9",
+                "100": "#dcedc8",
+                "200": "#c5e1a5",
+                "300": "#aed581",
+                "400": "#9ccc65",
+                "500": "#8bc34a",
+                "600": "#7cb342",
+                "700": "#689f38",
+                "800": "#558b2f",
+                "900": "#33691e",
+              },
+              "lime": {
+                "50": "#f9fbe7",
+                "100": "#f0f4c3",
+                "200": "#e6ee9c",
+                "300": "#dce775",
+                "400": "#d4e157",
+                "500": "#cddc39",
+                "600": "#c0ca33",
+                "700": "#afb42b",
+                "800": "#9e9d24",
+                "900": "#827717",
+              },
+              "yellow": {
+                "50": "#fffde7",
+                "100": "#fff9c4",
+                "200": "#fff59d",
+                "300": "#fff176",
+                "400": "#ffee58",
+                "500": "#ffeb3b",
+                "600": "#fdd835",
+                "700": "#fbc02d",
+                "800": "#f9a825",
+                "900": "#f57f17",
+              },
+              "amber": {
+                "50": "#fff8e1",
+                "100": "#ffecb3",
+                "200": "#ffe082",
+                "300": "#ffd54f",
+                "400": "#ffca28",
+                "500": "#ffc107",
+                "600": "#ffb300",
+                "700": "#ffa000",
+                "800": "#ff8f00",
+                "900": "#ff6f00",
+              },
+              "orange": {
+                "50": "#fff3e0",
+                "100": "#ffe0b2",
+                "200": "#ffcc80",
+                "300": "#ffb74d",
+                "400": "#ffa726",
+                "500": "#ff9800",
+                "600": "#fb8c00",
+                "700": "#f57c00",
+                "800": "#ef6c00",
+                "900": "#e65100",
+              },
+              "deeporange": {
+                "50": "#fbe9e7",
+                "100": "#ffccbc",
+                "200": "#ffab91",
+                "300": "#ff8a65",
+                "400": "#ff7043",
+                "500": "#ff5722",
+                "600": "#f4511e",
+                "700": "#e64a19",
+                "800": "#d84315",
+                "900": "#bf360c",
+              },
+              "brown": {
+                "50": "#efebe9",
+                "100": "#d7ccc8",
+                "200": "#bcaaa4",
+                "300": "#a1887f",
+                "400": "#8d6e63",
+                "500": "#795548",
+                "600": "#6d4c41",
+                "700": "#5d4037",
+                "800": "#4e342e",
+                "900": "#3e2723"
+              },
+              "grey": {
+                "50": "#fafafa",
+                "100": "#f5f5f5",
+                "200": "#eeeeee",
+                "300": "#e0e0e0",
+                "400": "#bdbdbd",
+                "500": "#9e9e9e",
+                "600": "#757575",
+                "700": "#616161",
+                "800": "#424242",
+                "900": "#212121"
+              },
+              "bluegrey": {
+                "50": "#eceff1",
+                "100": "#cfd8dc",
+                "200": "#b0bec5",
+                "300": "#90a4ae",
+                "400": "#78909c",
+                "500": "#607d8b",
+                "600": "#546e7a",
+                "700": "#455a64",
+                "800": "#37474f",
+                "900": "#263238"
+              }
+        };
+    
+        var x = 0;
+        var y = 0;
+        var colors = [];
+    
+        Object.keys(palette).forEach(function(col) {
+            y = 0;
+            Object.keys(palette[col]).forEach(function(shade) {
+                if (! colors[y]) {
+                    colors[y] = [];
+                }
+                colors[y][x] = palette[col][shade];
+                y++;
+            });
+            x++;
+        });
+    
+        // Table container
+        var container = document.createElement('div');
+        container.className = 'jcolor';
+    
+        // Content
+        var content = document.createElement('div');
+        content.className = 'jcolor-content';
+    
+        // Table pallete
+        var table = document.createElement('table');
+        table.setAttribute('cellpadding', '7');
+        table.setAttribute('cellspacing', '0');
+    
+        for (var i = 0; i < colors.length; i++) {
+            var tr = document.createElement('tr');
+            for (var j = 0; j < colors[i].length; j++) {
+                var td = document.createElement('td');
+                td.style.backgroundColor = colors[i][j];
+                td.setAttribute('data-value', colors[i][j]);
+                td.innerHTML = '';
+                tr.appendChild(td);
+    
+                // Selected color
+                if (obj.options.value == colors[i][j]) {
+                    td.classList.add('jcolor-selected');
+                }
+    
+                // Possible values
+                obj.values[colors[i][j]] = td;
+            }
+            table.appendChild(tr);
+        }
+    
+        /**
+         * Open color pallete
+         */
+        obj.open = function() {
+            if (jSuites.color.current) {
+                if (jSuites.color.current != obj) {
+                    jSuites.color.current.close();
+                }
+            }
+    
+            if (! jSuites.color.current) {
+                // Persist element
+                jSuites.color.current = obj;
+                // Show colorpicker
+                container.classList.add('jcolor-focus');
+    
+                const rect = el.getBoundingClientRect();
+                const rectContent = content.getBoundingClientRect();
+    
+                if (obj.options.position) {
+                    content.style.position = 'fixed';
+                    if (window.innerHeight < rect.bottom + rectContent.height) {
+                        content.style.top = (rect.top - (rectContent.height + 2)) + 'px';
+                    } else {
+                        content.style.top = (rect.top + rect.height + 2) + 'px';;
+                    }
+                } else {
+                    if (window.innerHeight < rect.bottom + rectContent.height) {
+                        content.style.top = (-1 * (rectContent.height + 2)) + 'px';
+                    } else {
+                        content.style.top = (rect.height + 2) + 'px';
+                    }
+                }
+    
+                container.focus();
+            }
+        }
+    
+        /**
+         * Close color pallete
+         */
+        obj.close = function(ignoreEvents) {
+            if (jSuites.color.current) {
+                jSuites.color.current = null;
+                if (! ignoreEvents && typeof(obj.options.onclose) == 'function') {
+                    obj.options.onclose(el);
+                }
+                container.classList.remove('jcolor-focus');
+            }
+    
+            return obj.options.value;
+        }
+    
+        /**
+         * Set value
+         */
+        obj.setValue = function(color) {
+            if (color) {
+                el.value = color;
+                obj.options.value = color;
+            }
+    
+            // Remove current selecded mark
+            var selected = container.querySelector('.jcolor-selected');
+            if (selected) {
+                selected.classList.remove('jcolor-selected');
+            }
+    
+            // Mark cell as selected
+            obj.values[color].classList.add('jcolor-selected');
+    
+            // Onchange
+            if (typeof(obj.options.onchange) == 'function') {
+                obj.options.onchange(el, color);
+            }
+        }
+    
+        /**
+         * Get value
+         */
+        obj.getValue = function() {
+            return obj.options.value;
+        }
+    
+        /**
+         * If element is focus open the picker
+         */
+        el.addEventListener("focus", function(e) {
+            obj.open();
+        });
+    
+        // Select color
+        container.addEventListener("click", function(e) {
+            if (e.target.tagName == 'TD') {
+                jSuites.color.current.setValue(e.target.getAttribute('data-value'));
+                jSuites.color.current.close();
+            }
+        });
+    
+        // Possible to focus the container
+        container.setAttribute('tabindex', '900');
+    
+        if (obj.options.placeholder) {
+            el.setAttribute('placeholder', obj.options.placeholder);
+        }
+    
+        // Append to the table
+        content.appendChild(table);
+        container.appendChild(content);
+        container.onblur = function(e) {
+            if (jSuites.color.current) {
+                jSuites.color.current.close();
+            }
+        }
+    
+        // Insert picker after the element
+        el.parentNode.insertBefore(container, el);
+    
+        // Keep object available from the node
+        el.color = obj;
+    
+        return obj;
+    });
+    
+    /**
+     * Contextmenu v1.0.1
+     * Author: paul.hodel@gmail.com
+     * https://github.com/paulhodel/jtools
+     */
+    
+    jSuites.contextmenu = (function(el, options) {
+        var obj = {};
+        obj.options = {};
+    
+        // Default configuration
+        var defaults = {
+            items:null,
+        };
+    
+        // Loop through our object
+        for (var property in defaults) {
+            if (options && options.hasOwnProperty(property)) {
+                obj.options[property] = options[property];
+            } else {
+                obj.options[property] = defaults[property];
+            }
+        }
+    
+        obj.menu = document.createElement('ul');
+        obj.menu.classList.add('jcontextmenu');
+        obj.menu.setAttribute('tabindex', '900');
+    
+        /**
+         * Open contextmenu
+         */
+        obj.open = function(e, items) {
+            if (items) {
+                obj.options.items = items;
+            }
+    
+            // Reset content
+            obj.menu.innerHTML = '';
+    
+            // Append items
+            for (var i = 0; i < obj.options.items.length; i++) {
+                if (obj.options.items[i].type && obj.options.items[i].type == 'line') {
+                    var itemContainer = document.createElement('hr');
+                } else {
+                    var itemContainer = document.createElement('li');
+                    var itemText = document.createElement('a');
+                    itemText.innerHTML = obj.options.items[i].title;
+    
+                    if (obj.options.items[i].disabled) {
+                        itemContainer.className = 'jcontextmenu-disabled';
+                    } else if (obj.options.items[i].onclick) {
+                        itemContainer.onclick = obj.options.items[i].onclick;
+                    }
+                    itemContainer.appendChild(itemText);
+    
+                    if (obj.options.items[i].shortcut) {
+                        var itemShortCut = document.createElement('span');
+                        itemShortCut.innerHTML = obj.options.items[i].shortcut;
+                        itemContainer.appendChild(itemShortCut);
+                    }
+                }
+    
+                obj.menu.appendChild(itemContainer);
+            }
+    
+            if (e.target) {
+                var e = e || window.event;
+                let position = jSuites.getPosition(e);
+                obj.menu.style.top = position[1] + 'px';
+                obj.menu.style.left = position[0] + 'px';
+            } else {
+                obj.menu.style.top = (e.y + document.body.scrollTop) + 'px';
+                obj.menu.style.left = (e.x + document.body.scrollLeft) + 'px';
+            }
+    
+            obj.menu.classList.add('jcontextmenu-focus');
+            obj.menu.focus();
+        }
+    
+        /**
+         * Close menu
+         */
+        obj.close = function() {
+            obj.menu.classList.remove('jcontextmenu-focus');
+        }
+    
+        el.addEventListener("click", function(e) {
+            obj.close();
+        });
+    
+        obj.menu.addEventListener('blur', function(e) {
+            obj.close();
+        });
+    
+        el.appendChild(obj.menu);
+        el.contextmenu = obj;
+    
+        return obj;
+    });
+    
+    /**
+     * (c) 2013 jDropdown
+     * http://www.github.com/paulhodel/jdropdown
+     *
+     * @author: Paul Hodel <paul.hodel@gmail.com>
+     * @description: Custom dropdowns
+     */
+    
+    jSuites.dropdown = (function(el, options) {
+        var obj = {};
+        obj.options = {};
+        obj.items = [];
+        obj.groups = [];
+    
+        if (options) {
+            obj.options = options;
+        }
+    
+        // Global container
+        if (! jSuites.dropdown.current) {
+            jSuites.dropdown.current = null;
+        }
+    
+        // Default configuration
+        var defaults = {
+            data: [],
+            multiple: false,
+            autocomplete: false,
+            type:null,
+            width:null,
+            opened:false,
+            onchange:null,
+            onopen:null,
+            onclose:null,
+            onblur:null,
+            value:null,
+            placeholder:'',
+        };
+    
+        // Loop through our object
+        for (var property in defaults) {
+            if (options && options.hasOwnProperty(property)) {
+                obj.options[property] = options[property];
+            } else {
+                obj.options[property] = defaults[property];
+            }
+        }
+    
+        // Create dropdown
+        el.classList.add('jdropdown');
+     
+        if (obj.options.type == 'searchbar') {
+            el.classList.add('jdropdown-searchbar');
+        } else if (obj.options.type == 'list') {
+            el.classList.add('jdropdown-list');
+        } else if (obj.options.type == 'picker') {
+            el.classList.add('jdropdown-picker');
+        } else {
+            if (jSuites.getWindowWidth() < 800) {
+                el.classList.add('jdropdown-picker');
+                obj.options.type = 'picker';
+            } else {
+                if (obj.options.width) {
+                    el.style.width = obj.options.width;
+                }
+                el.classList.add('jdropdown-default');
+                obj.options.type = 'default';
+            }
+        }
+    
+        // Header container
+        var containerHeader = document.createElement('div');
+        containerHeader.className = 'jdropdown-container-header';
+    
+        // Header
+        var header = document.createElement('input');
+        header.className = 'jdropdown-header';
+        if (typeof(obj.options.onblur) == 'function') {
+            header.onblur = function() {
+                obj.options.onblur(el);
+            }
+        }
+    
+        // Container
+        var container = document.createElement('div');
+        container.className = 'jdropdown-container';
+    
+        // Dropdown content
+        var content = document.createElement('div');
+        content.className = 'jdropdown-content';
+    
+        // Close button
+        var closeButton  = document.createElement('div');
+        closeButton.className = 'jdropdown-close';
+        closeButton.innerHTML = 'Done';
+    
+        // Create backdrop
+        var backdrop  = document.createElement('div');
+        backdrop.className = 'jdropdown-backdrop';
+    
+        // Autocomplete
+        if (obj.options.autocomplete == true) {
+            el.setAttribute('data-autocomplete', true);
+    
+            // Handler
+            header.addEventListener('keyup', function(e) {
+                obj.find(header.value);
+            });
+        } else {
+            header.setAttribute('readonly', 'readonly');
+        }
+    
+        // Place holder
+        if (obj.options.placeholder) {
+            header.setAttribute('placeholder', obj.options.placeholder);
+        }
+    
+        // Append elements
+        containerHeader.appendChild(header);
+        container.appendChild(closeButton);
+        container.appendChild(content);
+        el.appendChild(containerHeader);
+        el.appendChild(container);
+        el.appendChild(backdrop);
+    
+        obj.init = function() {
+            if (obj.options.url) {
+                fetch(obj.options.url, { headers: new Headers({ 'content-type': 'text/json' }) })
+                    .then(function(data) {
+                        data.json().then(function(data) {
+                            if (data) {
+                                obj.options.data = data;
+                                obj.setData();
+                            }
+                        })
+                    });
+            } else {
+                obj.setData();
+            }
+    
+            // Values
+            obj.setValue(obj.options.value);
+    
+            if (obj.options.opened == true) {
+                obj.open();
+            }
+    
+            // Fix width - Workaround important to get the correct width
+            if (obj.options.type == 'default') {
+                setTimeout(function() {
+                    container.style.minWidth = header.outerWidth;
+                }, 0);
+            }
+        }
+    
+        obj.setUrl = function(url) {
+            obj.options.url = url;
+            fetch(obj.options.url, { headers: new Headers({ 'content-type': 'text/json' }) })
+                .then(function(data) {
+                    data.json().then(function(data) {
+                        obj.setData(data);
+                    })
+                });
+        }
+    
+        obj.setData = function(data) {
+            if (data) {
+                obj.options.data = data;
+            } else {
+                var data = obj.options.data;
+            }
+    
+            // Make sure the content container is blank
+            content.innerHTML = '';
+    
+            // Containers
+            var items = [];
+            var groups = [];
+    
+            // Foreach in the data to create all items
+            if (data.length) {
+                data.forEach(function(v, k) {
+                    // Compatibility
+                    if (typeof(v) != 'object') {
+                        var value = v;
+                        v = {}
+                        v.id = value;
+                        v.name = value;
+    
+                        // Fix array
+                        obj.options.data[k] = v;
+                    }
+    
+                    // Create item
+                    items[k] = document.createElement('div');
+                    items[k].className = 'jdropdown-item';
+                    items[k].value = v.id;
+                    items[k].text = v.name;
+    
+                    // Image
+                    if (v.image) {
+                        var image = document.createElement('img');
+                        image.className = 'jdropdown-image';
+                        image.src = v.image;
+                        if (! v.title) {
+                           image.classList.add('jdropdown-image-small');
+                        }
+                        items[k].appendChild(image);
+                    }
+    
+                    // Set content
+                    var node = document.createElement('div');
+                    node.className = 'jdropdown-description';
+                    node.innerHTML = v.name;
+                    items[k].appendChild(node);
+    
+                    // Title
+                    if (v.title) {
+                        var title = document.createElement('div');
+                        title.className = 'jdropdown-title';
+                        title.innerHTML = v.title;
+                        node.appendChild(title);
+                    }
+    
+                    // Append to the container
+                    if (v.group) {
+                        if (! groups[v.group]) {
+                            groups[v.group] = document.createElement('div');
+                            groups[v.group].className = 'jdropdown-group-items';
+                        }
+                        groups[v.group].appendChild(items[k]);
+                    } else {
+                        content.appendChild(items[k]);
+                    }
+                });
+    
+                // Append groups in case exists
+                if (Object.keys(groups).length > 0) {
+                    Object.keys(groups).forEach(function(v, k) {
+                        var group = document.createElement('div');
+                        group.className = 'jdropdown-group';
+                        group.innerHTML = '<div class="jdropdown-group-name">' + v + '<i class="jdropdown-group-arrow jdropdown-group-arrow-down"></i></div>';
+                        group.appendChild(groups[v]);
+                        obj.groups.push(group);
+                        content.appendChild(group);
+                    });
+                }
+    
+                // Add index property
+                var items = content.querySelectorAll('.jdropdown-item');
+                [...items].forEach(function(v, k) {
+                    obj.items[k] = v;
+                    v.setAttribute('data-index', k);
+                });
+            }
+    
+            // Reset value
+            obj.setValue(obj.options.value ? obj.options.value : '');
+        }
+    
+        obj.getText = function(asArray) {
+            // Result
+            var result = [];
+            // Get selected items
+            var items = el.querySelectorAll('.jdropdown-selected');
+            // Append options
+            [...items].forEach(function(v) {
+                result.push(v.text);
+            });
+    
+            if (asArray) {
+                return result
+            } else {
+                return result.join('; ');
+            }
+        }
+    
+        obj.getValue = function(asArray) {
+            // Result
+            var result = [];
+            // Get selected items
+            var items = el.querySelectorAll('.jdropdown-selected');
+            // Append options
+            [...items].forEach(function(v) {
+                result.push(v.value);
+            });
+    
+            if (asArray) {
+                return result;
+            } else {
+                return result.join(';');
+            }
+        }
+    
+        obj.setValue = function(value) {
+            // Remove values
+            var items = el.querySelectorAll('.jdropdown-selected');
+            for (var j = 0; j < items.length; j++) {
+                items[j].classList.remove('jdropdown-selected')
+            } 
+    
+            // Set values
+            if (value) {
+                if (typeof(value.forEach) == 'function') {
+                    for (var i = 0; i < obj.items.length; i++) {
+                        value.forEach(function(val) {
+                            if (obj.items[i].value == val) {
+                                obj.items[i].classList.add('jdropdown-selected');
+                            }
+                        });
+                    }
+                } else {
+                    for (var i = 0; i < obj.items.length; i++) {
+                        if (obj.items[i].value == value) {
+                            obj.items[i].classList.add('jdropdown-selected');
+                        }
+                    }
+                }
+            }
+    
+            // Update labels
+            obj.updateLabel();
+        }
+    
+        obj.selectIndex = function(index) {
+            // Focus behaviour
+            if (! obj.options.multiple) {
+                // Update selected item
+                obj.items.forEach(function(v) {
+                    v.classList.remove('jdropdown-cursor');
+                    v.classList.remove('jdropdown-selected');
+                });
+                obj.items[index].classList.add('jdropdown-selected');
+                obj.items[index].classList.add('jdropdown-cursor');
+                // Close
+                obj.close();
+            } else {
+                // Toggle option
+                if (obj.items[index].classList.contains('jdropdown-selected')) {
+                    obj.items[index].classList.remove('jdropdown-selected');
+                    obj.items[index].classList.remove('jdropdown-cursor');
+                } else {
+                    obj.items.forEach(function(v) {
+                        v.classList.remove('jdropdown-cursor');
+                    });
+                    obj.items[index].classList.add('jdropdown-selected');
+                    obj.items[index].classList.add('jdropdown-cursor');
+                }
+                // Update cursor position
+                obj.currentIndex = index;
+    
+                // Update labels for multiple dropdown
+                if (! obj.options.autocomplete) {
+                    obj.updateLabel();
+                }
+            }
+    
+            // Events
+            if (typeof(obj.options.onchange) == 'function') {
+                var oldValue = obj.getValue();
+                var newValue = obj.items[index].value;
+    
+                obj.options.onchange(el, index, oldValue, newValue);
+            }
+        }
+    
+        obj.selectItem = function(item) {
+            var index = item.getAttribute('data-index');
+            if (jSuites.dropdown.current) {
+                obj.selectIndex(item.getAttribute('data-index'));
+            } else {
+                // List
+                if (obj.options.type == 'list') {
+                    if (! obj.options.multiple) {
+                        obj.items.forEach(function(k, v) {
+                            v.classList.remove('jdropdown-cursor');
+                            v.classList.remove('jdropdown-selected');
+                        });
+                        obj.items[index].classList.add('jdropdown-selected');
+                        obj.items[index].classList.add('jdropdown-cursor');
+                    } else {
+                        // Toggle option
+                        if (obj.items[index].classList.contains('jdropdown-selected')) {
+                            obj.items[index].classList.remove('jdropdown-selected');
+                            obj.items[index].classList.remove('jdropdown-cursor');
+                        } else {
+                            obj.items.forEach(function(v) {
+                                v.classList.remove('jdropdown-cursor');
+                            });
+                            obj.items[index].classList.add('jdropdown-selected');
+                            obj.items[index].classList.add('jdropdown-cursor');
+                        }
+                        // Update cursor position
+                        obj.currentIndex = index;
+                    }
+                }
+            }
+        }
+    
+        obj.find = function(str) {
+            // Append options
+            for (var i = 0; i < obj.items.length; i++) {
+                if (str == null || obj.items[i].classList.contains('jdropdown-selected') || obj.items[i].innerHTML.toLowerCase().indexOf(str.toLowerCase()) != -1) {
+                    obj.items[i].style.display = '';
+                } else {
+                    obj.items[i].style.display = 'none';
+                }
+            };
+    
+            var numVisibleItems = function(items) {
+                var visible = 0;
+                for (var j = 0; j < items.length; j++) {
+                    if (items[j].style.display != 'none') {
+                        visible++;
+                    }
+                }
+                return visible;
+            }
+    
+            // Hide groups
+            for (var i = 0; i < obj.groups.length; i++) {
+                if (numVisibleItems(obj.groups[i].querySelectorAll('.jdropdown-item'))) {
+                    obj.groups[i].children[0].style.display = '';
+                } else {
+                    obj.groups[i].children[0].style.display = 'none';
+                }
+            }
+        }
+    
+        obj.updateLabel = function() {
+            // Update label
+            header.value = obj.getText();
+        }
+    
+        obj.open = function() {
+            if (jSuites.dropdown.current != el) {
+                if (jSuites.dropdown.current) {
+                    jSuites.dropdown.current.dropdown.close();
+                }
+                jSuites.dropdown.current = el;
+            }
+    
+            // Focus
+            if (! el.classList.contains('jdropdown-focus')) {
+                // Add focus
+                el.classList.add('jdropdown-focus');
+    
+                // Animation
+                if (jSuites.getWindowWidth() < 800) {
+                    if (obj.options.type == null || obj.options.type == 'picker') {
+                        container.classList.add('slide-bottom-in');
+                    }
+                }
+    
+                // Filter
+                if (obj.options.autocomplete == true) {
+                    // Redo search
+                    obj.find();
+                    // Clear search field
+                    header.value = '';
+                    header.focus();
+                }
+    
+                // Selected
+                var selected = el.querySelector('.jdropdown-selected');
+                // Update cursor position
+                if (selected) {
+                    obj.updateCursor(selected.getAttribute('data-index'));
+                }
+                // Container Size
+                if (! obj.options.type || obj.options.type == 'default') {
+                    const rect = el.getBoundingClientRect();
+                    const rectContainer = container.getBoundingClientRect();
+                    container.style.minWidth = rect.width + 'px';
+                    container.style.maxWidth = '100%';
+    
+                    if (obj.options.position) {
+                        container.style.position = 'fixed';
+                        if (window.innerHeight < rect.bottom + rectContainer.height) {
+                            container.style.top = (rect.top - rectContainer.height - 2) + 'px';
+                        } else {
+                            container.style.top = (rect.top + rect.height + 1) + 'px';
+                        }
+                    } else {
+                        if (window.innerHeight < rect.bottom + rectContainer.height) {
+                            container.style.top = (-1 * (rectContainer.height)) + 'px';
+                        } else {
+                            container.style.top = '';
+                        }
+                    }
+                }
+            }
+    
+            // Events
+            if (typeof(obj.options.onopen) == 'function') {
+                obj.options.onopen(el);
+            }
+        }
+    
+        obj.close = function(ignoreEvents) {
+            if (jSuites.dropdown.current) {
+                // Remove controller
+                jSuites.dropdown.current = null
+                // Remove cursor
+                var cursor = el.querySelector('.jdropdown-cursor');
+                if (cursor) {
+                    cursor.classList.remove('jdropdown-cursor');
+                }
+                // Update labels
+                obj.updateLabel();
+                // Events
+                if (! ignoreEvents && typeof(obj.options.onclose) == 'function') {
+                    obj.options.onclose(el);
+                }
+                // Reset
+                obj.currentIndex = null;
+                // Blur
+                header.blur();
+                // Remove focus
+                el.classList.remove('jdropdown-focus');
+            }
+    
+            return obj.getValue();
+        }
+    
+        obj.reset = function() {
+            // Remove current cursor
+            var cursor = el.querySelector('.jdropdown-cursor');
+            if (cursor) {
+                cursor.classList.remove('jdropdown-cursor');
+            }
+            // Unselected all
+            obj.items.forEach(function(v) {
+                v.classList.remove('jdropdown-selected');
+            });
+            // Update labels
+            obj.updateLabel();
+        }
+    
+        obj.first = function() {
+            var newIndex = null;
+            for (var i = obj.currentIndex - 1; i >= 0; i--) {
+                if (obj.items[i].style.display != 'none') {
+                    newIndex = i;
+                }
+            }
+    
+            if (newIndex == null) {
+                return false;
+            }
+    
+            obj.updateCursor(newIndex);
+        }
+    
+        obj.last = function() {
+            var newIndex = null;
+            for (var i = obj.currentIndex + 1; i < obj.options.data.length; i++) {
+                if (obj.items[i].style.display != 'none') {
+                    newIndex = i;
+                }
+            }
+    
+            if (newIndex == null) {
+                return false;
+            }
+    
+            obj.updateCursor(newIndex);
+        }
+    
+        obj.next = function() {
+            var newIndex = null;
+            for (var i = obj.currentIndex + 1; i < obj.options.data.length; i++) {
+                if (obj.items[i].style.display != 'none') {
+                    newIndex = i;
+                    break;
+                }
+            }
+    
+            if (newIndex == null) {
+                return false;
+            }
+    
+            obj.updateCursor(newIndex);
+        }
+    
+        obj.prev = function() {
+            var newIndex = null;
+            for (var i = obj.currentIndex - 1; i >= 0; i--) {
+                if (obj.items[i].style.display != 'none') {
+                    newIndex = i;
+                    break;
+                }
+            }
+    
+            if (newIndex == null) {
+                return false;
+            }
+    
+            obj.updateCursor(newIndex);
+        }
+    
+        obj.updateCursor = function(index) {
+            // Update cursor
+            if (obj.items[obj.currentIndex]) {
+                obj.items[obj.currentIndex].classList.remove('jdropdown-cursor');
+            }
+            if (obj.items && obj.items[index]) {
+                obj.items[index].classList.add('jdropdown-cursor');
+    
+                // Update position
+                obj.currentIndex = parseInt(index);
+        
+                // Update scroll
+                var container = content.scrollTop;
+                var element = obj.items[obj.currentIndex];
+                content.scrollTop = element.offsetTop - element.scrollTop + element.clientTop - 95;
+            }
+        }
+    
+        if (! jSuites.dropdown.hasEvents) {
+            document.addEventListener('click', jSuites.dropdown.onclick);
+            document.addEventListener('keydown', jSuites.dropdown.onkeydown);
+    
+            jSuites.dropdown.hasEvents = true;
+        }
+    
+        // Start dropdown
+        obj.init();
+    
+        // Keep object available from the node
+        el.dropdown = obj;
+    
+        return obj;
+    });
+    
+    jSuites.dropdown.onclick = function(e) {
+        var element = jSuites.getElement(e.target, 'jdropdown');
+        if (element) {
+            var dropdown = element.dropdown;
+            if (e.target.classList.contains('jdropdown-header')) {
+                if (element.classList.contains('jdropdown-focus') && element.classList.contains('jdropdown-default')) {
+                    dropdown.close();
+                } else {
+                    dropdown.open();
+                }
+            } else if (e.target.classList.contains('jdropdown-group-name')) {
+                var items = e.target.nextSibling.children;
+                if (e.target.nextSibling.style.display != 'none') {
+                    for (var i = 0; i < items.length; i++) {
+                        if (items[i].style.display != 'none') {
+                            dropdown.selectItem(items[i]);
+                        }
+                    }
+                }
+            } else if (e.target.classList.contains('jdropdown-group-arrow')) {
+                if (e.target.classList.contains('jdropdown-group-arrow-down')) {
+                    e.target.classList.remove('jdropdown-group-arrow-down');
+                    e.target.classList.add('jdropdown-group-arrow-up');
+                    e.target.parentNode.nextSibling.style.display = 'none';
+                } else {
+                    e.target.classList.remove('jdropdown-group-arrow-up');
+                    e.target.classList.add('jdropdown-group-arrow-down');
+                    e.target.parentNode.nextSibling.style.display = '';
+                }
+            } else if (e.target.classList.contains('jdropdown-item')) {
+                dropdown.selectItem(e.target);
+            } else if (e.target.classList.contains('jdropdown-image')) {
+                dropdown.selectIndex(e.target.parentNode.getAttribute('data-index'));
+            } else if (e.target.classList.contains('jdropdown-description')) {
+                dropdown.selectIndex(e.target.parentNode.getAttribute('data-index'));
+            } else if (e.target.classList.contains('jdropdown-title')) {
+                dropdown.selectIndex(e.target.parentNode.parentNode.getAttribute('data-index'));
+            } else if (e.target.classList.contains('jdropdown-close') || e.target.classList.contains('jdropdown-backdrop')) {
+                // Close
+                dropdown.close();
+            }
+    
+            e.stopPropagation();
+            e.preventDefault();
+        } else {
+            if (jSuites.dropdown.current) {
+                jSuites.dropdown.current.dropdown.close();
+            }
+        }
+    }
+    
+    
+    // Keydown controls
+    jSuites.dropdown.onkeydown = function(e) {
+        if (jSuites.dropdown.current) {
+            // Element
+            var element = jSuites.dropdown.current.dropdown;
+            // Index
+            var index = element.currentIndex;
+    
+            if (e.shiftKey) {
+    
+            } else {
+                if (e.which == 13 || e.which == 35 || e.which == 36 || e.which == 38 || e.which == 40) {
+                    // Move cursor
+                    if (e.which == 13) {
+                        element.selectIndex(index)
+                    } else if (e.which == 38) {
+                        if (index == null) {
+                            element.updateCursor(0);
+                        } else if (index > 0) {
+                            element.prev();
+                        }
+                    } else if (e.which == 40) {
+                        if (index == null) {
+                            element.updateCursor(0);
+                        } else if (index + 1 < element.options.data.length) {
+                            element.next();
+                        }
+                    } else if (e.which == 36) {
+                        element.first();
+                    } else if (e.which == 35) {
+                        element.last();
+                    }
+    
+                    e.stopPropagation();
+                    e.preventDefault();
+                }
+            }
+        }
+    }
+    
+    jSuites.image = (function(el, options) {
+        var obj = {};
+        obj.options = {};
+    
+        // Default configuration
+        var defaults = {
+            minWidth:false,
+            onchange:null,
+            singleFile:true,
+            parser:'',
+            text:{
+                extensionNotAllowed:'The extension is not allowed',
+                imageTooSmall:'The resolution is too low, try a image with a better resolution. width > 800px',
+            }
+        };
+    
+        // Loop through our object
+        for (var property in defaults) {
+            if (options && options.hasOwnProperty(property)) {
+                obj.options[property] = options[property];
+            } else {
+                obj.options[property] = defaults[property];
+            }
+        }
+    
+        // Upload icon
+        el.classList.add('jupload');
+    
+        // Add image
+        obj.addImage = function(file) {
+            var img = document.createElement('img');
+            img.setAttribute('data-lastmodified', file.size);
+            img.setAttribute('data-name', file.name);
+            img.setAttribute('data-size', file.size);
+            img.setAttribute('data-thumbs', file.thumbs);
+            img.setAttribute('data-cover', file.cover ? 1 : 0);
+            img.setAttribute('src', file.file);
+            img.className = 'jfile';
+            img.style.width = '100%';
+    
+            return img;
+        }
+    
+        // Add image
+        obj.addImages = function(files) {
+            if (obj.options.singleFile == true) {
+                el.innerHTML = '';
+            }
+    
+            for (var i = 0; i < files.length; i++) {
+                el.appendChild(obj.addImage(files[i]));
+            }
+        }
+    
+        obj.addFromFile = function(file) {
+            if (obj.options.singleFile == true) {
+                el.innerHTML = '';
+            }
+    
+            var type = file.type.split('/');
+            if (type[0] == 'image') {
+                var image = new FileReader();
+                image.addEventListener("load", function (v) {
+    
+                    var img = document.createElement('img');
+                    img.setAttribute('data-lastModified', file.lastModified);
+                    img.setAttribute('data-name', file.name);
+                    img.setAttribute('data-size', file.size);
+                    img.setAttribute('src', v.srcElement.result);
+                    el.appendChild(img);
+    
+                    setTimeout(function() {
+                        if (obj.options.minWidth && (parseInt(img.width) < parseInt(obj.options.minWidth))) {
+                            img.remove();
+                            alert(obj.options.text.imageTooSmall);
+                        } else {
+                            if (typeof(obj.options.onchange) == 'function') {
+                                obj.options.onchange(img);
+                            }
+                        }
+                    }, 0);
+                }, false);
+    
+                image.readAsDataURL(file);
+            } else {
+                alert(text.extentionNotAllowed);
+            }
+        }
+    
+        var attachmentInput = document.createElement('input');
+        attachmentInput.type = 'file';
+        attachmentInput.setAttribute('accept', 'image/*');
+        attachmentInput.onchange = function() {
+            for (var i = 0; i < this.files.length; i++) {
+                obj.addFromFile(this.files[i]);
+            }
+        }
+    
+        el.addEventListener("dblclick", function(e) {
+            var evt = new MouseEvent('click', {
+                bubbles: true,
+                cancelable: true,
+                view: window
+            });
+    
+            attachmentInput.dispatchEvent(evt);
+        });
+    
+        el.addEventListener('dragenter', function(e) {
+            el.style.border = '1px dashed #000';
+        });
+    
+        el.addEventListener('dragleave', function(e) {
+            el.style.border = '1px solid #eee';
+        });
+    
+        el.addEventListener('dragstop', function(e) {
+            el.style.border = '1px solid #eee';
+        });
+    
+        el.addEventListener('dragover', function(e) {
+            e.preventDefault();
+        });
+    
+        el.addEventListener('drop', function(e) {
+            e.preventDefault();  
+            e.stopPropagation();
+    
+            var data = e.dataTransfer.getData('text/html');
+            if (! data) {
+                for (var i = 0; i < e.dataTransfer.files.length; i++) {
+                    obj.addFromFile(e.dataTransfer.files[i]);
+                }
+            } else {
+                if (obj.options.singleFile == true) {
+                    el.innerHTML = '';
+                }
+    
+                var template = document.createElement('template');
+                template.innerHTML = data.trim();
+                data = template.content.firstChild;
+    
+                var img = document.createElement('img');
+                img.setAttribute('data-lastModified', '');
+                img.setAttribute('data-name', '');
+                img.setAttribute('data-size', '');
+                el.appendChild(img);
+    
+                if (data.src.substr(0,4) == 'data') {
+                    img.setAttribute('src', data.src);
+                    img.setAttribute('data-size', data.src.length);
+    
+                    if (typeof(obj.options.onchange) == 'function') {
+                        obj.options.onchange(img);
+                    }
+                } else {
+                    var name = data.src.split('/');
+                    name = name[name.length-1];
+                    img.setAttribute('data-name', name);
+    
+                    const toDataURL = url => fetch(url)
+                        .then(response => response.blob())
+                        .then(blob => new Promise((resolve, reject) => {
+                              const reader = new FileReader();
+                              reader.onloadend = () => resolve(reader.result);
+                              reader.onerror = reject;
+                              reader.readAsDataURL(blob);
+                        }));
+    
+                    toDataURL(obj.options.parser + data.src).then(dataUrl => {
+                        img.setAttribute('src', dataUrl);
+                        img.setAttribute('data-size', dataUrl.length);
+    
+                        setTimeout(function() {
+                            if (parseInt(img.width) < 800) {
+                                img.remove();
+                                alert(obj.options.imageTooSmall);
+                            } else {
+                                if (typeof(obj.options.onchange) == 'function') {
+                                    obj.options.onchange(img);
+                                }
+                            }
+                        }, 0);
+                    });
+                }
+            }
+    
+            el.style.border = '1px solid #eee';
+    
+            return false;
+        });
+    
+        el.image = obj;
+    
+        return obj;
+    });
+    
+    /**
+     * (c) jLoading
+     * https://github.com/paulhodel/jtools
+     *
+     * @author: Paul Hodel <paul.hodel@gmail.com>
+     * @description: Page loading spin
+     */
+    
+    jSuites.loading = (function() {
+        var obj = {};
+    
+        var loading = document.createElement('div');
+        loading.className = 'jloading';
+    
+        obj.show = function() {
+            document.body.appendChild(loading);
+        };
+    
+        obj.hide = function() {
+            loading.remove();
+        };
+    
+        return obj;
+    })();
+    
+    /**
+     * (c) jTools Input Mask
+     * https://github.com/paulhodel/jtools
+     *
+     * @author: Paul Hodel <paul.hodel@gmail.com>
+     * @description: Input mask
+     */
+    
+    jSuites.mask = (function() {
+        var obj = {};
+        var index = 0;
+        var values = []
+        var pieces = [];
+    
+        obj.run = function(value, mask, decimal) {
+            if (value && mask) {
+                if (! decimal) {
+                    decimal = '.';
+                }
+                if (value == Number(value)) {
+                    var number = (''+value).split('.');
+                    var value = number[0];
+                    var valueDecimal = number[1];
+                } else {
+                    value = '' + value;
+                }
+                index = 0;
+                values = [];
+                // Create mask token
+                obj.prepare(mask);
+                // Current value
+                var currentValue = value;
+                if (currentValue) {
+                    // Checking current value
+                    for (var i = 0; i < currentValue.length; i++) {
+                        if (currentValue[i] != null) {
+                            obj.process(currentValue[i]);
+                        }
+                    }
+                }
+                if (valueDecimal) {
+                    obj.process(decimal);
+                    var currentValue = valueDecimal;
+                    if (currentValue) {
+                        // Checking current value
+                        for (var i = 0; i < currentValue.length; i++) {
+                            if (currentValue[i] != null) {
+                                obj.process(currentValue[i]);
+                            }
+                        }
+                    }
+                }
+                // Formatted value
+                return values.join('');
+            } else {
+                return '';
+            }
+        }
+    
+        obj.apply = function(e) {
+            var mask = e.target.getAttribute('data-mask');
+            if (mask && e.keyCode > 46) {
+                index = 0;
+                values = [];
+                // Create mask token
+                obj.prepare(mask);
+                // Current value
+                var currentValue = e.target.value;
+                if (currentValue) {
+                    // Checking current value
+                    for (var i = 0; i < currentValue.length; i++) {
+                        if (currentValue[i] != null) {
+                            obj.process(currentValue[i]);
+                        }
+                    }
+                }
+                // New input
+                obj.process(obj.fromKeyCode(e));
+                // Update value to the element
+                e.target.value = values.join('');
+                if (pieces.length == values.length && pieces[pieces.length-1].length == values[values.length-1].length) {
+                    e.target.setAttribute('data-completed', 'true');
+                } else {
+                    e.target.setAttribute('data-completed', 'false');
+                }
+                // Prevent default
+                e.preventDefault();
+            }
+        }
+    
+        /**
+         * Process inputs and save to values
+         */
+        obj.process = function(input) {
+            do {
+                if (pieces[index] == 'mm') {
+                    if (values[index] == null || values[index] == '') {
+                        if (parseInt(input) > 1 && parseInt(input) < 10) {
+                            values[index] = '0' + input;
+                            index++;
+                            return true;
+                        } else if (parseInt(input) < 10) {
+                            values[index] = input;
+                            return true;
+                        } else {
+                            return false;
+                        }
+                    } else {
+                        if (values[index] == 1 && values[index] < 2 && parseInt(input) < 3) {
+                            values[index] += input;
+                            index++;
+                            return true;
+                        } else if (values[index] == 0 && values[index] < 10) {
+                            values[index] += input;
+                            index++;
+                            return true;
+                        } else {
+                            return false
+                        }
+                    }
+                } else if (pieces[index] == 'dd') {
+                    if (values[index] == null || values[index] == '') {
+                        if (parseInt(input) > 3 && parseInt(input) < 10) {
+                            values[index] = '0' + input;
+                            index++;
+                            return true;
+                        } else if (parseInt(input) < 10) {
+                            values[index] = input;
+                            return true;
+                        } else {
+                            return false;
+                        }
+                    } else {
+                        if (values[index] == 3 && parseInt(input) < 2) {
+                            values[index] += input;
+                            index++;
+                            return true;
+                        } else if (values[index] < 3 && parseInt(input) < 10) {
+                            values[index] += input;
+                            index++;
+                            return true;
+                        } else {
+                            return false
+                        }
+                    }
+                } else if (pieces[index] == 'hh24') {
+                    if (values[index] == null || values[index] == '') {
+                        if (parseInt(input) > 2 && parseInt(input) < 10) {
+                            values[index] = '0' + input;
+                            index++;
+                            return true;
+                        } else if (parseInt(input) < 10) {
+                            values[index] = input;
+                            return true;
+                        } else {
+                            return false;
+                        }
+                    } else {
+                        if (values[index] == 2 && parseInt(input) < 4) {
+                            values[index] += input;
+                            index++;
+                            return true;
+                        } else if (values[index] < 2 && parseInt(input) < 10) {
+                            values[index] += input;
+                            index++;
+                            return true;
+                        } else {
+                            return false
+                        }
+                    }
+                } else if (pieces[index] == 'hh') {
+                    if (values[index] == null || values[index] == '') {
+                        if (parseInt(input) > 1 && parseInt(input) < 10) {
+                            values[index] = '0' + input;
+                            index++;
+                            return true;
+                        } else if (parseInt(input) < 10) {
+                            values[index] = input;
+                            return true;
+                        } else {
+                            return false;
+                        }
+                    } else {
+                        if (values[index] == 1 && parseInt(input) < 3) {
+                            values[index] += input;
+                            index++;
+                            return true;
+                        } else if (values[index] < 1 && parseInt(input) < 10) {
+                            values[index] += input;
+                            index++;
+                            return true;
+                        } else {
+                            return false
+                        }
+                    }
+                } else if (pieces[index] == 'mi' || pieces[index] == 'ss') {
+                    if (values[index] == null || values[index] == '') {
+                        if (parseInt(input) > 5 && parseInt(input) < 10) {
+                            values[index] = '0' + input;
+                            index++;
+                            return true;
+                        } else if (parseInt(input) < 10) {
+                            values[index] = input;
+                            return true;
+                        } else {
+                            return false;
+                        }
+                    } else {
+                        if (parseInt(input) < 10) {
+                            values[index] += input;
+                            index++;
+                            return true;
+                         } else {
+                            return false
+                        }
+                    }
+                } else if (pieces[index] == 'yy' || pieces[index] == 'yyyy') {
+                    if (parseInt(input) < 10) {
+                        if (values[index] == null || values[index] == '') {
+                            values[index] = input;
+                        } else {
+                            values[index] += input;
+                        }
+                        
+                        if (values[index].length == pieces[index].length) {
+                            index++;
+                        }
+                        return true;
+                    } else {
+                        return false;
+                    }
+                } else if (pieces[index] == '#' || pieces[index] == '#.##' || pieces[index] == '#,##') {
+                    if (input.match(/[0-9]/g)) {
+                        if (pieces[index] == '#.##') {
+                            var separator = '.';
+                        } else if (pieces[index] == '#,##') {
+                            var separator = ',';
+                        } else {
+                            var separator = '';
+                        }
+                        if (values[index] == null || values[index] == '') {
+                            values[index] = input;
+                        } else {
+                            values[index] += input;
+                            if (separator) {
+                                values[index] = values[index].match(/[0-9]/g).join('');
+                                var t = [];
+                                var s = 0;
+                                for (var j = values[index].length - 1; j >= 0 ; j--) {
+                                    t.push(values[index][j]);
+                                    s++;
+                                    if (! (s % 3)) {
+                                        t.push(separator);
+                                    }
+                                }
+                                t = t.reverse();
+                                values[index] = t.join('');
+                                if (values[index].substr(0,1) == separator) {
+                                    values[index] = values[index].substr(1);
+                                } 
+                            }
+                        }
+                        return true;
+                    } else {
+                        if (pieces[index] == '#.##' && input == '.') {
+                            // Do nothing
+                        } else if (pieces[index] == '#,##' && input == ',') {
+                            // Do nothing
+                        } else {
+                            if (values[index]) {
+                                index++;
+                                if (pieces[index]) {
+                                    if (pieces[index] == input) {
+                                        values[index] = input;
+                                        return true;
+                                    } else {
+                                        if (pieces[index] == '0' && pieces[index+1] == input) {
+                                            index++;
+                                            values[index] = input;
+                                            return true;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+    
+                        return false;
+                    }
+                } else if (pieces[index] == '0') {
+                    if (input.match(/[0-9]/g)) {
+                        values[index] = input;
+                        index++;
+                        return true;
+                    } else {
+                        return false;
+                    }
+                } else if (pieces[index] == 'a') {
+                    if (input.match(/[a-zA-Z]/g)) {
+                        values[index] = input;
+                        index++;
+                        return true;
+                    } else {
+                        return false;
+                    }
+                } else {
+                    if (pieces[index] != null) {
+                        if (pieces[index] == '\\a') {
+                            var v = 'a';
+                        } else if (pieces[index] == '\\0') {
+                            var v = '0';
+                        } else {
+                            var v = pieces[index];
+                        }
+                        values[index] = v;
+                        if (input == v) {
+                            index++;
+                            return true;
+                        }
+                    }
+                }
+    
+                index++;
+            } while (pieces[index]);
+        }
+    
+        /**
+         * Create tokens for the mask
+         */
+        obj.prepare = function(mask) {
+            pieces = [];
+            for (var i = 0; i < mask.length; i++) {
+                if (mask[i].match(/[0-9]|[a-z]|\\/g)) {
+                    if (mask[i] == 'y' && mask[i+1] == 'y' && mask[i+2] == 'y' && mask[i+3] == 'y') {
+                        pieces.push('yyyy');
+                        i += 3;
+                    } else if (mask[i] == 'y' && mask[i+1] == 'y') {
+                        pieces.push('yy');
+                        i++;
+                    } else if (mask[i] == 'm' && mask[i+1] == 'm' && mask[i+2] == 'm' && mask[i+3] == 'm') {
+                        pieces.push('mmmm');
+                        i += 3;
+                    } else if (mask[i] == 'm' && mask[i+1] == 'm' && mask[i+2] == 'm') {
+                        pieces.push('mmm');
+                        i += 2;
+                    } else if (mask[i] == 'm' && mask[i+1] == 'm') {
+                        pieces.push('mm');
+                        i++;
+                    } else if (mask[i] == 'd' && mask[i+1] == 'd') {
+                        pieces.push('dd');
+                        i++;
+                    } else if (mask[i] == 'h' && mask[i+1] == 'h' && mask[i] == '2' && mask[i+1] == '4') {
+                        pieces.push('hh24');
+                        i += 3;
+                    } else if (mask[i] == 'h' && mask[i+1] == 'h') {
+                        pieces.push('hh');
+                        i++;
+                    } else if (mask[i] == 'm' && mask[i+1] == 'i') {
+                        pieces.push('mi');
+                        i++;
+                    } else if (mask[i] == 's' && mask[i+1] == 's') {
+                        pieces.push('ss');
+                        i++;
+                    } else if (mask[i] == 'a' && mask[i+1] == 'm') {
+                        pieces.push('am');
+                        i++;
+                    } else if (mask[i] == 'p' && mask[i+1] == 'm') {
+                        pieces.push('pm');
+                        i++;
+                    } else if (mask[i] == '\\' && mask[i+1] == '0') {
+                        pieces.push('\\0');
+                        i++;
+                    } else if (mask[i] == '\\' && mask[i+1] == 'a') {
+                        pieces.push('\\a');
+                        i++;
+                    } else {
+                        pieces.push(mask[i]);
+                    }
+                } else {
+                    if (mask[i] == '#' && mask[i+1] == '.' && mask[i+2] == '#' && mask[i+3] == '#') {
+                        pieces.push('#.##');
+                        i += 3;
+                    } else if (mask[i] == '#' && mask[i+1] == ',' && mask[i+2] == '#' && mask[i+3] == '#') {
+                        pieces.push('#,##');
+                        i += 3;
+                    } else {
+                        pieces.push(mask[i]);
+                    }
+                }
+            }
+        }
+    
+        /** 
+         * Thanks for the collaboration
+         */
+        obj.fromKeyCode = function(e) {
+            var _to_ascii = {
+                '188': '44',
+                '109': '45',
+                '190': '46',
+                '191': '47',
+                '192': '96',
+                '220': '92',
+                '222': '39',
+                '221': '93',
+                '219': '91',
+                '173': '45',
+                '187': '61', //IE Key codes
+                '186': '59', //IE Key codes
+                '189': '45'  //IE Key codes
+            }
+    
+            var shiftUps = {
+                "96": "~",
+                "49": "!",
+                "50": "@",
+                "51": "#",
+                "52": "$",
+                "53": "%",
+                "54": "^",
+                "55": "&",
+                "56": "*",
+                "57": "(",
+                "48": ")",
+                "45": "_",
+                "61": "+",
+                "91": "{",
+                "93": "}",
+                "92": "|",
+                "59": ":",
+                "39": "\"",
+                "44": "<",
+                "46": ">",
+                "47": "?"
+            };
+    
+            var c = e.which;
+    
+            if (_to_ascii.hasOwnProperty(c)) {
+                c = _to_ascii[c];
+            }
+    
+            if (!e.shiftKey && (c >= 65 && c <= 90)) {
+                c = String.fromCharCode(c + 32);
+            } else if (e.shiftKey && shiftUps.hasOwnProperty(c)) {
+                c = shiftUps[c];
+            } else if (96 <= c && c <= 105) {
+                c = String.fromCharCode(c - 48);
+            } else {
+                c = String.fromCharCode(c);
+            }
+    
+            return c;
+        }
+    
+        return obj;
+    })();
+    
+    /**
+     * (c) jSuites modal
+     * https://github.com/paulhodel/jsuites
+     *
+     * @author: Paul Hodel <paul.hodel@gmail.com>
+     * @description: Modal
+     */
+    
+    jSuites.modal = (function(el, options) {
+        var obj = {};
+        obj.options = {};
+    
+        // Default configuration
+        var defaults = {
+            // Events
+            onopen:null,
+            onclose:null,
+            closed:false,
+            width:null,
+            height:null,
+            title:null,
+        };
+    
+        // Loop through our object
+        for (var property in defaults) {
+            if (options && options.hasOwnProperty(property)) {
+                obj.options[property] = options[property];
+            } else {
+                obj.options[property] = defaults[property];
+            }
+        }
+    
+        el.classList.add('jmodal');
+    
+        if (obj.options.title) {
+            el.setAttribute('title', obj.options.title);
+        }
+        if (obj.options.width) {
+            el.style.width = obj.options.width;
+        }
+        if (obj.options.height) {
+            el.style.height = obj.options.height;
+        }
+    
+        var container = document.createElement('div');
+        for (var i = 0; i < el.children.length; i++) {
+            container.appendChild(el.children[i]);
+        }
+        el.appendChild(container);
+    
+        // Title
+        if (! el.getAttribute('title')) {
+            el.classList.add('no-title');
+        }
+    
+        if (! obj.options.closed) {
+            el.style.display = 'block';
+        }
+    
+        obj.open = function() {
+            el.style.display = 'block';
+    
+            if (typeof(obj.options.onopen) == 'function') {
+                obj.options.onopen(el);
+            }
+            // Backdrop
+            document.body.appendChild(jSuites.backdrop);
+    
+            // Current
+            jSuites.modal.current = el;
+        }
+    
+        obj.close = function() {
+            el.style.display = 'none';
+    
+            if (typeof(obj.options.onclose) == 'function') {
+                obj.options.onclose(el);
+            }
+            // Backdrop
+            jSuites.backdrop.remove();
+    
+            // Current
+            jSuites.modal.current = null;
+        }
+    
+        if (! jSuites.modal.hasEvents) {
+            jSuites.modal.current = el;
+    
+            document.addEventListener('mousedown', jSuites.modal.mouseDownControls);
+            document.addEventListener('mousemove', jSuites.modal.mouseMoveControls);
+            document.addEventListener('mouseup', jSuites.modal.mouseUpControls);
+    
+            jSuites.modal.hasEvents = true;
+        }
+    
+        // Keep object available from the node
+        el.modal = obj;
+    
+        return obj;
+    });
+    
+    jSuites.modal.current = null;
+    jSuites.modal.position = null;
+    
+    jSuites.modal.mouseUpControls = function(e) {
+        if (jSuites.modal.current) {
+            jSuites.modal.current.style.cursor = 'auto';
+        }
+        jSuites.modal.position = null;
+    }
+    
+    jSuites.modal.mouseMoveControls = function(e) {
+        if (jSuites.modal.current && jSuites.modal.position) {
+            if (e.which == 1 || e.which == 3) {
+                var position = jSuites.modal.position;
+                jSuites.modal.current.style.top = (position[1] + (e.clientY - position[3]) + (position[5] / 2)) + 'px';
+                jSuites.modal.current.style.left = (position[0] + (e.clientX - position[2]) + (position[4] / 2)) + 'px';
+                jSuites.modal.current.style.cursor = 'move';
+            } else {
+                jSuites.modal.current.style.cursor = 'auto';
+            }
+        }
+    }
+    
+    jSuites.modal.mouseDownControls = function(e) {
+        jSuites.modal.position = [];
+    
+        if (e.target.classList.contains('jmodal')) {
+            setTimeout(function() {
+    
+                var rect = e.target.getBoundingClientRect();
+                if (rect.width - (e.clientX - rect.left) < 50 && e.clientY - rect.top < 50) {
+                    e.target.modal.close();
+                } else {
+                    if (e.target.getAttribute('title') && e.clientY - rect.top < 50) {
+                        if (document.selection) {
+                            document.selection.empty();
+                        } else if ( window.getSelection ) {
+                            window.getSelection().removeAllRanges();
+                        }
+    
+                        jSuites.modal.position = [
+                            rect.left,
+                            rect.top,
+                            e.clientX,
+                            e.clientY,
+                            rect.width,
+                            rect.height,
+                        ];
+                    }
+                }
+            }, 100);
+        }
+    }
+
+    return jSuites;
+
+})));
 
 /***/ }),
 
@@ -55532,7 +71233,40 @@ var render = function() {
   var _h = _vm.$createElement
   var _c = _vm._self._c || _h
   return _c("div", { staticClass: "component" }, [
-    _c("div", { staticClass: "container col-md-10" }, [
+    _c("div", { staticClass: "container col-md-8" }, [
+      _vm.error.length > 0
+        ? _c(
+            "div",
+            { staticClass: "alert alert-warning alert-dismissible" },
+            [
+              _c(
+                "button",
+                {
+                  staticClass: "close",
+                  attrs: {
+                    type: "button",
+                    "data-dismiss": "alert",
+                    "aria-hidden": "true"
+                  },
+                  on: {
+                    click: function($event) {
+                      _vm.error = []
+                    }
+                  }
+                },
+                [_vm._v("×")]
+              ),
+              _vm._v(" "),
+              _vm._m(0),
+              _vm._v(" "),
+              _vm._l(_vm.error, function(e, index) {
+                return _c("p", { key: index }, [_vm._v(_vm._s(e))])
+              })
+            ],
+            2
+          )
+        : _vm._e(),
+      _vm._v(" "),
       _c("div", { staticClass: "card collapse show" }, [
         _c("div", { staticClass: "card-header" }, [
           _c("div", { staticClass: "row" }, [
@@ -55540,6 +71274,153 @@ var render = function() {
               _vm._v("Carga de equipos")
             ]),
             _vm._v(" "),
+            _c("div", { staticClass: "d-none d-sm-inline-flex mr-2" }, [
+              _c("input", {
+                directives: [
+                  {
+                    name: "model",
+                    rawName: "v-model",
+                    value: _vm.equipos.fecha,
+                    expression: "equipos.fecha"
+                  }
+                ],
+                staticClass: "form-control col-6 mr-2",
+                attrs: { type: "date" },
+                domProps: { value: _vm.equipos.fecha },
+                on: {
+                  input: function($event) {
+                    if ($event.target.composing) {
+                      return
+                    }
+                    _vm.$set(_vm.equipos, "fecha", $event.target.value)
+                  }
+                }
+              }),
+              _vm._v(" "),
+              _vm.$attrs.cur_cont[0] !== undefined
+                ? _c(
+                    "select",
+                    {
+                      directives: [
+                        {
+                          name: "model",
+                          rawName: "v-model",
+                          value: _vm.equipos.contratista,
+                          expression: "equipos.contratista"
+                        }
+                      ],
+                      staticClass: "custom-select col-6 mr-2",
+                      on: {
+                        change: function($event) {
+                          var $$selectedVal = Array.prototype.filter
+                            .call($event.target.options, function(o) {
+                              return o.selected
+                            })
+                            .map(function(o) {
+                              var val = "_value" in o ? o._value : o.value
+                              return val
+                            })
+                          _vm.$set(
+                            _vm.equipos,
+                            "contratista",
+                            $event.target.multiple
+                              ? $$selectedVal
+                              : $$selectedVal[0]
+                          )
+                        }
+                      }
+                    },
+                    [
+                      _vm.$attrs.cur_cont[0] !== undefined
+                        ? _c(
+                            "option",
+                            {
+                              attrs: { selected: "" },
+                              domProps: { value: _vm.$attrs.cur_cont[0].id }
+                            },
+                            [
+                              _vm._v(
+                                " " + _vm._s(_vm.$attrs.cur_cont[0].nombre)
+                              )
+                            ]
+                          )
+                        : _vm._e()
+                    ]
+                  )
+                : _c(
+                    "select",
+                    {
+                      directives: [
+                        {
+                          name: "model",
+                          rawName: "v-model",
+                          value: _vm.equipos.contratista,
+                          expression: "equipos.contratista"
+                        }
+                      ],
+                      staticClass: "custom-select col-6 mr-2",
+                      on: {
+                        change: function($event) {
+                          var $$selectedVal = Array.prototype.filter
+                            .call($event.target.options, function(o) {
+                              return o.selected
+                            })
+                            .map(function(o) {
+                              var val = "_value" in o ? o._value : o.value
+                              return val
+                            })
+                          _vm.$set(
+                            _vm.equipos,
+                            "contratista",
+                            $event.target.multiple
+                              ? $$selectedVal
+                              : $$selectedVal[0]
+                          )
+                        }
+                      }
+                    },
+                    _vm._l(_vm.contratistas, function(contratista) {
+                      return _c(
+                        "option",
+                        {
+                          key: contratista.id,
+                          domProps: { value: contratista.id }
+                        },
+                        [
+                          _vm._v(
+                            "\n                            " +
+                              _vm._s(contratista.nombre) +
+                              "\n                            "
+                          )
+                        ]
+                      )
+                    }),
+                    0
+                  )
+            ]),
+            _vm._v(" "),
+            _c("div", { staticClass: "card-tools" }, [
+              _c(
+                "button",
+                {
+                  staticClass: "btn btn-tool",
+                  attrs: { type: "button", "data-widget": "collapse" },
+                  on: {
+                    click: function($event) {
+                      _vm.formDisplay = !_vm.formDisplay
+                    }
+                  }
+                },
+                [
+                  _c("i", {
+                    class: _vm.formDisplay ? "fas fa-minus" : "fas fa-plus"
+                  })
+                ]
+              )
+            ])
+          ]),
+          _vm._v(" "),
+          _c("div", { staticClass: "d-sm-none" }, [
             _c("input", {
               directives: [
                 {
@@ -55549,7 +71430,7 @@ var render = function() {
                   expression: "equipos.fecha"
                 }
               ],
-              staticClass: "form-control col-3 mr-2",
+              staticClass: "form-control my-1",
               attrs: { type: "date" },
               domProps: { value: _vm.equipos.fecha },
               on: {
@@ -55574,7 +71455,7 @@ var render = function() {
                         expression: "equipos.contratista"
                       }
                     ],
-                    staticClass: "custom-select col-3 mr-2",
+                    staticClass: "custom-select",
                     on: {
                       change: function($event) {
                         var $$selectedVal = Array.prototype.filter
@@ -55619,7 +71500,7 @@ var render = function() {
                         expression: "equipos.contratista"
                       }
                     ],
-                    staticClass: "custom-select col-3 mr-2",
+                    staticClass: "custom-select mr-2",
                     on: {
                       change: function($event) {
                         var $$selectedVal = Array.prototype.filter
@@ -55657,9 +71538,7 @@ var render = function() {
                     )
                   }),
                   0
-                ),
-            _vm._v(" "),
-            _vm._m(0)
+                )
           ])
         ]),
         _vm._v(" "),
@@ -55770,20 +71649,7 @@ var render = function() {
                 _c(
                   "button",
                   {
-                    staticClass: "col btn btn-dark ",
-                    on: {
-                      click: function($event) {
-                        return _vm.addInputsRow()
-                      }
-                    }
-                  },
-                  [_vm._v("Agregar equipos")]
-                ),
-                _vm._v(" "),
-                _c(
-                  "button",
-                  {
-                    staticClass: "col btn btn-success ",
+                    staticClass: "col btn btn-dark",
                     attrs: { value: "Guardar OT" },
                     on: {
                       click: function($event) {
@@ -55791,7 +71657,20 @@ var render = function() {
                       }
                     }
                   },
-                  [_vm._v("Guardar OT")]
+                  [_vm._v("Siguiente OT")]
+                ),
+                _vm._v(" "),
+                _c(
+                  "button",
+                  {
+                    staticClass: "col btn btn-success",
+                    on: {
+                      click: function($event) {
+                        return _vm.addInputsRow()
+                      }
+                    }
+                  },
+                  [_vm._v("Agregar equipos")]
                 )
               ]),
               _vm._v(" "),
@@ -55902,69 +71781,115 @@ var render = function() {
         "div",
         { staticClass: "card card-outline card-primary collapsed-card" },
         [
-          _vm._m(4),
+          _c("div", { staticClass: "card-header" }, [
+            _c("h3", { staticClass: "card-title" }, [
+              _vm._v("Equipos Cargados")
+            ]),
+            _vm._v(" "),
+            _c("div", { staticClass: "card-tools" }, [
+              _c(
+                "button",
+                {
+                  staticClass: "btn btn-tool btn-dark",
+                  attrs: { type: "button" },
+                  on: {
+                    click: function($event) {
+                      _vm.newEntry ? _vm.storeData() : _vm.commitData()
+                    }
+                  }
+                },
+                [
+                  _c("i", { staticClass: "fas fa-save" }),
+                  _vm._v(" "),
+                  _c("p", { staticClass: "d-none d-md-inline" }, [
+                    _vm._v(" Guardar datos")
+                  ])
+                ]
+              ),
+              _vm._v(" "),
+              _c(
+                "button",
+                {
+                  staticClass: "btn btn-tool",
+                  attrs: { type: "button", "data-widget": "collapse" },
+                  on: {
+                    click: function($event) {
+                      _vm.tableDisplay = !_vm.tableDisplay
+                    }
+                  }
+                },
+                [
+                  _c("i", {
+                    class: _vm.tableDisplay ? "fas fa-minus" : "fas fa-plus"
+                  })
+                ]
+              )
+            ])
+          ]),
           _vm._v(" "),
           _c(
             "div",
             { staticClass: "card-body", staticStyle: { display: "none" } },
             [
-              _c(
-                "table",
-                { staticClass: "table table-bordered" },
-                [
-                  _vm._m(5),
-                  _vm._v(" "),
-                  _vm._l(_vm.equipos.data, function(data, index) {
-                    return _c(
-                      "tbody",
-                      { key: index },
-                      _vm._l(data.series, function(serie, key) {
-                        return _c("tr", { key: key }, [
-                          _c("td", [_vm._v(_vm._s(data.OT))]),
-                          _vm._v(" "),
-                          _c("td", [_vm._v(_vm._s(data.movil))]),
-                          _vm._v(" "),
-                          _c("td", [_vm._v(_vm._s(serie.instala))]),
-                          _vm._v(" "),
-                          _c("td", [_vm._v(_vm._s(serie.recupera))]),
-                          _vm._v(" "),
-                          _c("td", [
-                            _c(
-                              "button",
-                              {
-                                staticClass:
-                                  "btn btn-outline-primary btn-circle my-auto ml-2",
-                                on: {
-                                  click: function($event) {
-                                    return _vm.editLineData(index, data)
-                                  }
-                                }
-                              },
-                              [_c("i", { staticClass: "fas fa-edit" })]
-                            ),
+              _c("div", { staticClass: "table-responsive" }, [
+                _vm.equipos.data.length > 0
+                  ? _c("table", { staticClass: "table table-bordered" }, [
+                      _vm._m(4),
+                      _vm._v(" "),
+                      _c(
+                        "tbody",
+                        _vm._l(_vm.equipos.data, function(serie, index) {
+                          return _c("tr", { key: index }, [
+                            _c("td", [_vm._v(_vm._s(serie.OT))]),
                             _vm._v(" "),
-                            _c(
-                              "button",
-                              {
-                                staticClass:
-                                  "btn btn-outline-danger btn-circle my-auto ml-2",
-                                on: {
-                                  click: function($event) {
-                                    return _vm.removeLineData(index, key)
-                                  }
-                                }
-                              },
-                              [_c("i", { staticClass: "fas fa-times" })]
-                            )
+                            _c("td", [_vm._v(_vm._s(serie.movil))]),
+                            _vm._v(" "),
+                            _c("td", [_vm._v(_vm._s(serie.instala))]),
+                            _vm._v(" "),
+                            _c("td", [_vm._v(_vm._s(serie.recupera))]),
+                            _vm._v(" "),
+                            _c("td", [
+                              _c(
+                                "div",
+                                { staticClass: "d-inline-flex mx-auto" },
+                                [
+                                  _c(
+                                    "button",
+                                    {
+                                      staticClass:
+                                        "btn btn-outline-primary btn-circle my-auto",
+                                      on: {
+                                        click: function($event) {
+                                          return _vm.editLineData(serie)
+                                        }
+                                      }
+                                    },
+                                    [_c("i", { staticClass: "fas fa-edit" })]
+                                  ),
+                                  _vm._v(" "),
+                                  _c(
+                                    "button",
+                                    {
+                                      staticClass:
+                                        "btn btn-outline-danger btn-circle my-auto ml-2",
+                                      on: {
+                                        click: function($event) {
+                                          return _vm.removeLineData(index)
+                                        }
+                                      }
+                                    },
+                                    [_c("i", { staticClass: "fas fa-times" })]
+                                  )
+                                ]
+                              )
+                            ])
                           ])
-                        ])
-                      }),
-                      0
-                    )
-                  })
-                ],
-                2
-              )
+                        }),
+                        0
+                      )
+                    ])
+                  : _c("p", [_vm._v(" No se han cargado equipos todavía")])
+              ])
             ]
           )
         ]
@@ -55977,15 +71902,9 @@ var staticRenderFns = [
     var _vm = this
     var _h = _vm.$createElement
     var _c = _vm._self._c || _h
-    return _c("div", { staticClass: "card-tools" }, [
-      _c(
-        "button",
-        {
-          staticClass: "btn btn-tool",
-          attrs: { type: "button", "data-widget": "collapse" }
-        },
-        [_c("i", { staticClass: "fas fa-plus" })]
-      )
+    return _c("h5", [
+      _c("i", { staticClass: "icon fas fa-exclamation-triangle" }),
+      _vm._v(" Alert!")
     ])
   },
   function() {
@@ -56016,25 +71935,6 @@ var staticRenderFns = [
       _c("i", { staticClass: "fas fa-barcode text-xl ml-3 mr-3 mb-2" }),
       _vm._v(" "),
       _c("p", { staticClass: "text-lg my-auto" }, [_vm._v("Serializables")])
-    ])
-  },
-  function() {
-    var _vm = this
-    var _h = _vm.$createElement
-    var _c = _vm._self._c || _h
-    return _c("div", { staticClass: "card-header" }, [
-      _c("h3", { staticClass: "card-title" }, [_vm._v("Equipos Cargados")]),
-      _vm._v(" "),
-      _c("div", { staticClass: "card-tools" }, [
-        _c(
-          "button",
-          {
-            staticClass: "btn btn-tool",
-            attrs: { type: "button", "data-widget": "collapse" }
-          },
-          [_c("i", { staticClass: "fas fa-plus" })]
-        )
-      ])
     ])
   },
   function() {
@@ -56412,8 +72312,8 @@ var render = function() {
         _c("thead", { staticClass: "thead-dark" }, [
           _c(
             "tr",
-            _vm._l(_vm.tableTitles, function(titles) {
-              return _c("th", { key: titles.id }, [_vm._v(_vm._s(titles))])
+            _vm._l(_vm.titlesProp, function(title) {
+              return _c("th", { key: title.id }, [_vm._v(_vm._s(title))])
             }),
             0
           )
@@ -56421,8 +72321,12 @@ var render = function() {
         _vm._v(" "),
         _c(
           "tbody",
-          _vm._l(_vm.tableData, function(data) {
-            return _c("tr", { key: data.id }, [_c("p", [_vm._v(_vm._s(data))])])
+          _vm._l(_vm.data, function(info) {
+            return _c("tr", { key: info.id }, [
+              _vm._v(
+                "\n                    " + _vm._s(info) + "\n                "
+              )
+            ])
           }),
           0
         )
@@ -56452,42 +72356,43 @@ var render = function() {
   var _vm = this
   var _h = _vm.$createElement
   var _c = _vm._self._c || _h
-  return _c("div", [
-    _c("div", { staticClass: "container col-md-7" }, [
-      _c("div", { staticClass: "card" }, [
-        _c("div", { staticClass: "card-header" }, [
-          _c("div", { staticClass: "row" }, [
-            _c("h3", { staticClass: "card-title col my-auto" }, [
-              _vm._v("Lista de Materiales")
-            ]),
-            _vm._v(" "),
-            _c(
-              "button",
-              {
-                staticClass: "btn btn-secondary float-right mr-4",
-                attrs: { type: "button col my-auto" },
-                on: {
-                  click: function($event) {
-                    return _vm.abrirModal("materiales", "nuevo")
-                  }
-                }
-              },
-              [
-                _c("i", { staticClass: "fas fa-edit" }),
-                _vm._v("   Nuevo\n                  ")
-              ]
-            )
-          ])
-        ]),
-        _vm._v(" "),
-        _c("div", { staticClass: "card-body" }, [
-          _c("div", { staticClass: "table-responsive" }, [
-            _c("table", { staticClass: "table table-bordered" }, [
+  return _c(
+    "div",
+    [
+      _c("div", { staticClass: "container col-md-7" }, [
+        _c("div", { staticClass: "card" }, [
+          _c("div", { staticClass: "card-header" }, [
+            _c("div", { staticClass: "row" }, [
+              _c("h3", { staticClass: "card-title col my-auto" }, [
+                _vm._v("Lista de Materiales")
+              ]),
+              _vm._v(" "),
               _c(
-                "tbody",
+                "button",
+                {
+                  staticClass: "btn btn-secondary float-right mr-4",
+                  attrs: { type: "button col my-auto" },
+                  on: {
+                    click: function($event) {
+                      return _vm.abrirModal("materiales", "nuevo")
+                    }
+                  }
+                },
                 [
-                  _vm._m(0),
-                  _vm._v(" "),
+                  _c("i", { staticClass: "fas fa-edit" }),
+                  _vm._v("   Nuevo\n                  ")
+                ]
+              )
+            ])
+          ]),
+          _vm._v(" "),
+          _c("div", { staticClass: "card-body" }, [
+            _c("div", { staticClass: "table-responsive" }, [
+              _c("table", { staticClass: "table table-bordered" }, [
+                _vm._m(0),
+                _vm._v(" "),
+                _c(
+                  "tbody",
                   _vm._l(_vm.tableData, function(material) {
                     return _c("tr", { key: material.id }, [
                       _c("td", {
@@ -56548,236 +72453,244 @@ var render = function() {
                         )
                       ])
                     ])
-                  })
-                ],
-                2
-              )
-            ])
-          ])
-        ]),
-        _vm._v(" "),
-        _vm._m(1)
-      ])
-    ]),
-    _vm._v(" "),
-    _c(
-      "div",
-      {
-        staticClass: "modal fade",
-        class: { mostrar: _vm.modal },
-        attrs: {
-          tabindex: "-1",
-          role: "dialog",
-          "aria-labelledby": "exampleModalCenterTitle",
-          "aria-hidden": "true"
-        }
-      },
-      [
-        _c(
-          "div",
-          {
-            staticClass: "modal-dialog modal-dialog-centered",
-            attrs: { role: "document" }
-          },
-          [
-            _c("div", { staticClass: "modal-content" }, [
-              _c("div", { staticClass: "modal-header" }, [
-                _c("h5", {
-                  staticClass: "modal-title",
-                  domProps: { textContent: _vm._s(_vm.tituloModal) }
-                }),
-                _vm._v(" "),
-                _c(
-                  "button",
-                  {
-                    staticClass: "close",
-                    attrs: {
-                      type: "button",
-                      "data-dismiss": "modal",
-                      "aria-label": "Close"
-                    },
-                    on: {
-                      click: function($event) {
-                        return _vm.cerrarModal()
-                      }
-                    }
-                  },
-                  [
-                    _c("span", { attrs: { "aria-hidden": "true" } }, [
-                      _vm._v("×")
-                    ])
-                  ]
+                  }),
+                  0
                 )
-              ]),
-              _vm._v(" "),
-              _c("div", { staticClass: "modal-body" }, [
-                _vm.error == 1
-                  ? _c(
-                      "div",
-                      { staticClass: "alert alert-warning" },
-                      [
-                        _vm._m(2),
-                        _vm._v(" "),
-                        _vm._l(_vm.msjesError, function(errores, index) {
-                          return _c("p", { key: index }, [
-                            _vm._v(_vm._s(errores))
-                          ])
-                        })
-                      ],
-                      2
-                    )
-                  : _vm._e(),
-                _vm._v(" "),
-                _c("form", { attrs: { action: "" } }, [
-                  _c("div", { staticClass: "col-auto" }, [
-                    _c(
-                      "label",
-                      {
-                        staticClass: "sr-only",
-                        attrs: { for: "inlineFormInputGroup" }
-                      },
-                      [_vm._v("Código")]
-                    ),
-                    _vm._v(" "),
-                    _c("div", { staticClass: "input-group mb-2" }, [
-                      _vm._m(3),
-                      _vm._v(" "),
-                      _c("input", {
-                        directives: [
-                          {
-                            name: "model",
-                            rawName: "v-model",
-                            value: _vm.codigo,
-                            expression: "codigo"
-                          }
-                        ],
-                        staticClass: "form-control",
-                        attrs: { type: "text", placeholder: "Código" },
-                        domProps: { value: _vm.codigo },
-                        on: {
-                          input: function($event) {
-                            if ($event.target.composing) {
-                              return
-                            }
-                            _vm.codigo = $event.target.value
-                          }
-                        }
-                      })
-                    ])
-                  ]),
-                  _vm._v(" "),
-                  _c("div", { staticClass: "col-auto" }, [
-                    _c(
-                      "label",
-                      {
-                        staticClass: "sr-only",
-                        attrs: { for: "inlineFormInputGroup" }
-                      },
-                      [_vm._v("Descripcion")]
-                    ),
-                    _vm._v(" "),
-                    _c("div", { staticClass: "input-group mb-2" }, [
-                      _vm._m(4),
-                      _vm._v(" "),
-                      _c("input", {
-                        directives: [
-                          {
-                            name: "model",
-                            rawName: "v-model",
-                            value: _vm.descripcion,
-                            expression: "descripcion"
-                          }
-                        ],
-                        staticClass: "form-control",
-                        attrs: { type: "text", placeholder: "Descripción" },
-                        domProps: { value: _vm.descripcion },
-                        on: {
-                          input: function($event) {
-                            if ($event.target.composing) {
-                              return
-                            }
-                            _vm.descripcion = $event.target.value
-                          }
-                        }
-                      })
-                    ])
-                  ])
-                ])
-              ]),
-              _vm._v(" "),
-              _c("div", { staticClass: "modal-footer" }, [
-                _c(
-                  "button",
-                  {
-                    staticClass: "btn btn-secondary",
-                    attrs: { type: "button", "data-dismiss": "modal" },
-                    on: {
-                      click: function($event) {
-                        return _vm.cerrarModal()
-                      }
-                    }
-                  },
-                  [_vm._v("Close")]
-                ),
-                _vm._v(" "),
-                _vm.tipoAccion == 1
-                  ? _c(
-                      "button",
-                      {
-                        staticClass: "btn btn-primary",
-                        attrs: { type: "button" },
-                        on: {
-                          click: function($event) {
-                            return _vm.agregarMaterial()
-                          }
-                        }
-                      },
-                      [
-                        _c("i", { staticClass: "fas fa-save" }),
-                        _vm._v(" Guardar\n                    ")
-                      ]
-                    )
-                  : _vm._e(),
-                _vm._v(" "),
-                _vm.tipoAccion == 2
-                  ? _c(
-                      "button",
-                      {
-                        staticClass: "btn btn-primary",
-                        attrs: { type: "button" },
-                        on: {
-                          click: function($event) {
-                            return _vm.editarMaterial()
-                          }
-                        }
-                      },
-                      [
-                        _c("i", { staticClass: "fas fa-edit" }),
-                        _vm._v(" Editar\n                    ")
-                      ]
-                    )
-                  : _vm._e()
               ])
             ])
-          ]
-        )
-      ]
-    )
-  ])
+          ]),
+          _vm._v(" "),
+          _vm._m(1)
+        ])
+      ]),
+      _vm._v(" "),
+      _c("list-render", {
+        staticClass: "col-8",
+        attrs: { dataProp: _vm.tableData, titlesProp: ["hola", "como", "va"] }
+      }),
+      _vm._v(" "),
+      _c(
+        "div",
+        {
+          staticClass: "modal fade",
+          class: { mostrar: _vm.modal },
+          attrs: {
+            tabindex: "-1",
+            role: "dialog",
+            "aria-labelledby": "exampleModalCenterTitle",
+            "aria-hidden": "true"
+          }
+        },
+        [
+          _c(
+            "div",
+            {
+              staticClass: "modal-dialog modal-dialog-centered",
+              attrs: { role: "document" }
+            },
+            [
+              _c("div", { staticClass: "modal-content" }, [
+                _c("div", { staticClass: "modal-header" }, [
+                  _c("h5", {
+                    staticClass: "modal-title",
+                    domProps: { textContent: _vm._s(_vm.tituloModal) }
+                  }),
+                  _vm._v(" "),
+                  _c(
+                    "button",
+                    {
+                      staticClass: "close",
+                      attrs: {
+                        type: "button",
+                        "data-dismiss": "modal",
+                        "aria-label": "Close"
+                      },
+                      on: {
+                        click: function($event) {
+                          return _vm.cerrarModal()
+                        }
+                      }
+                    },
+                    [
+                      _c("span", { attrs: { "aria-hidden": "true" } }, [
+                        _vm._v("×")
+                      ])
+                    ]
+                  )
+                ]),
+                _vm._v(" "),
+                _c("div", { staticClass: "modal-body" }, [
+                  _vm.error == 1
+                    ? _c(
+                        "div",
+                        { staticClass: "alert alert-warning" },
+                        [
+                          _vm._m(2),
+                          _vm._v(" "),
+                          _vm._l(_vm.msjesError, function(errores, index) {
+                            return _c("p", { key: index }, [
+                              _vm._v(_vm._s(errores))
+                            ])
+                          })
+                        ],
+                        2
+                      )
+                    : _vm._e(),
+                  _vm._v(" "),
+                  _c("form", { attrs: { action: "" } }, [
+                    _c("div", { staticClass: "col-auto" }, [
+                      _c(
+                        "label",
+                        {
+                          staticClass: "sr-only",
+                          attrs: { for: "inlineFormInputGroup" }
+                        },
+                        [_vm._v("Código")]
+                      ),
+                      _vm._v(" "),
+                      _c("div", { staticClass: "input-group mb-2" }, [
+                        _vm._m(3),
+                        _vm._v(" "),
+                        _c("input", {
+                          directives: [
+                            {
+                              name: "model",
+                              rawName: "v-model",
+                              value: _vm.codigo,
+                              expression: "codigo"
+                            }
+                          ],
+                          staticClass: "form-control",
+                          attrs: { type: "text", placeholder: "Código" },
+                          domProps: { value: _vm.codigo },
+                          on: {
+                            input: function($event) {
+                              if ($event.target.composing) {
+                                return
+                              }
+                              _vm.codigo = $event.target.value
+                            }
+                          }
+                        })
+                      ])
+                    ]),
+                    _vm._v(" "),
+                    _c("div", { staticClass: "col-auto" }, [
+                      _c(
+                        "label",
+                        {
+                          staticClass: "sr-only",
+                          attrs: { for: "inlineFormInputGroup" }
+                        },
+                        [_vm._v("Descripcion")]
+                      ),
+                      _vm._v(" "),
+                      _c("div", { staticClass: "input-group mb-2" }, [
+                        _vm._m(4),
+                        _vm._v(" "),
+                        _c("input", {
+                          directives: [
+                            {
+                              name: "model",
+                              rawName: "v-model",
+                              value: _vm.descripcion,
+                              expression: "descripcion"
+                            }
+                          ],
+                          staticClass: "form-control",
+                          attrs: { type: "text", placeholder: "Descripción" },
+                          domProps: { value: _vm.descripcion },
+                          on: {
+                            input: function($event) {
+                              if ($event.target.composing) {
+                                return
+                              }
+                              _vm.descripcion = $event.target.value
+                            }
+                          }
+                        })
+                      ])
+                    ])
+                  ])
+                ]),
+                _vm._v(" "),
+                _c("div", { staticClass: "modal-footer" }, [
+                  _c(
+                    "button",
+                    {
+                      staticClass: "btn btn-secondary",
+                      attrs: { type: "button", "data-dismiss": "modal" },
+                      on: {
+                        click: function($event) {
+                          return _vm.cerrarModal()
+                        }
+                      }
+                    },
+                    [_vm._v("Close")]
+                  ),
+                  _vm._v(" "),
+                  _vm.tipoAccion == 1
+                    ? _c(
+                        "button",
+                        {
+                          staticClass: "btn btn-primary",
+                          attrs: { type: "button" },
+                          on: {
+                            click: function($event) {
+                              return _vm.agregarMaterial()
+                            }
+                          }
+                        },
+                        [
+                          _c("i", { staticClass: "fas fa-save" }),
+                          _vm._v(" Guardar\n                    ")
+                        ]
+                      )
+                    : _vm._e(),
+                  _vm._v(" "),
+                  _vm.tipoAccion == 2
+                    ? _c(
+                        "button",
+                        {
+                          staticClass: "btn btn-primary",
+                          attrs: { type: "button" },
+                          on: {
+                            click: function($event) {
+                              return _vm.editarMaterial()
+                            }
+                          }
+                        },
+                        [
+                          _c("i", { staticClass: "fas fa-edit" }),
+                          _vm._v(" Editar\n                    ")
+                        ]
+                      )
+                    : _vm._e()
+                ])
+              ])
+            ]
+          )
+        ]
+      )
+    ],
+    1
+  )
 }
 var staticRenderFns = [
   function() {
     var _vm = this
     var _h = _vm.$createElement
     var _c = _vm._self._c || _h
-    return _c("tr", [
-      _c("th", { staticStyle: { width: "10px" } }, [_vm._v("#")]),
-      _vm._v(" "),
-      _c("th", [_vm._v("Código")]),
-      _vm._v(" "),
-      _c("th", [_vm._v("Material")]),
-      _vm._v(" "),
-      _c("th", [_vm._v("Acciones")])
+    return _c("thead", { staticClass: "thead-dark" }, [
+      _c("tr", [
+        _c("th", { staticStyle: { width: "10px" } }, [_vm._v("#")]),
+        _vm._v(" "),
+        _c("th", [_vm._v("Código")]),
+        _vm._v(" "),
+        _c("th", [_vm._v("Material")]),
+        _vm._v(" "),
+        _c("th", [_vm._v("Acciones")])
+      ])
     ])
   },
   function() {

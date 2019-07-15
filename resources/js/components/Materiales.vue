@@ -14,12 +14,15 @@
               <div class="card-body">
                 <div class="table-responsive">
                 <table class="table table-bordered">
-                  <tbody><tr>
+                  <thead class="thead-dark">
+                    <tr>
                     <th style="width: 10px">#</th>
                     <th>Código</th>
                     <th>Material</th>
                     <th>Acciones</th>
                   </tr>
+                  </thead>
+                  <tbody>
                   <tr v-for="material in tableData" :key="material.id">
                     <td v-text="material.id"></td>
                     <td v-text="material.codigo"></td>
@@ -54,6 +57,8 @@
 
     </div>
     <!-- /.card -->
+
+    <list-render class="col-8" :dataProp="tableData" :titlesProp="['hola', 'como', 'va']"></list-render>
 
             <!-- Modal -->
             <div class="modal fade" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true" :class="{'mostrar' : modal}">

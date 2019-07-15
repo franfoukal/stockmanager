@@ -1,27 +1,49 @@
 <template>
 <div class="component">
-    <div class="container col-md-10">
+    <div class="container col-md-8">
+        <div class="alert alert-warning alert-dismissible" v-if="error.length > 0">
+            <button type="button" class="close" data-dismiss="alert" aria-hidden="true" @click="error=[]">×</button>
+            <h5><i class="icon fas fa-exclamation-triangle"></i> Alert!</h5>
+            <p v-for="(e, index) in error" :key="index">{{e}}</p>
+        </div>
+
         <div class="card collapse show">
             <div class="card-header">
                 <div class="row">
                     <p class="card-title my-auto col">Carga de equipos</p>
-                    <input type="date" class="form-control col-3 mr-2" v-model="equipos.fecha" >
+                    <div class="d-none d-sm-inline-flex mr-2">
+                        <input type="date" class="form-control col-6 mr-2" v-model="equipos.fecha" >
                         
-                        <select class="custom-select col-3 mr-2" v-model="equipos.contratista" v-if="$attrs.cur_cont[0] !== undefined">
+                        <select class="custom-select col-6 mr-2" v-model="equipos.contratista" v-if="$attrs.cur_cont[0] !== undefined">
                             <option  v-if="$attrs.cur_cont[0] !== undefined" :value="$attrs.cur_cont[0].id" selected> {{$attrs.cur_cont[0].nombre}}</option>
                         </select>
                         
-                        <select class="custom-select col-3 mr-2" v-model="equipos.contratista" v-else>
+                        <select class="custom-select col-6 mr-2" v-model="equipos.contratista" v-else>
                             <option  v-for="contratista in contratistas" :key="contratista.id" :value="contratista.id">
                             {{contratista.nombre}}
                             </option>
                         </select>
+                    </div>
 
                         <div class="card-tools">
-                            <button type="button" class="btn btn-tool" data-widget="collapse"><i class="fas fa-plus"></i></button>
+                            <button type="button" class="btn btn-tool" data-widget="collapse" @click="formDisplay = !formDisplay"><i :class="formDisplay ? 'fas fa-minus' :'fas fa-plus'"></i></button>
                         </div>
                         <!-- /.card-tools -->
-                </div>    
+                </div>  
+
+                <div class="d-sm-none">
+                    <input type="date" class="form-control my-1" v-model="equipos.fecha" >
+                    <select class="custom-select" v-model="equipos.contratista" v-if="$attrs.cur_cont[0] !== undefined">
+                            <option  v-if="$attrs.cur_cont[0] !== undefined" :value="$attrs.cur_cont[0].id" selected> {{$attrs.cur_cont[0].nombre}}</option>
+                        </select>
+                        
+                        <select class="custom-select mr-2" v-model="equipos.contratista" v-else>
+                            <option  v-for="contratista in contratistas" :key="contratista.id" :value="contratista.id">
+                            {{contratista.nombre}}
+                            </option>
+                        </select>
+                </div>
+
             </div>
             
             <div class="card-body">
@@ -65,8 +87,8 @@
 
                         
                         <div class="btn-group mt-2">
-                            <button class="col btn btn-dark " @click="addInputsRow()">Agregar equipos</button>
-                            <button class="col btn btn-success " @click="saveOT(input)" value="Guardar OT">Guardar OT</button>
+                            <button class="col btn btn-dark" @click="saveOT(input)" value="Guardar OT">Siguiente OT</button>
+                            <button class="col btn btn-success" @click="addInputsRow()">Agregar equipos</button>
                         </div>
 
                     <hr>
@@ -108,44 +130,51 @@
                 <h3 class="card-title">Equipos Cargados</h3>
 
                 <div class="card-tools">
-                  <button type="button" class="btn btn-tool" data-widget="collapse"><i class="fas fa-plus"></i>
-                  </button>
+                    <button type="button" class="btn btn-tool btn-dark" @click="newEntry ? storeData() : commitData()"><i class="fas fa-save"></i> <p class="d-none d-md-inline"> Guardar datos</p> </button>
+                  <button type="button" class="btn btn-tool" data-widget="collapse" @click="tableDisplay = !tableDisplay"><i  :class="tableDisplay ? 'fas fa-minus' : 'fas fa-plus'"></i></button>
                 </div>
                 <!-- /.card-tools -->
               </div>
               <!-- /.card-header -->
               <div class="card-body" style="display: none;">
-                <table class="table table-bordered">
-                    <thead class="thead-dark">
-                        <th>OT</th>
-                        <th>Móvil</th>
-                        <th>Instala</th>
-                        <th>Retira</th>
-                        <th>Acciones</th>
-                    </thead>
-                    <tbody v-for="(data, index) in equipos.data" :key="index">
-                            <tr v-for="(serie, key) in data.series" :key="key">
-                                <td>{{data.OT}}</td>
-                                <td>{{data.movil}}</td>
-                                <td>{{serie.instala}}</td>
-                                <td>{{serie.recupera}}</td>
-                                <td>
-                                    <button class="btn btn-outline-primary btn-circle my-auto ml-2" @click="editLineData(index, data)"><i class="fas fa-edit"></i></button>
-                                    <button class="btn btn-outline-danger btn-circle my-auto ml-2" @click="removeLineData(index, key)"><i class="fas fa-times"></i></button>
-                                </td>
-                            </tr>
-                    </tbody>
-                </table>
+                <div class="table-responsive">
+                    <table class="table table-bordered" v-if="equipos.data.length > 0">
+                        <thead class="thead-dark">
+                            <th>OT</th>
+                            <th>Móvil</th>
+                            <th>Instala</th>
+                            <th>Retira</th>
+                            <th>Acciones</th>
+                        </thead>
+                        <tbody>
+                                <tr v-for="(serie, index) in equipos.data" :key="index">
+                                    <td>{{serie.OT}}</td>
+                                    <td>{{serie.movil}}</td>
+                                    <td>{{serie.instala}}</td>
+                                    <td>{{serie.recupera}}</td>
+                                    <td>
+                                        <div class="d-inline-flex mx-auto">
+                                            <button class="btn btn-outline-primary btn-circle my-auto" @click="editLineData(serie)"><i class="fas fa-edit"></i></button>
+                                            <button class="btn btn-outline-danger btn-circle my-auto ml-2" @click="removeLineData(index)"><i class="fas fa-times"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                        </tbody>
+                    </table>
+                    <p v-else> No se han cargado equipos todavía</p>
+                </div>
               </div>
+              
               <!-- /.card-body -->
             </div>
 
-        
+        </div>
     </div>
-</div>
 </template>
 
 <script>
+import jexcel from 'jexcel'
+
 export default {
     
     data() {
@@ -159,8 +188,8 @@ export default {
                         recupera: '',
                     }, 
                 ],
-                comentario: ''
-            },   
+                //comentario: ''
+            },    
             
             equipos: {
                 contratista: '',
@@ -181,19 +210,24 @@ export default {
             },
 
             refresh: 0,
+            formDisplay: true,
+            tableDisplay: false,
+            newEntry: true,
+            error:[]
+            
         }
     },
 
     methods: {
-        addInputsRow(){
+        addInputsRow(state){
             this.input.series.push({
                 instala: '',
                 recupera: ''
             });
 
             this.validation.series.push({
-                instala: '',
-                recupera: ''
+                instala: state ? state : '',
+                recupera: state ? state : ''
             });
         },
 
@@ -217,11 +251,26 @@ export default {
 
         saveOT(currentInput){
             if (this.isValidated() === false) {
+                this.error.push('Verificar fecha, contratista y que hayan equipos cargados');
                 return;
             }
             let me = this;
             const tempMyObj = Object.assign({}, currentInput);
-            this.equipos.data.push(tempMyObj);//JSON.stringify(this.input));
+            var objToData = {};
+
+            tempMyObj.series.forEach(element => {
+                objToData.OT = tempMyObj.OT;
+                objToData.movil = tempMyObj.movil;
+                objToData.instala = element.instala;
+                objToData.recupera = element.recupera;
+
+                const temp = Object.assign({}, objToData);
+
+                this.equipos.data.push(temp);
+                console.log(temp);
+                
+            });
+
             this.input.OT='';
             this.input.movil = this.rememberMovil ? this.input.movil : '';
             this.input.series = [];
@@ -230,20 +279,24 @@ export default {
         },
 
         storeData(){
+            if(this.equipos.data.length === 0){
+                this.error.push('Verificar fecha, contratista y equipos cargados');
+                return;
+            }
             var me = this;
             axios.post('/equipos/agregar', {
             
-                fecha: me.fecha,
+                fecha: me.equipos.fecha,
                 datos_equipos: JSON.stringify(me.equipos.data),
-                contratista_id: me.equipos.contratista.id,
+                contratista_id: me.equipos.contratista,
             })
             .then(function (response) {
-                alert('Equipos cargados correctamente');
-                
+                alert('Equipos cargados correctamente' + response);
+                me.newEntry = false;
             })
             .catch(function (error) {
                 console.log(error);
-                
+                me.error.push('Verificar fecha, contratista y equipos cargados');
             })
             .finally(function () {
                
@@ -259,24 +312,49 @@ export default {
             this.validation.series.splice(row, 1);
         },
 
-        editLineData(row, data){
+        editLineData(serie){
+            let me = this;
+            var eq = {
+                        OT: '',
+                        movil: '',
+                        series:[],
+            };
             this.refresh += 1;
             this.validation.series = [];
             this.input.series = [];
-            for (let index = 0; index < data.series.length; index++) {
-                this.addInputsRow();  
-            }
-            this.input = data;
-            this.equipos.data.splice(row, 1);
-        },
+            eq.OT = serie.OT;
+            eq.movil = serie.movil;
 
-        removeLineData(row,key){
-            if(this.equipos.data[row].series.length === 1){
-                this.equipos.data.splice(row, 1);
-            }else{
-                this.equipos.data[row].series.splice(key, 1);
+
+            this.equipos.data.forEach((element, index) => { 
+                if(element.OT === serie.OT){
+                    this.addInputsRow(true);
+                    eq.series.push({
+                        instala: element.instala,
+                        recupera: element.recupera
+                    });
+                }
+            });
+            const OTnumber = serie.OT;
+
+            for (let index = 0; index < this.equipos.data.length; index++) {
+                
+                if(this.equipos.data[index].OT === OTnumber){
+                    this.equipos.data.splice(index, 1);
+                    if (this.equipos.data.length >= 1) {
+                        index--;
+                    }
+                }
             }
             
+            const temp = Object.assign({}, eq);
+            
+            this.input = temp;
+
+        },
+
+        removeLineData(index){
+            this.equipos.data.splice(index,1);
         },
 
         comprobeFields(regex, input){
@@ -337,21 +415,40 @@ export default {
                 }    
             });
 
-            
             console.log(validate);
-            
             return validate;
         }, 
 
         test(){
             console.log(this.isValidated());
+            
         },
 
-        
+        commitData(){
+            if(this.equipos.data.length === 0){
+                this.error.push('Verificar fecha, contratista y equipos cargados');
+                return;
+            }
+            var me = this;
+            axios.post('/equipos/editar', {
+                fecha: me.equipos.fecha,
+                datos_equipos: JSON.stringify(me.equipos.data),
+                contratista_id: me.equipos.contratista,
+            })
+            .then(function (response) {
+                console.log(response);
+            })
+            .catch(function (error) {
+                console.log(error);
+                me.error.push('Verificar fecha, contratista y equipos cargados');
+            });
+        },        
     },
     
     mounted() {
         this.getContratistas();
+        // let spreadsheet = jexcel($ref.jexcel, this.options);
+        //     Object.assign(this, spreadsheet);
     },
 
 }
@@ -404,6 +501,23 @@ export default {
 }
 .input-group .invalid{
     border-color: red !important;
+}
+
+.w-20 {
+  width: 20%;
+}
+
+.w-10 {
+  width: 10%
+}
+
+.w-40 {
+  width: 40%;
+}
+
+table {
+    table-layout:auto;
+    word-wrap: break-word;
 }
 
     

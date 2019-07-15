@@ -4,12 +4,12 @@
         <table class="table">
             <thead class="thead-dark">
                 <tr>
-                    <th v-for="titles in tableTitles" :key="titles.id">{{titles}}</th>
+                    <th v-for="title in titlesProp" :key="title.id">{{title}}</th>
                 </tr>
             </thead>
             <tbody>
-                <tr v-for="(data) in tableData" :key="data.id">
-                    <p>{{data}}</p>
+                <tr v-for="info in data" :key="info.id">
+                    {{info}}
                 </tr>
             </tbody>
         </table>
@@ -20,28 +20,42 @@
 <script>
 export default {
     props: {
-        tableTitles: Array,
-        tableData: Object,
-        singleData: Object,
+        keysProp: Array,
+        dataProp: Array,
+        titlesProp: Array
     },
     
-    data: function(){
+    data(){
         return {
-            datas: [],
+            data:[],
+            keys:[],
+            titlesData:[]
         } 
     },
 
-    methods:{
-        chooseFieldsToRender(arr,...data){
-            this.tableData = this.arr.filter(function(element){
-                this.data.forEach(function(c){
-                    (element) => element.c
-                });
-            });
+    computed:{
+        titles: function(){
+            const temp = Object.assign({}, this.dataProp[0]);
+            console.log(temp);
+            return Object.keys(temp);
         },
+
+        dataComp: function(){
+            const temp = Object.assign({}, this.dataProp);
+            return temp.filter((element)=>{
+                //foreach con los keysProps
+            });
+        }
     },
 
-    mounted(){}
+    methods:{
+    },
+
+    mounted(){},
+
+    created(){
+        
+    }
 }
 </script>
 

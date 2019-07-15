@@ -30,9 +30,12 @@
         "@fullcalendar/interaction": "^4.2.0",
         "@fullcalendar/timegrid": "^4.2.0",
         "@fullcalendar/vue": "^4.2.2",
+        "@handsontable/vue": "^4.0.0",
         "admin-lte": "^3.0.0-alpha.2",
         "exceljs": "^1.12.2",
         "file-saver": "^2.0.2",
+        "handsontable": "^7.1.0",
+        "jexcel": "^3.3.0",
         "xlsx": "^0.14.3",
         "xlsx-style": "^0.8.13"
     }

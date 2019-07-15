@@ -74,11 +74,11 @@ class EquipoController extends Controller
      * @param  \App\Equipo  $equipo
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, Equipo $equipo)
+    public function update(Request $request)
     {
-        $equipos = Equipo::findOrFail($request->id);
+        $equipos = Equipo::where([['fecha', '=', $request->fecha],['contratista_id', '=', $request->contratista_id]])->firstOrFail();
         $equipos->fecha = $request->fecha;
-        $equipos->datos_consumo = $request->datos_equipos;
+        $equipos->datos_equipos = $request->datos_equipos;
         $equipos->contratista_id = $request->contratista_id;
         $equipos->added_by = Auth::user()->name;
         $equipos->save();
