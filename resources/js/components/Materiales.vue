@@ -58,7 +58,25 @@
     </div>
     <!-- /.card -->
 
-    <list-render class="col-8" :dataProp="tableData" :titlesProp="['hola', 'como', 'va']"></list-render>
+    <list-render 
+    class="col-8" 
+    :dataProp="tableData" 
+    :titlesProp="['#', 'Código', 'Descripción']" 
+    :keysProp="['id', 'codigo', 'descripcion']"
+    v-slot:default="listItem">
+    
+      <td> 
+        <div class="btn-group mx-auto" role="group" aria-label="Basic example">
+          <button type="button" class="btn btn-outline-info btn-sm" @click="abrirModal('materiales', 'editar', listItem)"> 
+            <i class="fas fa-edit"></i>
+          </button>
+          <button type="button" class="btn btn-outline-danger btn-sm" @click="borrarMaterial(listItem)"> 
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </td> 
+
+    </list-render>
 
             <!-- Modal -->
             <div class="modal fade" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true" :class="{'mostrar' : modal}">
