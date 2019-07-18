@@ -102,4 +102,27 @@ class ContratistaController extends Controller
         $contratista = Contratista::findOrFail($id);
         $contratista->delete();
     }
+
+
+    public function getDataByDate(Request $request)
+    {
+
+        $contratista = $request->query('contr_id');
+        $date1 = date('Y-m-d', strtotime($request->query('start')));
+        $date2 = date('Y-m-d', strtotime($request->query('end')));
+
+
+
+        if ($contratista != 'undefined') {
+            $data = Contratista::with('consumo', 'equipo')
+                ->whereBetween('fecha', [$date1, $date2])
+                ->where('contratista_id', $contratista)->get();
+            return $data;
+        } else {
+            $data = Contratista::with('contratista', 'equipo')
+                ->whereBetween('fecha', [$date1, $date2])->get();
+
+            return $data;
+        }
+    }
 }

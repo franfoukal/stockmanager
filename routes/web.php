@@ -82,6 +82,7 @@ Route::group(['middleware' => ['auth']], function(){
     Route::delete('/consumo/eliminar/{id}', 'ConsumoController@destroy');
 
     Route::get('/consumos', 'ConsumoController@getConsumeByDate');
+    Route::get('/hola', 'ContratistaController@getDataByDate');
 
     Route::get('/clear-cache', function () {
         Artisan::call('cache:clear');

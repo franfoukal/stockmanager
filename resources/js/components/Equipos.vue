@@ -138,7 +138,7 @@
               <!-- /.card-header -->
               <div class="card-body" style="display: none;">
                 <div class="table-responsive">
-                    <table class="table table-bordered" v-if="equipos.data.length > 0">
+                    <!--table class="table table-bordered" v-if="equipos.data.length > 0">
                         <thead class="thead-dark">
                             <th>OT</th>
                             <th>Móvil</th>
@@ -160,7 +160,23 @@
                                     </td>
                                 </tr>
                         </tbody>
-                    </table>
+                    </table-->
+                    <list-render
+                        :makeActions="true"
+                        v-if="equipos.data.length > 0"
+                        :dataProp="equipos.data"
+                        :titlesProp="['OT', 'Móvil', 'Instala', 'Recupera']"
+                        :keysProp="['OT', 'movil', 'instala', 'recupera']"
+                        v-slot:default="listItem"
+                    >
+                    <td>
+                        <div class="d-inline-flex mx-auto my-auto">
+                            <button class="btn btn-outline-primary btn-circle my-auto" @click="editLineData(listItem)"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-outline-danger btn-circle my-auto ml-2" @click="removeLineData(index)"><i class="fas fa-times"></i></button>
+                        </div>
+                    </td>
+
+                    </list-render>
                     <p v-else> No se han cargado equipos todavía</p>
                 </div>
               </div>

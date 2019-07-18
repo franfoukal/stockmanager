@@ -80,23 +80,27 @@
               </div>
               <div class="modal-body">
 
-                  <table class="table table-bordered">
-                        <thead class="thead-dark">
-                          <tr>
-                            <th scope="col">Código</th>
-                            <th scope="col">Descripción</th>
-                            <th scope="col">Cantidad</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr v-for="consumo in consumos" :key="consumo.id">
-                            <td>{{consumo.codigo}}</td>
-                            <td>{{consumo.descripcion}}</td>
-                            <td>{{consumo.consumo}}</td>
-                          </tr>
-                        </tbody>
-                    </table>
+                <nav>
+                  <div class="nav nav-tabs" id="nav-tab" role="tablist">
+                    <a class="nav-item nav-link active" id="nav-materiales-tab" data-toggle="tab" href="#nav-materiales" role="tab" aria-controls="nav-materiales" aria-selected="true">Materiales</a>
+                    <a class="nav-item nav-link" id="nav-equipos-tab" data-toggle="tab" href="#nav-equipos" role="tab" aria-controls="nav-equipos" aria-selected="false">Equipos</a>
+                  </div>
+                </nav>
+                <div class="tab-content" id="nav-tabContent">
+                  <div class="tab-pane fade show active" id="nav-materiales" role="tabpanel" aria-labelledby="nav-materiales-tab">
+                      <list-render 
+                        class="mt-4" 
+                        :makeActions="false"
+                        :dataProp="consumos" 
+                        :titlesProp="['Código', 'Descripción', 'Cantidad']" 
+                        :keysProp="['codigo', 'descripcion', 'consumo']"
+                        v-slot:default="listItem">
+                      </list-render>
+                  </div>
+                  <div class="tab-pane fade" id="nav-equipos" role="tabpanel" aria-labelledby="nav-equipos-tab">
 
+                  </div>
+                </div>
               </div>
               <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal" @click="cerrarModal()">Close</button>
@@ -134,7 +138,7 @@ export default {
       contratistas: [],
       contr: this.$attrs.cur_cont,
       selected: {},
-      consumos: {},
+      consumos: [],
       goTo: '',
       filter: [],
       refresh: 0,
@@ -159,6 +163,15 @@ export default {
             consumo: e.datos_consumo,
             }
         },
+        // url: '/hola',
+        // eventDataTransform: function(e){
+        //   return {
+        //     title: e.nombre,
+        //     start: e.consumo[0].fecha,
+        //     color: e.color,
+        //     consumo: e.consumo[0].datos_consumo,
+        //     }
+        // },
 
         extraParams: {
           contr_id: undefined,

@@ -22,7 +22,7 @@ class Contratista extends Model
         return $this->belongsToMany('App\Consumo')->withTimestamps();
     }
 
-    public function contratista()
+    public function equipo()
     {
         return $this->belongsToMany('App\Equipo')->withTimestamps();
     }

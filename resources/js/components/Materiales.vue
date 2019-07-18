@@ -12,35 +12,28 @@
               </div>
               <!-- /.card-header -->
               <div class="card-body">
-                <div class="table-responsive">
-                <table class="table table-bordered">
-                  <thead class="thead-dark">
-                    <tr>
-                    <th style="width: 10px">#</th>
-                    <th>Código</th>
-                    <th>Material</th>
-                    <th>Acciones</th>
-                  </tr>
-                  </thead>
-                  <tbody>
-                  <tr v-for="material in tableData" :key="material.id">
-                    <td v-text="material.id"></td>
-                    <td v-text="material.codigo"></td>
-                    <td v-text="material.descripcion"></td>
+
+                <list-render 
+                  class="" 
+                  :makeActions="true"
+                  :dataProp="tableData" 
+                  :titlesProp="['#', 'Código', 'Descripción']" 
+                  :keysProp="['id', 'codigo', 'descripcion']"
+                  v-slot:default="listItem">
+                  
                     <td> 
-                      <div class="btn-group" role="group" aria-label="Basic example">
-                        <button type="button" class="btn btn-outline-info btn-sm" @click="abrirModal('materiales', 'editar', material)"> 
+                      <div class="btn-group mx-auto" role="group" aria-label="Basic example">
+                        <button type="button" class="btn btn-outline-info btn-sm" @click="abrirModal('materiales', 'editar', listItem)"> 
                           <i class="fas fa-edit"></i>
                         </button>
-                        <button type="button" class="btn btn-outline-danger btn-sm" @click="borrarMaterial(material)"> 
+                        <button type="button" class="btn btn-outline-danger btn-sm" @click="borrarMaterial(listItem)"> 
                           <i class="fas fa-trash"></i>
                         </button>
                       </div>
                     </td>
-                  </tr>
-                  
-                </tbody></table>
-                </div>
+
+                </list-render>
+
               </div>
               <!-- /.card-body -->
               <div class="card-footer clearfix">
@@ -57,26 +50,6 @@
 
     </div>
     <!-- /.card -->
-
-    <list-render 
-    class="col-8" 
-    :dataProp="tableData" 
-    :titlesProp="['#', 'Código', 'Descripción']" 
-    :keysProp="['id', 'codigo', 'descripcion']"
-    v-slot:default="listItem">
-    
-      <td> 
-        <div class="btn-group mx-auto" role="group" aria-label="Basic example">
-          <button type="button" class="btn btn-outline-info btn-sm" @click="abrirModal('materiales', 'editar', listItem)"> 
-            <i class="fas fa-edit"></i>
-          </button>
-          <button type="button" class="btn btn-outline-danger btn-sm" @click="borrarMaterial(listItem)"> 
-            <i class="fas fa-trash"></i>
-          </button>
-        </div>
-      </td> 
-
-    </list-render>
 
             <!-- Modal -->
             <div class="modal fade" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true" :class="{'mostrar' : modal}">
